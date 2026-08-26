@@ -1383,12 +1383,15 @@ export class TaskWheelView extends ItemView {
 			// The same move the arrow keys make: sideways on this ring. A phone
 			// has no arrow keys, and turning is a coarse instrument for one step.
 			alongRing: (delta) => this.controller?.walkRing(delta),
-			// Only in a wheel over one note. There the wheel is that note's
-			// outline, so position and order are things it shows better than the
-			// editor does; over a whole vault it is a review instrument and stays
-			// one (kaderdocument §4.2).
+			// On every wheel since 26 aug 2026 (kaderdocument §4.2, herzien):
+			// each of these writes only into the task's own note — `ref.path`
+			// is the boundary, not the wheel's scope — so hanging a task that
+			// sits just wrong onto the right heading works mid-review, without
+			// the detour through the note's own wheel. What stays note-wheel
+			// only is editing *headings* (`section` below): those reshape a
+			// document, and doing that is what the document's own wheel is for.
 			outline:
-				ref === null || this.wheelScope.kind !== "note"
+				ref === null
 					? undefined
 					: {
 							rename: (text) => {
@@ -1500,13 +1503,12 @@ export class TaskWheelView extends ItemView {
 	/**
 	 * Alt with an arrow, on whatever is under the wedge.
 	 *
-	 * Refuses anywhere but a note wheel, and refuses on anything that is not a
-	 * task — the same rule the menu follows, so the key and the button can never
-	 * disagree about what is allowed.
+	 * Refuses on anything that is not a task — the same rule the menu follows,
+	 * so the key and the button can never disagree about what is allowed. On
+	 * every wheel since 26 aug 2026, like the menu: the move stays inside the
+	 * task's own note whatever the wheel's scope is.
 	 */
 	private moveFocused(direction: MoveDirection): void {
-		if (this.wheelScope.kind !== "note") return;
-
 		const laid =
 			this.focusId === null ? null : (this.layout?.byId.get(this.focusId) ?? null);
 		const ref = laid === null ? null : lineRefOf(laid);

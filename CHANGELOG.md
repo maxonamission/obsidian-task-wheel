@@ -4,6 +4,20 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.3]
+
+Fixing a task's place in its note no longer needs a detour.
+
+- **Changed**: the outline actions on the card — rename, add a task, move up
+  or down, send to another heading, hang under another task — now work from
+  every wheel, not only from a wheel over one note. Each of these edits stays
+  inside the task's own note whatever wheel you are looking at, so a task
+  that sits just wrong can be put right mid-review. Editing headings still
+  belongs to the note's own wheel: that reshapes a document.
+- **Removed**: an internal audit document that travelled along with the
+  0.1.2 source sync. It contained no secrets — a quality report with
+  everything green — but it was never meant to be part of this repository.
+
 ## [0.1.2]
 
 A round can only close honestly if no task is secretly on the wheel twice —
