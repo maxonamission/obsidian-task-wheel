@@ -58,6 +58,7 @@ describe("roundMenu — the round's own actions", () => {
 				"unfold",
 				"rescan",
 				"skip-report",
+				"duplicate-report",
 				"add-preset",
 			]),
 		);

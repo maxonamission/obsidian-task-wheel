@@ -993,6 +993,20 @@
 	color: var(--text-warning);
 }
 
+/*
+ * A place in the duplicate report is a jump, not a reference: it reads like a
+ * link because clicking it is the whole point of naming it.
+ */
+.task-wheel-dup-link {
+	color: var(--link-color);
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.task-wheel-dup-link:hover {
+	text-decoration: underline;
+}
+
 /* Notes offered while a link is being typed (BC_E3_S29).
 
    Fixed, on the page itself, at the measured position of the field. Hanging it

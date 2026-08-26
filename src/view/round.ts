@@ -97,6 +97,10 @@ export function startRound(host: RoundHost): void {
 	// A new round *does* begin at the beginning: the remembered place belongs to
 	// the round that just ended (BC_E3_S52).
 	state.reading = null;
+	// And it deals the wedges again when they divide by open tasks: the round
+	// boundary is the one moment re-division is allowed to move the drawing
+	// (kaderdocument §3.1, herzien 26 aug 2026).
+	state.roundWeights = null;
 	host.persist();
 	drawSweep(host);
 }

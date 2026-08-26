@@ -16,6 +16,7 @@ import {
 	type WheelScope,
 	type CarryPreset,
 } from "./model/types";
+import { duplicateReport } from "./parse/duplicate-report";
 import { describe, isFiltering } from "./parse/filter";
 import { skipReport } from "./parse/skip-report";
 import { startScope } from "./parse/start-scope";
@@ -31,6 +32,7 @@ import {
 	setFilter,
 } from "./settings";
 import { readNotes, ScanCache } from "./vault/scan";
+import { DuplicateReportModal } from "./view/duplicate-report-modal";
 import { SkipReportModal } from "./view/skip-report-modal";
 import { TaskWheelView, VIEW_TYPE_TASK_WHEEL } from "./view/wheel-view";
 import {
@@ -147,6 +149,17 @@ export default class TaskWheelPlugin extends Plugin {
 			name: "Show what the skip rules take out",
 			callback: () => {
 				void this.showSkipReport();
+			},
+		});
+
+		// A duplicate quietly breaks the closed round's promise: tick one copy
+		// off and the other stays on the wheel as open work. This names the
+		// candidates; the judgement stays with the reader (kaderdocument §1.1).
+		this.addCommand({
+			id: "duplicate-report",
+			name: "Show possible duplicate tasks",
+			callback: () => {
+				void this.showDuplicateReport();
 			},
 		});
 
@@ -696,6 +709,18 @@ export default class TaskWheelPlugin extends Plugin {
 		const options = parseOptionsOf(this.settings, VAULT_SCOPE);
 		const notes = await readNotes(this.app, VAULT_SCOPE);
 		new SkipReportModal(this.app, skipReport(notes, options)).open();
+	}
+
+	/**
+	 * Read the vault once and name the checkboxes that share their words.
+	 *
+	 * Whole-vault for the same reason as the skip report: a copy in another
+	 * folder is exactly the copy a local wheel would not see.
+	 */
+	async showDuplicateReport(): Promise<void> {
+		const options = parseOptionsOf(this.settings, VAULT_SCOPE);
+		const notes = await readNotes(this.app, VAULT_SCOPE);
+		new DuplicateReportModal(this.app, duplicateReport(notes, options)).open();
 	}
 
 	/** Rescan the vault in every open wheel. */

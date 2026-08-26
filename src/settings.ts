@@ -55,6 +55,15 @@ export interface WheelState {
 	 */
 	reading?: string | null;
 	/**
+	 * What each domain weighed when the current round began, when the wedges
+	 * divide by open tasks (setting `wedgeDivision`). Frozen so the drawing
+	 * cannot move under the reader's hands mid-round: ticking work off changes
+	 * the vault, not these numbers. Cleared on every round boundary — a new
+	 * round, a changed selection, or a changed division setting — and absent
+	 * (like `reading`) on a data.json from before the feature.
+	 */
+	roundWeights?: Record<string, number> | null;
+	/**
 	 * What this wheel's round is about.
 	 *
 	 * Per blikveld, beside the round it defines. It used to be plugin-wide, so
@@ -150,6 +159,24 @@ export interface TaskWheelSettings
 	startPath: string;
 	detail: WheelDetail;
 	/**
+	 * How the circle is divided over the domains.
+	 *
+	 * "equal" is the original hard requirement: every domain the same slice,
+	 * whatever it holds, so spatial memory gets the strongest guarantee.
+	 * "tasks" trades a little of that for proportion — busier domains get wider
+	 * wedges — but only between rounds: the weights are frozen when a round
+	 * begins (kaderdocument §3.1, herzien 26 aug 2026).
+	 */
+	wedgeDivision: "equal" | "tasks";
+	/**
+	 * The narrowest a proportional wedge may get, in degrees.
+	 *
+	 * The owner's condition on the whole feature: a sliver that cannot carry
+	 * its own name is a bad pie chart, not a wheel. Quiet domains stop at this
+	 * width instead of shrinking away.
+	 */
+	wedgeMinimum: number;
+	/**
 	 * Show what the wheel receives from the device.
 	 *
 	 * Off by default and not a feature: it exists because the wheel has to work
@@ -183,6 +210,7 @@ export const DEFAULT_STATE: WheelState = {
 	sweepStartedAt: null,
 	zoom: 1,
 	reading: null,
+	roundWeights: null,
 };
 
 export const DEFAULT_SETTINGS: TaskWheelSettings = {
@@ -201,6 +229,8 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	openOnStart: false,
 	startPath: "",
 	detail: "balanced",
+	wedgeDivision: "equal",
+	wedgeMinimum: 15,
 	diagnostics: false,
 	language: "auto",
 	presets: [],
@@ -324,6 +354,10 @@ export function setFilter(
 	const restarted = state.seen.length;
 	state.seen = [];
 	state.sweepStartedAt = null;
+	// A new selection is a new round, and a new round deals the wedges again
+	// when they divide by open tasks — the frozen weights belonged to the old
+	// selection's population.
+	state.roundWeights = null;
 	return { restarted };
 }
 
@@ -415,6 +449,12 @@ const DETAIL_LABELS: Record<WheelDetail, string> = {
 	dense: "Dense — more items, smaller",
 };
 
+const WEDGE_DIVISION_LABELS: Record<TaskWheelSettings["wedgeDivision"], string> =
+	{
+		equal: "Equal — every domain the same slice",
+		tasks: "By open tasks — busier domains get wider wedges",
+	};
+
 /**
  * The settings tab, written against the declarative API (Obsidian 1.13+).
  *
@@ -490,7 +530,19 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 			(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 		}
 
+		// A changed division rule is a round boundary of its own: the frozen
+		// weights belonged to the old rule, and holding on to them would show
+		// the new setting doing nothing until the next round by accident.
+		if (key === "wedgeDivision" || key === "wedgeMinimum") {
+			for (const state of everyState(this.plugin.settings)) {
+				state.roundWeights = null;
+			}
+		}
+
 		await this.plugin.saveSettings();
+		if (key === "wedgeDivision" || key === "wedgeMinimum") {
+			this.plugin.redrawViews();
+		}
 		this.refreshDomState();
 	}
 
@@ -564,6 +616,26 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							type: "dropdown",
 							key: "detail",
 							options: DETAIL_LABELS,
+						},
+					},
+					{
+						name: "Wedge sizes",
+						desc: "Equal gives every domain the same slice whatever it holds — the strongest guarantee for spatial memory. By open tasks gives busier domains wider wedges, re-divided only when a round begins: the wheel never changes shape under your hands mid-round. A wedge you pin by hand keeps its width either way.",
+						control: {
+							type: "dropdown",
+							key: "wedgeDivision",
+							options: WEDGE_DIVISION_LABELS,
+						},
+					},
+					{
+						name: "Narrowest wedge",
+						desc: "In degrees. A quiet domain stops shrinking here, so every wedge stays wide enough to carry its own name — proportion is not worth an unreadable sliver. With more domains than the circle can afford at this width, the wedges fall back to an equal split.",
+						visible: () => settings.wedgeDivision === "tasks",
+						control: {
+							type: "number",
+							key: "wedgeMinimum",
+							min: 4,
+							placeholder: String(DEFAULT_SETTINGS.wedgeMinimum),
 						},
 					},
 				],

@@ -72,3 +72,100 @@ describe("assignBudgets — the circle adds up", () => {
 		expect(assignBudgets([])).toEqual([]);
 	});
 });
+
+describe("assignBudgets — dividing by weight (kaderdocument §3.1, herzien)", () => {
+	const division = (
+		weights: Record<string, number>,
+		minimum = 15,
+	): Parameters<typeof assignBudgets>[2] => ({ weights, minimum });
+
+	const widthOf = (
+		budgets: ReturnType<typeof assignBudgets>,
+		domain: string,
+	): number => budgets.find((b) => b.domain === domain)?.degrees ?? Number.NaN;
+
+	it("gives busier domains wider wedges, in proportion", () => {
+		const budgets = assignBudgets(
+			DOMAINS,
+			{},
+			division({ Gezin: 30, Gezondheid: 30, Huis: 30, Werk: 90 }),
+		);
+		expect(totalOf(budgets)).toBeCloseTo(360, 9);
+		expect(widthOf(budgets, "Werk")).toBeCloseTo(180, 9);
+		expect(widthOf(budgets, "Gezin")).toBeCloseTo(60, 9);
+	});
+
+	it("stops a quiet domain at the floor instead of shrinking it away", () => {
+		// 1 task against 199: proportionally Gezin would get 1,8° — a sliver
+		// that cannot carry its name. The floor is the whole point.
+		const budgets = assignBudgets(
+			["Gezin", "Werk"],
+			{},
+			division({ Gezin: 1, Werk: 199 }),
+		);
+		expect(totalOf(budgets)).toBeCloseTo(360, 9);
+		expect(widthOf(budgets, "Gezin")).toBeCloseTo(15, 9);
+		expect(widthOf(budgets, "Werk")).toBeCloseTo(345, 9);
+	});
+
+	it("gives a domain with no weight the floor, not nothing", () => {
+		const budgets = assignBudgets(
+			["Leeg", "Werk"],
+			{},
+			division({ Leeg: 0, Werk: 40 }),
+		);
+		expect(widthOf(budgets, "Leeg")).toBeCloseTo(15, 9);
+		expect(widthOf(budgets, "Werk")).toBeCloseTo(345, 9);
+	});
+
+	it("divides equally when every weight is zero", () => {
+		const budgets = assignBudgets(DOMAINS, {}, division({}));
+		for (const budget of budgets) expect(budget.degrees).toBeCloseTo(90, 9);
+	});
+
+	it("lets the floor give way to the equal share when the circle cannot afford it", () => {
+		// Twelve domains at a 40° floor would need 480°. Equal is the least-bad
+		// reading of "readable" then — and the circle still adds up.
+		const many = Array.from({ length: 12 }, (_, i) => `D${i}`);
+		const weights = Object.fromEntries(many.map((d, i) => [d, i + 1]));
+		const budgets = assignBudgets(many, {}, division(weights, 40));
+		expect(totalOf(budgets)).toBeCloseTo(360, 9);
+		for (const budget of budgets) {
+			expect(budget.degrees).toBeGreaterThanOrEqual(30 - 1e-9);
+		}
+	});
+
+	it("keeps a pinned wedge at its width and divides the rest by weight", () => {
+		const budgets = assignBudgets(
+			DOMAINS,
+			{ Werk: 120 },
+			division({ Gezin: 10, Gezondheid: 20, Huis: 50, Werk: 999 }),
+		);
+		expect(totalOf(budgets)).toBeCloseTo(360, 9);
+		expect(widthOf(budgets, "Werk")).toBeCloseTo(120, 9);
+		expect(widthOf(budgets, "Huis")).toBeCloseTo(150, 9);
+		expect(widthOf(budgets, "Gezin")).toBeCloseTo(30, 9);
+	});
+
+	it("never hands out less than the hard minimum, whatever the setting says", () => {
+		const budgets = assignBudgets(
+			["Gezin", "Werk"],
+			{},
+			division({ Gezin: 1, Werk: 999 }, 0),
+		);
+		expect(widthOf(budgets, "Gezin")).toBeGreaterThanOrEqual(MIN_BUDGET - 1e-9);
+	});
+
+	it("still runs the wedges end to end from zero to 360", () => {
+		const budgets = assignBudgets(
+			DOMAINS,
+			{},
+			division({ Gezin: 3, Gezondheid: 1, Huis: 7, Werk: 2 }),
+		);
+		expect(budgets[0].startAngle).toBe(0);
+		expect(budgets[budgets.length - 1].endAngle).toBe(360);
+		for (let i = 1; i < budgets.length; i++) {
+			expect(budgets[i].startAngle).toBeCloseTo(budgets[i - 1].endAngle, 9);
+		}
+	});
+});

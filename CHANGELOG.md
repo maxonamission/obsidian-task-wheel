@@ -4,6 +4,27 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.2]
+
+A round can only close honestly if no task is secretly on the wheel twice —
+and a wheel can now say how busy each part of your life is.
+
+- **Added**: *Show possible duplicate tasks* — a command (also in the round
+  menu) that groups open checkboxes sharing the same words, across the whole
+  vault, and links every place straight to its line in the note. Exact
+  matches only, compared after stripping dates, priorities and tags — so a
+  copy that later gained a due date is still found. The report names
+  candidates and changes nothing: whether two identical texts are one task
+  twice or two tasks on purpose is your call, in the note.
+- **Added**: wedge sizes are now a choice — *Equal* (the default, unchanged:
+  every domain the same slice, the strongest guarantee for spatial memory)
+  or *By open tasks*, where busier domains get wider wedges. Proportional
+  wedges re-divide only when a round begins, never mid-round, so the drawing
+  cannot shift under your hands while you review. A configurable narrowest
+  wedge (default 15°) keeps every domain wide enough to carry its own name —
+  proportion is not worth an unreadable sliver. Hand-pinned wedges keep
+  their width in both modes.
+
 ## [0.1.1]
 
 Findings from the community-listing review, plus clearer store copy.

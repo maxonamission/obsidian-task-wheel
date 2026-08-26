@@ -20,6 +20,7 @@ import {
 	assignBudgets,
 	budgetsByDomain,
 	type DomainBudget,
+	type WedgeDivision,
 } from "./budgets";
 import {
 	DEFAULT_DOI,
@@ -98,6 +99,12 @@ export interface LayoutOptions {
 	labelSteps: number;
 	/** Pinned wedge widths in degrees, per domain. */
 	budgets: Readonly<Record<string, number>>;
+	/**
+	 * Proportional wedge division, frozen for the round — or undefined for the
+	 * default equal split. Pins in `budgets` win either way (kaderdocument §3.1,
+	 * herzien 26 aug 2026).
+	 */
+	division: WedgeDivision | undefined;
 	/** The item under the reading wedge, around which the fisheye opens up. */
 	focusId: string | null;
 	/** Ids the reader folded away. They stay on the wheel, as stumps. */
@@ -122,6 +129,7 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
 	itemPitch: 12,
 	labelSteps: 1,
 	budgets: {},
+	division: undefined,
 	focusId: null,
 	collapsed: new Set<string>(),
 	visibleBudget: DEFAULT_VISIBLE_BUDGET,
@@ -281,7 +289,7 @@ export function layoutWheel(
 	options: Partial<LayoutOptions> = {},
 ): WheelLayout {
 	const config = { ...DEFAULT_LAYOUT_OPTIONS, ...options };
-	const budgets = assignBudgets(tree.domains, config.budgets);
+	const budgets = assignBudgets(tree.domains, config.budgets, config.division);
 	const wedges = budgetsByDomain(budgets);
 
 	const field = doiField(tree.root, config.focusId, config.doi);

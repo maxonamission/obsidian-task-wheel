@@ -38,6 +38,7 @@ import {
 	type WriteOutcome,
 } from "../vault/writeback";
 import { PRIORITY_LADDER } from "../layout/colour";
+import { domainWeights, type WedgeDivision } from "../layout/budgets";
 import { type LaidOutNode, layoutWheel, type WheelLayout } from "../layout/radial";
 import { buildDetents, type Detent } from "../layout/detents";
 import { taskAfter } from "../layout/order";
@@ -1013,6 +1014,9 @@ export class TaskWheelView extends ItemView {
 			case "skip-report":
 				void this.plugin.showSkipReport();
 				return;
+			case "duplicate-report":
+				void this.plugin.showDuplicateReport();
+				return;
 			case "add-preset":
 				void this.plugin.addPreset();
 				return;
@@ -1074,8 +1078,27 @@ export class TaskWheelView extends ItemView {
 		if (tree === null) return;
 
 		const state = stateFor(this.plugin.settings, this.wheelScope);
+
+		// When the wedges divide by open tasks, the weights are dealt once per
+		// round and then frozen: this is the only place they are ever computed,
+		// and only when the round has none yet. Ticking work off rescans the
+		// vault, but it cannot reach these numbers — the drawing must not move
+		// under the reader's hands mid-round (kaderdocument §3.1).
+		let division: WedgeDivision | undefined;
+		if (this.plugin.settings.wedgeDivision === "tasks") {
+			if (state.roundWeights === null || state.roundWeights === undefined) {
+				state.roundWeights = domainWeights(tree);
+				this.plugin.persist();
+			}
+			division = {
+				weights: state.roundWeights,
+				minimum: this.plugin.settings.wedgeMinimum,
+			};
+		}
+
 		const options = {
 			budgets: state.domainBudgets,
+			division,
 			collapsed: new Set(state.collapsed),
 			visibleBudget: visibleBudgetOf(this.plugin.settings),
 		};

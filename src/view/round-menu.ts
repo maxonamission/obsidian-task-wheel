@@ -27,6 +27,7 @@ export type RoundAction =
 	| "unfold"
 	| "rescan"
 	| "skip-report"
+	| "duplicate-report"
 	| "add-preset";
 
 export interface MenuRow {
@@ -167,6 +168,11 @@ export function roundMenu(state: RoundMenuState): MenuRow[] {
 		action: "skip-report",
 		title: "Show what the skip rules take out",
 		icon: "eye-off",
+	});
+	rows.push({
+		action: "duplicate-report",
+		title: "Show possible duplicate tasks",
+		icon: "copy",
 	});
 	rows.push({
 		action: "add-preset",
