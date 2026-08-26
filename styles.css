@@ -473,7 +473,6 @@
    buttons do not fit across a phone, while the card holds a fixed frame. The
    name lives on as the tooltip and the accessible label. */
 .task-wheel-action {
-	flex: 0 0 auto;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -1177,12 +1176,24 @@
 }
 
 /* Reads as a link, behaves as the button it is: every one of these hands the
-   work to the wheel's own menu handler. */
+   work to the wheel's own menu handler. The resets are spelled out — this was
+   `all: unset`, which the community lint flags, and rightly: it also wiped
+   focus-visibility and inheritance nobody meant to lose. */
 .task-wheel-help-link {
-	all: unset;
-	cursor: pointer;
-	margin-left: var(--size-2-2);
+	display: inline;
+	appearance: none;
+	height: auto;
+	min-height: 0;
+	padding: 0;
+	margin: 0 0 0 var(--size-2-2);
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	background: transparent;
+	font: inherit;
+	text-align: inherit;
 	color: var(--text-accent);
+	cursor: pointer;
 	white-space: nowrap;
 }
 

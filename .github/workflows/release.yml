@@ -45,6 +45,21 @@ jobs:
         run: |
           VERSION="${VERSION_INPUT:-${GITHUB_REF_NAME}}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: The manifest must agree with the version being released
+        # Catches building the wrong source: a manual dispatch runs on
+        # whatever ref it was started from, and dispatching "0.1.1" from a
+        # main that still carries 0.1.0 produced a release whose assets said
+        # 0.1.0 (26 aug 2026). The normal path — the sync workflow in the
+        # source repo pushing the tag — always satisfies this check.
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          if [ "$MANIFEST" != "$VERSION" ]; then
+            echo "::error::manifest.json says $MANIFEST but this run is releasing $VERSION — this ref does not hold the $VERSION source. Run the sync workflow in the source repo instead."
+            exit 1
+          fi
+
       - name: Extract release notes for this version
         # Pull just this version's section out of CHANGELOG.md for use as the
         # release body. Falls back to an empty body so the auto-generated

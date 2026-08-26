@@ -4,6 +4,17 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.1]
+
+Findings from the community-listing review, plus clearer store copy.
+
+- **Fixed**: two CSS lint findings — a dead duplicate `flex` on the card's
+  action buttons, and `all: unset` on the help panel's action links (replaced
+  by explicit resets, which also restores focus visibility).
+- **Changed**: the plugin description now opens with the problem the wheel
+  solves instead of explaining its geometry.
+- **Changed**: removed leftover placeholder text from the README.
+
 ## [0.1.0]
 
 First public release.

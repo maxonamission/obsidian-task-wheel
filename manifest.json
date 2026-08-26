@@ -1,9 +1,9 @@
 {
 	"id": "task-wheel",
 	"name": "Task Wheel",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.13.0",
-	"description": "Review every open task with certainty. Your tasks become a turnable radial tree: angle is life domain, radius is hierarchy depth. Turn the wheel, pass each task once, finish the round.",
+	"description": "A long task list can't tell you when you've seen it all. Task Wheel can: every open task becomes one stop on a turnable wheel — nothing hidden, nothing skipped. Go full circle, and you know you saw everything.",
 	"author": "Max Kloosterman",
 	"authorUrl": "https://github.com/maxonamission",
 	"isDesktopOnly": false

@@ -12,10 +12,6 @@ It is a **review instrument, not an execution instrument**. The point is being
 able to say with certainty that you have seen everything. Ticking a task off is
 possible, but it is not what the wheel is for.
 
-<!-- TODO (eigenaar): screenshots — het wiel over een echte vault (desktop),
-     de leeskaart met acties, en één mobiel. In docs/screenshots/ plaatsen en
-     hier tonen; raw-URL's hergebruiken voor de forum-post. -->
-
 Everything is computed locally: **no network calls, no telemetry, no account**.
 Free and GPL-3.0.
 
