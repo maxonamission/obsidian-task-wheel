@@ -1,0 +1,1277 @@
+/**
+ * Every word the help surface says, in the thirteen languages Voxtral
+ * Transcribe also carries (eigenaarsverzoek 25 aug 2026 — prompted by the
+ * Dutch "blikveld" that had walked out of the design document into the
+ * English UI).
+ *
+ * One typed contract, thirteen complete fillings: `Record<HelpLanguage,
+ * HelpStrings>` means a language cannot silently miss a key — the compiler
+ * refuses. Placeholders (`{seen}`, `{name}`, …) are checked against the
+ * English original by test, because the compiler cannot see inside a string.
+ *
+ * Deliberately a pure module: no Obsidian import, so the whole table and the
+ * resolution rule are measurable headlessly.
+ */
+
+export interface HelpStrings {
+	/** The surface's own name: the modal title, the panel tab. */
+	title: string;
+
+	blockRound: string;
+	blockKeys: string;
+	blockLegend: string;
+
+	/* --- where this round stands --- */
+	seenOfTotal: string;
+	seenNote: string;
+	readingVault: string;
+	nothingToReview: string;
+	noWheel: string;
+	openWheel: string;
+	labelScope: string;
+	labelFilter: string;
+	labelSkipped: string;
+	labelFolded: string;
+	wholeVault: string;
+	outTo: string;
+	noFilter: string;
+	filterCounts: string;
+	clearFilter: string;
+	skippedNote: string;
+	showSkipReport: string;
+	nothingFolded: string;
+	foldedOne: string;
+	foldedMany: string;
+	unfoldAll: string;
+
+	/* --- keys and actions --- */
+	groupTurning: string;
+	groupTree: string;
+	groupCard: string;
+	gestDrag: string;
+	gestScroll: string;
+	gestSwipe: string;
+	gestTap: string;
+	gestPinch: string;
+	keyTurn: string;
+	keyFlat: string;
+	keyEnds: string;
+	keySideways: string;
+	keySidewaysTouch: string;
+	keyOut: string;
+	keyIn: string;
+	keyTap: string;
+	keyFold: string;
+	keyZoom: string;
+	keyZoomTouch: string;
+	keyMove: string;
+	keysNote: string;
+	keysNoteTouch: string;
+	commandsNote: string;
+	commandsNoteTouch: string;
+	actTick: string;
+	actProgress: string;
+	actCancel: string;
+	actDefer: string;
+	actRaise: string;
+	actLower: string;
+	actOpenNote: string;
+	actEdit: string;
+	actFold: string;
+	actNudge: string;
+
+	/* --- reading the drawing --- */
+	legAngleLabel: string;
+	legAngle: string;
+	legHues: string;
+	legRamp: string;
+	legWedge: string;
+	legStump: string;
+	legTicks: string;
+	legGap: string;
+	legStraightLabel: string;
+	legStraight: string;
+}
+
+export type HelpLanguage =
+	| "en"
+	| "nl"
+	| "ar"
+	| "de"
+	| "es"
+	| "fr"
+	| "hi"
+	| "it"
+	| "ja"
+	| "ko"
+	| "pt"
+	| "ru"
+	| "zh";
+
+/** Native names, for the settings dropdown. */
+export const LANGUAGE_NAMES: Record<HelpLanguage, string> = {
+	en: "English",
+	nl: "Nederlands",
+	ar: "العربية",
+	de: "Deutsch",
+	es: "Español",
+	fr: "Français",
+	hi: "हिन्दी",
+	it: "Italiano",
+	ja: "日本語",
+	ko: "한국어",
+	pt: "Português",
+	ru: "Русский",
+	zh: "中文",
+};
+
+/**
+ * Which language the help speaks.
+ *
+ * An explicit choice wins; "auto" follows Obsidian's own language setting
+ * (Settings → General → Language, read via the locale Obsidian sets), and
+ * anything we do not carry falls back to English. Regional tags collapse to
+ * their base: `pt-BR` reads the Portuguese table, `zh-cn` the Chinese one.
+ */
+export function resolveLanguage(pref: string, obsidian: string): HelpLanguage {
+	if (pref !== "auto" && pref in HELP_LOCALES) return pref as HelpLanguage;
+	const base = obsidian.toLowerCase().split(/[-_]/)[0];
+	return (base in HELP_LOCALES ? base : "en") as HelpLanguage;
+}
+
+/** `fmt("{n} of {m}", {n: 1, m: 2})` → `"1 of 2"`. Unknown names stay put. */
+export function fmt(
+	template: string,
+	values: Record<string, string | number>,
+): string {
+	return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
+		name in values ? String(values[name]) : whole,
+	);
+}
+
+export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
+	en: {
+		title: "Task wheel help",
+		blockRound: "This round",
+		blockKeys: "Keys and actions",
+		blockLegend: "Reading the drawing",
+		seenOfTotal: "{seen} of {total} seen",
+		seenNote:
+			"Stopping on something is what makes it seen. Turning is the only walk that cannot skip anything.",
+		readingVault: "Reading the vault…",
+		nothingToReview: "Nothing to review in this scope.",
+		noWheel: "No wheel is open.",
+		openWheel: "Open the wheel",
+		labelScope: "Scope",
+		labelFilter: "Filter",
+		labelSkipped: "Skipped",
+		labelFolded: "Folded",
+		wholeVault: "The whole vault",
+		outTo: "Out to {name}",
+		noFilter: "None. Every task in this scope is in the round.",
+		filterCounts: "{rule} — {shown} in this round, {left} left out.",
+		clearFilter: "Clear",
+		skippedNote:
+			"The skip rules are a boundary, not a filter: what they leave out is counted nowhere.",
+		showSkipReport: "Show what's left out",
+		nothingFolded: "Nothing folded away in this wheel.",
+		foldedOne: "1 branch folded away here.",
+		foldedMany: "{n} branches folded away here.",
+		unfoldAll: "Unfold all",
+		groupTurning: "Turning",
+		groupTree: "Walking the tree",
+		groupCard: "On the card",
+		gestDrag: "drag",
+		gestScroll: "scroll",
+		gestSwipe: "swipe",
+		gestTap: "tap",
+		gestPinch: "pinch",
+		keyTurn:
+			"One click stop per item. The wheel never free-spins, which is what makes “all the way round” a fact.",
+		keyFlat: "The flat round order — the walk that cannot skip anything.",
+		keyEnds: "The first and the last stop.",
+		keySideways: "Sideways, staying on the ring.",
+		keySidewaysTouch:
+			"Sideways, staying on the ring — the two buttons on the card's edges.",
+		keyOut: "A ring outwards, to a child.",
+		keyIn: "A ring inwards, to the parent.",
+		keyTap:
+			"Brings it under the wedge. A second tap opens a wheel over just that.",
+		keyFold: "Folds this branch away, or opens it again.",
+		keyZoom: "Zoom, or pinch on a touchscreen.",
+		keyZoomTouch: "Zoom.",
+		keyMove:
+			"Moves the task itself, with everything under it. On a wheel over one note.",
+		keysNote:
+			"With the arrows you can skip a branch; by turning you cannot. That is the division of labour: the guarantee lives in the turning.",
+		keysNoteTouch:
+			"By tapping you can skip a branch; by turning you cannot. That is the division of labour: the guarantee lives in the turning.",
+		commandsNote:
+			"Every one of these is a command as well, so you can hang your own key on it.",
+		commandsNoteTouch:
+			"Every one of these is a command as well, so you can put it on the mobile toolbar.",
+		actTick: "Tick off",
+		actProgress: "Mark in progress",
+		actCancel: "Cancel",
+		actDefer: "Push a week out",
+		actRaise: "Raise priority",
+		actLower: "Lower priority",
+		actOpenNote: "Open the note",
+		actEdit: "Edit the outline, or carry it elsewhere",
+		actFold: "Fold this branch away",
+		actNudge: "One item along the ring, without turning",
+		legAngleLabel: "Angle",
+		legAngle: "The domain. Radius is the depth: hub, domain, project, task.",
+		legHues:
+			"Hue is the domain. The wheel writes each name on its own rim, in the colour it is drawn in.",
+		legRamp: "Lightness is the priority — the channel you cannot read without a key.",
+		legWedge:
+			"The reading wedge stands still at twelve o'clock. The wheel turns past it, and stopping on something is what marks it seen.",
+		legStump:
+			"A stump with a counter: a branch folded away, or one past the drawing budget. Nothing is ever dropped.",
+		legTicks: "Ticks are an outer ring too crowded to draw as dots.",
+		legGap:
+			"Empty space is an answer: every domain keeps its own slice of the circle, however little is in it.",
+		legStraightLabel: "Straight",
+		legStraight:
+			"The branch you are reading runs straight up, written out in full from the hub.",
+	},
+
+	nl: {
+		title: "Task wheel-hulp",
+		blockRound: "Deze ronde",
+		blockKeys: "Toetsen en acties",
+		blockLegend: "De tekening lezen",
+		seenOfTotal: "{seen} van {total} gezien",
+		seenNote:
+			"Ergens op stilstaan is wat het gezien maakt. Draaien is de enige wandeling die niets kan overslaan.",
+		readingVault: "De vault wordt gelezen…",
+		nothingToReview: "Niets te reviewen in dit blikveld.",
+		noWheel: "Er is geen wiel open.",
+		openWheel: "Open het wiel",
+		labelScope: "Blikveld",
+		labelFilter: "Filter",
+		labelSkipped: "Overgeslagen",
+		labelFolded: "Ingeklapt",
+		wholeVault: "De hele vault",
+		outTo: "Uit naar {name}",
+		noFilter: "Geen. Elke taak in dit blikveld doet mee in de ronde.",
+		filterCounts: "{rule} — {shown} in deze ronde, {left} erbuiten.",
+		clearFilter: "Wissen",
+		skippedNote:
+			"De skip-regels zijn een grens, geen filter: wat ze weglaten wordt nergens meegeteld.",
+		showSkipReport: "Toon wat erbuiten valt",
+		nothingFolded: "Niets ingeklapt in dit wiel.",
+		foldedOne: "1 tak hier ingeklapt.",
+		foldedMany: "{n} takken hier ingeklapt.",
+		unfoldAll: "Alles uitklappen",
+		groupTurning: "Draaien",
+		groupTree: "Door de boom",
+		groupCard: "Op de kaart",
+		gestDrag: "slepen",
+		gestScroll: "scrollen",
+		gestSwipe: "vegen",
+		gestTap: "tik",
+		gestPinch: "knijpen",
+		keyTurn:
+			"Eén klikstand per item. Het wiel spint nooit vrij door — dat is wat “helemaal rond geweest” een feit maakt.",
+		keyFlat: "De platte ronde-volgorde — de wandeling die niets kan overslaan.",
+		keyEnds: "De eerste en de laatste stop.",
+		keySideways: "Opzij, op dezelfde ring.",
+		keySidewaysTouch:
+			"Opzij, op dezelfde ring — de twee knoppen op de randen van de kaart.",
+		keyOut: "Een ring naar buiten, naar een kind.",
+		keyIn: "Een ring naar binnen, naar de ouder.",
+		keyTap:
+			"Brengt het onder de leeswig. Een tweede tik opent een wiel over precies dat.",
+		keyFold: "Klapt deze tak in, of weer uit.",
+		keyZoom: "Zoomen, of knijpen op een touchscreen.",
+		keyZoomTouch: "Zoomen.",
+		keyMove:
+			"Verplaatst de taak zelf, met alles eronder. Op een wiel over één notitie.",
+		keysNote:
+			"Met de pijltjes kun je een tak overslaan; met draaien niet. Dat is de taakverdeling: de garantie zit in het draaien.",
+		keysNoteTouch:
+			"Met tikken kun je een tak overslaan; met draaien niet. Dat is de taakverdeling: de garantie zit in het draaien.",
+		commandsNote:
+			"Elk hiervan is ook een commando, dus je kunt er je eigen sneltoets aan hangen.",
+		commandsNoteTouch:
+			"Elk hiervan is ook een commando, dus je kunt het op de mobiele werkbalk zetten.",
+		actTick: "Afvinken",
+		actProgress: "Als bezig markeren",
+		actCancel: "Annuleren",
+		actDefer: "Een week opschuiven",
+		actRaise: "Prioriteit omhoog",
+		actLower: "Prioriteit omlaag",
+		actOpenNote: "De notitie openen",
+		actEdit: "De outline bewerken, of elders heen dragen",
+		actFold: "Deze tak inklappen",
+		actNudge: "Eén item opzij op de ring, zonder te draaien",
+		legAngleLabel: "Hoek",
+		legAngle: "Het domein. Straal is de diepte: naaf, domein, project, taak.",
+		legHues:
+			"Kleurtoon is het domein. Het wiel schrijft elke naam op zijn eigen rand, in de kleur waarin hij getekend is.",
+		legRamp:
+			"Lichtheid is de prioriteit — het kanaal dat je zonder sleutel niet kunt lezen.",
+		legWedge:
+			"De leeswig staat stil op twaalf uur. Het wiel draait erlangs, en ergens op stilstaan is wat het als gezien markeert.",
+		legStump:
+			"Een stomp met een teller: een ingeklapte tak, of één voorbij het tekenbudget. Er valt nooit iets weg.",
+		legTicks: "Streepjes zijn een buitenring die te vol is voor stippen.",
+		legGap:
+			"Lege ruimte is een antwoord: elk domein houdt zijn eigen deel van de cirkel, hoe weinig er ook in staat.",
+		legStraightLabel: "Recht",
+		legStraight:
+			"De tak die je leest loopt recht omhoog, voluit geschreven vanaf de naaf.",
+	},
+
+	ar: {
+		title: "مساعدة عجلة المهام",
+		blockRound: "هذه الجولة",
+		blockKeys: "المفاتيح والإجراءات",
+		blockLegend: "قراءة الرسم",
+		seenOfTotal: "شوهد {seen} من {total}",
+		seenNote:
+			"التوقف عند عنصر هو ما يجعله مرئيًا. التدوير هو المسار الوحيد الذي لا يتخطى شيئًا.",
+		readingVault: "جارٍ قراءة الخزنة…",
+		nothingToReview: "لا شيء للمراجعة في هذا النطاق.",
+		noWheel: "لا توجد عجلة مفتوحة.",
+		openWheel: "افتح العجلة",
+		labelScope: "النطاق",
+		labelFilter: "التصفية",
+		labelSkipped: "المتجاوَز",
+		labelFolded: "المطوي",
+		wholeVault: "الخزنة كاملة",
+		outTo: "خروج إلى {name}",
+		noFilter: "لا شيء. كل مهمة في هذا النطاق ضمن الجولة.",
+		filterCounts: "{rule} — {shown} في هذه الجولة، و{left} خارجها.",
+		clearFilter: "مسح",
+		skippedNote:
+			"قواعد التجاوز حدود وليست تصفية: ما تستبعده لا يُحتسب في أي مكان.",
+		showSkipReport: "أظهر ما استُبعد",
+		nothingFolded: "لا شيء مطوي في هذه العجلة.",
+		foldedOne: "فرع واحد مطوي هنا.",
+		foldedMany: "{n} فروع مطوية هنا.",
+		unfoldAll: "افتح الكل",
+		groupTurning: "التدوير",
+		groupTree: "التنقل في الشجرة",
+		groupCard: "على البطاقة",
+		gestDrag: "سحب",
+		gestScroll: "تمرير",
+		gestSwipe: "تمريرة",
+		gestTap: "نقرة",
+		gestPinch: "قرص",
+		keyTurn:
+			"محطة واحدة لكل عنصر. العجلة لا تدور بحرية أبدًا — وهذا ما يجعل «دورة كاملة» حقيقة.",
+		keyFlat: "الترتيب المسطّح للجولة — المسار الذي لا يتخطى شيئًا.",
+		keyEnds: "المحطة الأولى والأخيرة.",
+		keySideways: "جانبيًا، مع البقاء على الحلقة نفسها.",
+		keySidewaysTouch: "جانبيًا على الحلقة نفسها — الزران على حافتي البطاقة.",
+		keyOut: "حلقة إلى الخارج، نحو فرع تابع.",
+		keyIn: "حلقة إلى الداخل، نحو الأصل.",
+		keyTap: "يضعه تحت موضع القراءة. نقرة ثانية تفتح عجلة عليه وحده.",
+		keyFold: "يطوي هذا الفرع أو يفتحه من جديد.",
+		keyZoom: "تكبير، أو القرص على شاشة اللمس.",
+		keyZoomTouch: "تكبير.",
+		keyMove: "ينقل المهمة نفسها مع كل ما تحتها. في عجلة على ملاحظة واحدة.",
+		keysNote:
+			"بالأسهم يمكنك تخطي فرع؛ بالتدوير لا يمكنك. هذا هو تقسيم العمل: الضمان في التدوير.",
+		keysNoteTouch:
+			"بالنقر يمكنك تخطي فرع؛ بالتدوير لا يمكنك. هذا هو تقسيم العمل: الضمان في التدوير.",
+		commandsNote: "كل واحد من هذه أمر أيضًا، فيمكنك ربطه بمفتاح خاص بك.",
+		commandsNoteTouch:
+			"كل واحد من هذه أمر أيضًا، فيمكنك وضعه في شريط أدوات الجوال.",
+		actTick: "إنجاز",
+		actProgress: "وضع قيد التنفيذ",
+		actCancel: "إلغاء",
+		actDefer: "تأجيل أسبوعًا",
+		actRaise: "رفع الأولوية",
+		actLower: "خفض الأولوية",
+		actOpenNote: "فتح الملاحظة",
+		actEdit: "تحرير المخطط أو نقله إلى مكان آخر",
+		actFold: "طي هذا الفرع",
+		actNudge: "عنصر واحد على الحلقة، دون تدوير",
+		legAngleLabel: "الزاوية",
+		legAngle: "المجال. نصف القطر هو العمق: المركز، المجال، المشروع، المهمة.",
+		legHues: "اللون هو المجال. تكتب العجلة كل اسم على حافته بلونه.",
+		legRamp: "الإضاءة هي الأولوية — القناة التي لا تُقرأ دون مفتاح.",
+		legWedge:
+			"موضع القراءة ثابت عند الساعة الثانية عشرة. العجلة تدور أمامه، والتوقف عند عنصر هو ما يجعله مرئيًا.",
+		legStump:
+			"جذل مع عدّاد: فرع مطوي، أو فرع خارج ميزانية الرسم. لا يسقط شيء أبدًا.",
+		legTicks: "الشُرط حلقة خارجية مزدحمة عن أن تُرسم نقاطًا.",
+		legGap:
+			"الفراغ إجابة: كل مجال يحتفظ بحصته من الدائرة، مهما قلّ ما فيه.",
+		legStraightLabel: "مستقيم",
+		legStraight: "الفرع الذي تقرؤه يمتد مستقيمًا، مكتوبًا كاملًا من المركز.",
+	},
+
+	de: {
+		title: "Task-wheel-Hilfe",
+		blockRound: "Diese Runde",
+		blockKeys: "Tasten und Aktionen",
+		blockLegend: "Die Zeichnung lesen",
+		seenOfTotal: "{seen} von {total} gesehen",
+		seenNote:
+			"Auf etwas stehen zu bleiben macht es gesehen. Drehen ist der einzige Gang, der nichts überspringen kann.",
+		readingVault: "Vault wird gelesen…",
+		nothingToReview: "Nichts zu reviewen in diesem Blickfeld.",
+		noWheel: "Kein Rad ist offen.",
+		openWheel: "Rad öffnen",
+		labelScope: "Blickfeld",
+		labelFilter: "Filter",
+		labelSkipped: "Übersprungen",
+		labelFolded: "Eingeklappt",
+		wholeVault: "Der ganze Vault",
+		outTo: "Hinaus zu {name}",
+		noFilter: "Keiner. Jede Aufgabe in diesem Blickfeld ist in der Runde.",
+		filterCounts: "{rule} — {shown} in dieser Runde, {left} außen vor.",
+		clearFilter: "Leeren",
+		skippedNote:
+			"Die Skip-Regeln sind eine Grenze, kein Filter: Was sie auslassen, wird nirgends gezählt.",
+		showSkipReport: "Zeigen, was draußen bleibt",
+		nothingFolded: "Nichts eingeklappt in diesem Rad.",
+		foldedOne: "1 Ast hier eingeklappt.",
+		foldedMany: "{n} Äste hier eingeklappt.",
+		unfoldAll: "Alles ausklappen",
+		groupTurning: "Drehen",
+		groupTree: "Durch den Baum",
+		groupCard: "Auf der Karte",
+		gestDrag: "ziehen",
+		gestScroll: "scrollen",
+		gestSwipe: "wischen",
+		gestTap: "Tipp",
+		gestPinch: "kneifen",
+		keyTurn:
+			"Eine Raststellung pro Element. Das Rad dreht nie frei durch — das macht „einmal ganz herum“ zu einer Tatsache.",
+		keyFlat: "Die flache Rundenfolge — der Gang, der nichts überspringen kann.",
+		keyEnds: "Der erste und der letzte Halt.",
+		keySideways: "Seitwärts, auf demselben Ring.",
+		keySidewaysTouch:
+			"Seitwärts auf demselben Ring — die zwei Knöpfe an den Kartenrändern.",
+		keyOut: "Einen Ring nach außen, zu einem Kind.",
+		keyIn: "Einen Ring nach innen, zum Elternteil.",
+		keyTap:
+			"Bringt es unter den Lesekeil. Ein zweiter Tipp öffnet ein Rad über genau das.",
+		keyFold: "Klappt diesen Ast ein oder wieder auf.",
+		keyZoom: "Zoomen, oder Kneifen auf einem Touchscreen.",
+		keyZoomTouch: "Zoomen.",
+		keyMove:
+			"Verschiebt die Aufgabe selbst, mit allem darunter. In einem Rad über eine Notiz.",
+		keysNote:
+			"Mit den Pfeilen kannst du einen Ast überspringen; durch Drehen nicht. Das ist die Arbeitsteilung: Die Garantie liegt im Drehen.",
+		keysNoteTouch:
+			"Mit Tippen kannst du einen Ast überspringen; durch Drehen nicht. Das ist die Arbeitsteilung: Die Garantie liegt im Drehen.",
+		commandsNote:
+			"Jede davon ist auch ein Befehl, du kannst also deine eigene Taste daran hängen.",
+		commandsNoteTouch:
+			"Jede davon ist auch ein Befehl, du kannst sie also in die mobile Werkzeugleiste legen.",
+		actTick: "Abhaken",
+		actProgress: "Als begonnen markieren",
+		actCancel: "Abbrechen",
+		actDefer: "Eine Woche hinausschieben",
+		actRaise: "Priorität erhöhen",
+		actLower: "Priorität senken",
+		actOpenNote: "Die Notiz öffnen",
+		actEdit: "Die Gliederung bearbeiten oder woanders hintragen",
+		actFold: "Diesen Ast einklappen",
+		actNudge: "Ein Element weiter auf dem Ring, ohne zu drehen",
+		legAngleLabel: "Winkel",
+		legAngle: "Die Domäne. Radius ist die Tiefe: Nabe, Domäne, Projekt, Aufgabe.",
+		legHues:
+			"Farbton ist die Domäne. Das Rad schreibt jeden Namen auf seinen eigenen Rand, in der Farbe, in der er gezeichnet ist.",
+		legRamp:
+			"Helligkeit ist die Priorität — der Kanal, den man ohne Schlüssel nicht lesen kann.",
+		legWedge:
+			"Der Lesekeil steht still auf zwölf Uhr. Das Rad dreht daran vorbei, und auf etwas stehen zu bleiben markiert es als gesehen.",
+		legStump:
+			"Ein Stumpf mit Zähler: ein eingeklappter Ast, oder einer jenseits des Zeichenbudgets. Es fällt nie etwas weg.",
+		legTicks: "Striche sind ein Außenring, der zu voll für Punkte ist.",
+		legGap:
+			"Leerer Raum ist eine Antwort: Jede Domäne behält ihr eigenes Stück des Kreises, wie wenig auch darin steht.",
+		legStraightLabel: "Gerade",
+		legStraight:
+			"Der Ast, den du liest, läuft gerade nach oben, ausgeschrieben von der Nabe an.",
+	},
+
+	es: {
+		title: "Ayuda de Task wheel",
+		blockRound: "Esta ronda",
+		blockKeys: "Teclas y acciones",
+		blockLegend: "Leer el dibujo",
+		seenOfTotal: "{seen} de {total} vistos",
+		seenNote:
+			"Detenerse en algo es lo que lo hace visto. Girar es el único recorrido que no puede saltarse nada.",
+		readingVault: "Leyendo el vault…",
+		nothingToReview: "Nada que revisar en este alcance.",
+		noWheel: "No hay ninguna rueda abierta.",
+		openWheel: "Abrir la rueda",
+		labelScope: "Alcance",
+		labelFilter: "Filtro",
+		labelSkipped: "Omitido",
+		labelFolded: "Plegado",
+		wholeVault: "Todo el vault",
+		outTo: "Salir a {name}",
+		noFilter: "Ninguno. Cada tarea de este alcance está en la ronda.",
+		filterCounts: "{rule} — {shown} en esta ronda, {left} fuera.",
+		clearFilter: "Quitar",
+		skippedNote:
+			"Las reglas de omisión son un límite, no un filtro: lo que dejan fuera no se cuenta en ninguna parte.",
+		showSkipReport: "Mostrar lo que queda fuera",
+		nothingFolded: "Nada plegado en esta rueda.",
+		foldedOne: "1 rama plegada aquí.",
+		foldedMany: "{n} ramas plegadas aquí.",
+		unfoldAll: "Desplegar todo",
+		groupTurning: "Girar",
+		groupTree: "Recorrer el árbol",
+		groupCard: "En la tarjeta",
+		gestDrag: "arrastrar",
+		gestScroll: "desplazar",
+		gestSwipe: "deslizar",
+		gestTap: "toque",
+		gestPinch: "pellizcar",
+		keyTurn:
+			"Una parada por elemento. La rueda nunca gira libre — eso es lo que convierte «toda la vuelta» en un hecho.",
+		keyFlat: "El orden plano de la ronda — el recorrido que no puede saltarse nada.",
+		keyEnds: "La primera y la última parada.",
+		keySideways: "De lado, sin salir del anillo.",
+		keySidewaysTouch:
+			"De lado, sin salir del anillo — los dos botones en los bordes de la tarjeta.",
+		keyOut: "Un anillo hacia fuera, a un hijo.",
+		keyIn: "Un anillo hacia dentro, al padre.",
+		keyTap:
+			"Lo trae bajo la cuña de lectura. Un segundo toque abre una rueda solo sobre eso.",
+		keyFold: "Pliega esta rama, o la abre de nuevo.",
+		keyZoom: "Zoom, o pellizcar en una pantalla táctil.",
+		keyZoomTouch: "Zoom.",
+		keyMove:
+			"Mueve la tarea misma, con todo lo que cuelga de ella. En una rueda sobre una sola nota.",
+		keysNote:
+			"Con las flechas puedes saltarte una rama; girando no. Ese es el reparto: la garantía vive en el giro.",
+		keysNoteTouch:
+			"Tocando puedes saltarte una rama; girando no. Ese es el reparto: la garantía vive en el giro.",
+		commandsNote:
+			"Cada una de estas es también un comando, así que puedes asignarle tu propia tecla.",
+		commandsNoteTouch:
+			"Cada una de estas es también un comando, así que puedes ponerla en la barra móvil.",
+		actTick: "Marcar hecha",
+		actProgress: "Marcar en curso",
+		actCancel: "Cancelar",
+		actDefer: "Aplazar una semana",
+		actRaise: "Subir prioridad",
+		actLower: "Bajar prioridad",
+		actOpenNote: "Abrir la nota",
+		actEdit: "Editar el esquema, o llevarla a otra parte",
+		actFold: "Plegar esta rama",
+		actNudge: "Un elemento por el anillo, sin girar",
+		legAngleLabel: "Ángulo",
+		legAngle:
+			"El dominio. El radio es la profundidad: centro, dominio, proyecto, tarea.",
+		legHues:
+			"El tono es el dominio. La rueda escribe cada nombre en su propio borde, en el color con que está dibujado.",
+		legRamp:
+			"La claridad es la prioridad — el canal que no se puede leer sin una clave.",
+		legWedge:
+			"La cuña de lectura está quieta a las doce. La rueda gira ante ella, y detenerse en algo es lo que lo marca como visto.",
+		legStump:
+			"Un muñón con contador: una rama plegada, o una más allá del presupuesto de dibujo. Nunca se pierde nada.",
+		legTicks: "Las rayas son un anillo exterior demasiado lleno para puntos.",
+		legGap:
+			"El espacio vacío es una respuesta: cada dominio conserva su porción del círculo, por poco que contenga.",
+		legStraightLabel: "Recto",
+		legStraight:
+			"La rama que estás leyendo sube recta, escrita completa desde el centro.",
+	},
+
+	fr: {
+		title: "Aide de Task wheel",
+		blockRound: "Ce tour",
+		blockKeys: "Touches et actions",
+		blockLegend: "Lire le dessin",
+		seenOfTotal: "{seen} sur {total} vus",
+		seenNote:
+			"S'arrêter sur un élément, c'est ce qui le rend vu. Tourner est le seul parcours qui ne peut rien sauter.",
+		readingVault: "Lecture du coffre…",
+		nothingToReview: "Rien à passer en revue dans cette portée.",
+		noWheel: "Aucune roue n'est ouverte.",
+		openWheel: "Ouvrir la roue",
+		labelScope: "Portée",
+		labelFilter: "Filtre",
+		labelSkipped: "Ignoré",
+		labelFolded: "Replié",
+		wholeVault: "Tout le coffre",
+		outTo: "Sortir vers {name}",
+		noFilter: "Aucun. Chaque tâche de cette portée est dans le tour.",
+		filterCounts: "{rule} — {shown} dans ce tour, {left} laissés dehors.",
+		clearFilter: "Effacer",
+		skippedNote:
+			"Les règles d'exclusion sont une frontière, pas un filtre : ce qu'elles écartent n'est compté nulle part.",
+		showSkipReport: "Montrer ce qui reste dehors",
+		nothingFolded: "Rien de replié dans cette roue.",
+		foldedOne: "1 branche repliée ici.",
+		foldedMany: "{n} branches repliées ici.",
+		unfoldAll: "Tout déplier",
+		groupTurning: "Tourner",
+		groupTree: "Parcourir l'arbre",
+		groupCard: "Sur la carte",
+		gestDrag: "glisser",
+		gestScroll: "défiler",
+		gestSwipe: "balayer",
+		gestTap: "toucher",
+		gestPinch: "pincer",
+		keyTurn:
+			"Un cran par élément. La roue ne tourne jamais librement — c'est ce qui fait de « tout le tour » un fait.",
+		keyFlat: "L'ordre plat du tour — le parcours qui ne peut rien sauter.",
+		keyEnds: "Le premier et le dernier arrêt.",
+		keySideways: "De côté, en restant sur l'anneau.",
+		keySidewaysTouch:
+			"De côté, en restant sur l'anneau — les deux boutons aux bords de la carte.",
+		keyOut: "Un anneau vers l'extérieur, vers un enfant.",
+		keyIn: "Un anneau vers l'intérieur, vers le parent.",
+		keyTap:
+			"L'amène sous le coin de lecture. Un second toucher ouvre une roue sur cela seul.",
+		keyFold: "Replie cette branche, ou la rouvre.",
+		keyZoom: "Zoomer, ou pincer sur un écran tactile.",
+		keyZoomTouch: "Zoomer.",
+		keyMove:
+			"Déplace la tâche elle-même, avec tout ce qu'elle porte. Sur une roue d'une seule note.",
+		keysNote:
+			"Avec les flèches on peut sauter une branche ; en tournant, non. C'est le partage des rôles : la garantie vit dans la rotation.",
+		keysNoteTouch:
+			"En touchant on peut sauter une branche ; en tournant, non. C'est le partage des rôles : la garantie vit dans la rotation.",
+		commandsNote:
+			"Chacune est aussi une commande : vous pouvez y attacher votre propre raccourci.",
+		commandsNoteTouch:
+			"Chacune est aussi une commande : vous pouvez la placer dans la barre mobile.",
+		actTick: "Cocher",
+		actProgress: "Marquer en cours",
+		actCancel: "Annuler",
+		actDefer: "Repousser d'une semaine",
+		actRaise: "Monter la priorité",
+		actLower: "Baisser la priorité",
+		actOpenNote: "Ouvrir la note",
+		actEdit: "Modifier le plan, ou l'emporter ailleurs",
+		actFold: "Replier cette branche",
+		actNudge: "Un élément le long de l'anneau, sans tourner",
+		legAngleLabel: "Angle",
+		legAngle:
+			"Le domaine. Le rayon est la profondeur : moyeu, domaine, projet, tâche.",
+		legHues:
+			"La teinte est le domaine. La roue écrit chaque nom sur son propre bord, dans la couleur où il est dessiné.",
+		legRamp:
+			"La clarté est la priorité — le canal qu'on ne peut pas lire sans clé.",
+		legWedge:
+			"Le coin de lecture reste immobile à midi. La roue tourne devant lui, et s'arrêter sur un élément le marque comme vu.",
+		legStump:
+			"Une souche avec un compteur : une branche repliée, ou une au-delà du budget de dessin. Rien n'est jamais perdu.",
+		legTicks: "Les traits sont un anneau extérieur trop dense pour des points.",
+		legGap:
+			"L'espace vide est une réponse : chaque domaine garde sa part du cercle, si peu qu'il contienne.",
+		legStraightLabel: "Droit",
+		legStraight:
+			"La branche que vous lisez monte droit, écrite en entier depuis le moyeu.",
+	},
+
+	hi: {
+		title: "Task wheel सहायता",
+		blockRound: "यह राउंड",
+		blockKeys: "कुंजियाँ और क्रियाएँ",
+		blockLegend: "चित्र को पढ़ना",
+		seenOfTotal: "{total} में से {seen} देखे गए",
+		seenNote:
+			"किसी चीज़ पर रुकना ही उसे देखा हुआ बनाता है। घुमाना ही एकमात्र रास्ता है जो कुछ नहीं छोड़ सकता।",
+		readingVault: "वॉल्ट पढ़ा जा रहा है…",
+		nothingToReview: "इस दायरे में समीक्षा के लिए कुछ नहीं।",
+		noWheel: "कोई पहिया खुला नहीं है।",
+		openWheel: "पहिया खोलें",
+		labelScope: "दायरा",
+		labelFilter: "फ़िल्टर",
+		labelSkipped: "छोड़ा गया",
+		labelFolded: "मोड़ा गया",
+		wholeVault: "पूरा वॉल्ट",
+		outTo: "{name} की ओर बाहर",
+		noFilter: "कोई नहीं। इस दायरे का हर कार्य राउंड में है।",
+		filterCounts: "{rule} — इस राउंड में {shown}, बाहर {left}।",
+		clearFilter: "हटाएँ",
+		skippedNote:
+			"स्किप-नियम एक सीमा हैं, फ़िल्टर नहीं: जो वे छोड़ते हैं वह कहीं गिना नहीं जाता।",
+		showSkipReport: "दिखाएँ क्या बाहर रहा",
+		nothingFolded: "इस पहिये में कुछ मोड़ा नहीं गया।",
+		foldedOne: "यहाँ 1 शाखा मोड़ी गई।",
+		foldedMany: "यहाँ {n} शाखाएँ मोड़ी गईं।",
+		unfoldAll: "सब खोलें",
+		groupTurning: "घुमाना",
+		groupTree: "पेड़ में चलना",
+		groupCard: "कार्ड पर",
+		gestDrag: "खींचें",
+		gestScroll: "स्क्रॉल",
+		gestSwipe: "स्वाइप",
+		gestTap: "टैप",
+		gestPinch: "पिंच",
+		keyTurn:
+			"हर आइटम पर एक ठहराव। पहिया कभी खुला नहीं घूमता — इसी से «पूरा चक्कर» एक तथ्य बनता है।",
+		keyFlat: "राउंड का सपाट क्रम — वह रास्ता जो कुछ नहीं छोड़ सकता।",
+		keyEnds: "पहला और आख़िरी पड़ाव।",
+		keySideways: "बगल में, उसी रिंग पर।",
+		keySidewaysTouch: "बगल में, उसी रिंग पर — कार्ड के किनारों के दो बटन।",
+		keyOut: "एक रिंग बाहर, संतान की ओर।",
+		keyIn: "एक रिंग भीतर, मूल की ओर।",
+		keyTap:
+			"उसे पढ़ने की स्थिति के नीचे लाता है। दूसरा टैप केवल उसी पर एक पहिया खोलता है।",
+		keyFold: "इस शाखा को मोड़ता है, या फिर खोलता है।",
+		keyZoom: "ज़ूम, या टचस्क्रीन पर पिंच।",
+		keyZoomTouch: "ज़ूम।",
+		keyMove:
+			"कार्य को ही, उसके नीचे की हर चीज़ के साथ, स्थानांतरित करता है। एक नोट के पहिये पर।",
+		keysNote:
+			"तीरों से आप एक शाखा छोड़ सकते हैं; घुमाने से नहीं। यही बँटवारा है: गारंटी घुमाने में है।",
+		keysNoteTouch:
+			"टैप से आप एक शाखा छोड़ सकते हैं; घुमाने से नहीं। यही बँटवारा है: गारंटी घुमाने में है।",
+		commandsNote:
+			"इनमें से हर एक कमांड भी है, इसलिए आप इसे अपनी कुंजी से जोड़ सकते हैं।",
+		commandsNoteTouch:
+			"इनमें से हर एक कमांड भी है, इसलिए आप इसे मोबाइल टूलबार में रख सकते हैं।",
+		actTick: "पूर्ण करें",
+		actProgress: "प्रगति में चिह्नित करें",
+		actCancel: "रद्द करें",
+		actDefer: "एक सप्ताह आगे बढ़ाएँ",
+		actRaise: "प्राथमिकता बढ़ाएँ",
+		actLower: "प्राथमिकता घटाएँ",
+		actOpenNote: "नोट खोलें",
+		actEdit: "रूपरेखा संपादित करें, या कहीं और ले जाएँ",
+		actFold: "यह शाखा मोड़ें",
+		actNudge: "रिंग पर एक आइटम आगे, बिना घुमाए",
+		legAngleLabel: "कोण",
+		legAngle: "क्षेत्र। त्रिज्या गहराई है: केंद्र, क्षेत्र, परियोजना, कार्य।",
+		legHues:
+			"रंग क्षेत्र है। पहिया हर नाम उसके अपने किनारे पर, उसी रंग में लिखता है।",
+		legRamp: "चमक प्राथमिकता है — वह चैनल जो कुंजी के बिना पढ़ा नहीं जा सकता।",
+		legWedge:
+			"पढ़ने की स्थिति बारह बजे स्थिर रहती है। पहिया उसके सामने घूमता है, और किसी चीज़ पर रुकना ही उसे देखा हुआ बनाता है।",
+		legStump:
+			"गिनती वाला ठूँठ: एक मोड़ी हुई शाखा, या चित्र-बजट से बाहर की शाखा। कुछ भी कभी गिरता नहीं।",
+		legTicks: "रेखाएँ वह बाहरी रिंग हैं जो बिंदुओं के लिए बहुत भरी है।",
+		legGap:
+			"खाली जगह भी एक उत्तर है: हर क्षेत्र वृत्त में अपना हिस्सा रखता है, चाहे उसमें कितना ही कम हो।",
+		legStraightLabel: "सीधा",
+		legStraight:
+			"जो शाखा आप पढ़ रहे हैं वह सीधी ऊपर जाती है, केंद्र से पूरी लिखी हुई।",
+	},
+
+	it: {
+		title: "Guida di Task wheel",
+		blockRound: "Questo giro",
+		blockKeys: "Tasti e azioni",
+		blockLegend: "Leggere il disegno",
+		seenOfTotal: "{seen} di {total} visti",
+		seenNote:
+			"Fermarsi su qualcosa è ciò che lo rende visto. Girare è l'unico percorso che non può saltare nulla.",
+		readingVault: "Lettura del vault…",
+		nothingToReview: "Niente da rivedere in questo ambito.",
+		noWheel: "Nessuna ruota è aperta.",
+		openWheel: "Apri la ruota",
+		labelScope: "Ambito",
+		labelFilter: "Filtro",
+		labelSkipped: "Saltato",
+		labelFolded: "Ripiegato",
+		wholeVault: "Tutto il vault",
+		outTo: "Fuori verso {name}",
+		noFilter: "Nessuno. Ogni attività di questo ambito è nel giro.",
+		filterCounts: "{rule} — {shown} in questo giro, {left} lasciati fuori.",
+		clearFilter: "Togli",
+		skippedNote:
+			"Le regole di esclusione sono un confine, non un filtro: ciò che lasciano fuori non è contato da nessuna parte.",
+		showSkipReport: "Mostra cosa resta fuori",
+		nothingFolded: "Niente di ripiegato in questa ruota.",
+		foldedOne: "1 ramo ripiegato qui.",
+		foldedMany: "{n} rami ripiegati qui.",
+		unfoldAll: "Apri tutto",
+		groupTurning: "Girare",
+		groupTree: "Percorrere l'albero",
+		groupCard: "Sulla scheda",
+		gestDrag: "trascina",
+		gestScroll: "scorri",
+		gestSwipe: "scorri col dito",
+		gestTap: "tocco",
+		gestPinch: "pizzica",
+		keyTurn:
+			"Uno scatto per elemento. La ruota non gira mai libera — è questo che rende «tutto il giro» un fatto.",
+		keyFlat: "L'ordine piatto del giro — il percorso che non può saltare nulla.",
+		keyEnds: "La prima e l'ultima fermata.",
+		keySideways: "Di lato, restando sull'anello.",
+		keySidewaysTouch:
+			"Di lato, restando sull'anello — i due pulsanti ai bordi della scheda.",
+		keyOut: "Un anello verso l'esterno, verso un figlio.",
+		keyIn: "Un anello verso l'interno, verso il genitore.",
+		keyTap:
+			"Lo porta sotto il cuneo di lettura. Un secondo tocco apre una ruota solo su quello.",
+		keyFold: "Ripiega questo ramo, o lo riapre.",
+		keyZoom: "Zoom, o pizzicare su uno schermo tattile.",
+		keyZoomTouch: "Zoom.",
+		keyMove:
+			"Sposta l'attività stessa, con tutto ciò che porta. Su una ruota di una sola nota.",
+		keysNote:
+			"Con le frecce puoi saltare un ramo; girando no. È la divisione dei compiti: la garanzia vive nel girare.",
+		keysNoteTouch:
+			"Toccando puoi saltare un ramo; girando no. È la divisione dei compiti: la garanzia vive nel girare.",
+		commandsNote:
+			"Ognuna di queste è anche un comando, quindi puoi assegnarle un tuo tasto.",
+		commandsNoteTouch:
+			"Ognuna di queste è anche un comando, quindi puoi metterla nella barra mobile.",
+		actTick: "Spunta",
+		actProgress: "Segna in corso",
+		actCancel: "Annulla",
+		actDefer: "Rimanda di una settimana",
+		actRaise: "Alza la priorità",
+		actLower: "Abbassa la priorità",
+		actOpenNote: "Apri la nota",
+		actEdit: "Modifica la struttura, o portala altrove",
+		actFold: "Ripiega questo ramo",
+		actNudge: "Un elemento lungo l'anello, senza girare",
+		legAngleLabel: "Angolo",
+		legAngle:
+			"Il dominio. Il raggio è la profondità: mozzo, dominio, progetto, attività.",
+		legHues:
+			"La tinta è il dominio. La ruota scrive ogni nome sul proprio bordo, nel colore in cui è disegnato.",
+		legRamp:
+			"La luminosità è la priorità — il canale che non si può leggere senza una chiave.",
+		legWedge:
+			"Il cuneo di lettura sta fermo a mezzogiorno. La ruota gli gira davanti, e fermarsi su qualcosa lo segna come visto.",
+		legStump:
+			"Un moncone con contatore: un ramo ripiegato, o uno oltre il budget di disegno. Nulla va mai perso.",
+		legTicks: "I trattini sono un anello esterno troppo pieno per i punti.",
+		legGap:
+			"Lo spazio vuoto è una risposta: ogni dominio tiene la sua fetta del cerchio, per quanto poco contenga.",
+		legStraightLabel: "Dritto",
+		legStraight:
+			"Il ramo che stai leggendo sale dritto, scritto per intero dal mozzo.",
+	},
+
+	ja: {
+		title: "Task wheel ヘルプ",
+		blockRound: "このラウンド",
+		blockKeys: "キーと操作",
+		blockLegend: "図の読み方",
+		seenOfTotal: "{total} 件中 {seen} 件を確認",
+		seenNote:
+			"項目の上で止まることが「見た」ことになります。回転だけが何も飛ばせない歩き方です。",
+		readingVault: "保管庫を読み込み中…",
+		nothingToReview: "この範囲にレビューするものはありません。",
+		noWheel: "ホイールが開いていません。",
+		openWheel: "ホイールを開く",
+		labelScope: "範囲",
+		labelFilter: "フィルター",
+		labelSkipped: "除外",
+		labelFolded: "折りたたみ",
+		wholeVault: "保管庫全体",
+		outTo: "{name} へ出る",
+		noFilter: "なし。この範囲のすべてのタスクがラウンドに含まれます。",
+		filterCounts: "{rule} — このラウンドに {shown} 件、対象外 {left} 件。",
+		clearFilter: "解除",
+		skippedNote:
+			"スキップ規則は境界であってフィルターではありません。除かれたものはどこにも数えられません。",
+		showSkipReport: "除外されたものを表示",
+		nothingFolded: "このホイールに折りたたみはありません。",
+		foldedOne: "ここで 1 本の枝が折りたたまれています。",
+		foldedMany: "ここで {n} 本の枝が折りたたまれています。",
+		unfoldAll: "すべて展開",
+		groupTurning: "回転",
+		groupTree: "ツリーの移動",
+		groupCard: "カード上",
+		gestDrag: "ドラッグ",
+		gestScroll: "スクロール",
+		gestSwipe: "スワイプ",
+		gestTap: "タップ",
+		gestPinch: "ピンチ",
+		keyTurn:
+			"項目ごとに一つの止まり位置。ホイールは空回りしません — それが「一周した」を事実にします。",
+		keyFlat: "ラウンドの平坦な順序 — 何も飛ばせない歩き方。",
+		keyEnds: "最初と最後の停止位置。",
+		keySideways: "横へ、同じリング上を。",
+		keySidewaysTouch: "横へ、同じリング上を — カード両端の二つのボタン。",
+		keyOut: "一つ外のリングへ、子の方向。",
+		keyIn: "一つ内のリングへ、親の方向。",
+		keyTap:
+			"読み取り位置の下へ持ってきます。もう一度タップすると、それだけのホイールが開きます。",
+		keyFold: "この枝を折りたたむ、または再び開く。",
+		keyZoom: "ズーム。タッチ画面ではピンチ。",
+		keyZoomTouch: "ズーム。",
+		keyMove:
+			"タスク自体を、その下のすべてと共に移動します。単一ノートのホイールで。",
+		keysNote:
+			"矢印キーでは枝を飛ばせますが、回転では飛ばせません。それが役割分担です：保証は回転にあります。",
+		keysNoteTouch:
+			"タップでは枝を飛ばせますが、回転では飛ばせません。それが役割分担です：保証は回転にあります。",
+		commandsNote:
+			"これらはすべてコマンドでもあるので、好きなキーを割り当てられます。",
+		commandsNoteTouch:
+			"これらはすべてコマンドでもあるので、モバイルツールバーに置けます。",
+		actTick: "完了にする",
+		actProgress: "進行中にする",
+		actCancel: "キャンセル",
+		actDefer: "一週間先送り",
+		actRaise: "優先度を上げる",
+		actLower: "優先度を下げる",
+		actOpenNote: "ノートを開く",
+		actEdit: "アウトラインを編集、または別の場所へ移す",
+		actFold: "この枝を折りたたむ",
+		actNudge: "回転せずにリング上を一つ進む",
+		legAngleLabel: "角度",
+		legAngle: "領域。半径は深さ：中心、領域、プロジェクト、タスク。",
+		legHues:
+			"色相は領域。ホイールは各名前を、その描かれた色で自分の縁に書きます。",
+		legRamp: "明度は優先度 — 凡例なしには読めないチャンネルです。",
+		legWedge:
+			"読み取り位置は十二時で静止しています。ホイールがその前を回り、項目の上で止まることが「見た」印になります。",
+		legStump:
+			"数字つきの切り株：折りたたまれた枝、または描画予算を超えた枝。何も失われません。",
+		legTicks: "刻み線は、点で描くには混みすぎた外側のリングです。",
+		legGap:
+			"空白も答えです：どの領域も、中身がどれほど少なくても円の自分の取り分を保ちます。",
+		legStraightLabel: "直線",
+		legStraight:
+			"読んでいる枝はまっすぐ上に伸び、中心から完全に書き出されています。",
+	},
+
+	ko: {
+		title: "Task wheel 도움말",
+		blockRound: "이번 라운드",
+		blockKeys: "키와 동작",
+		blockLegend: "그림 읽기",
+		seenOfTotal: "{total}개 중 {seen}개 확인",
+		seenNote:
+			"어떤 항목 위에 멈추는 것이 곧 본 것입니다. 돌리기는 아무것도 건너뛸 수 없는 유일한 길입니다.",
+		readingVault: "보관함을 읽는 중…",
+		nothingToReview: "이 범위에는 검토할 것이 없습니다.",
+		noWheel: "열린 휠이 없습니다.",
+		openWheel: "휠 열기",
+		labelScope: "범위",
+		labelFilter: "필터",
+		labelSkipped: "건너뜀",
+		labelFolded: "접힘",
+		wholeVault: "전체 보관함",
+		outTo: "{name}(으)로 나가기",
+		noFilter: "없음. 이 범위의 모든 작업이 라운드에 포함됩니다.",
+		filterCounts: "{rule} — 이번 라운드에 {shown}개, 제외 {left}개.",
+		clearFilter: "해제",
+		skippedNote:
+			"건너뛰기 규칙은 경계이지 필터가 아닙니다. 제외된 것은 어디에도 세어지지 않습니다.",
+		showSkipReport: "제외된 항목 보기",
+		nothingFolded: "이 휠에는 접힌 것이 없습니다.",
+		foldedOne: "여기에 가지 1개가 접혀 있습니다.",
+		foldedMany: "여기에 가지 {n}개가 접혀 있습니다.",
+		unfoldAll: "모두 펼치기",
+		groupTurning: "돌리기",
+		groupTree: "트리 이동",
+		groupCard: "카드에서",
+		gestDrag: "드래그",
+		gestScroll: "스크롤",
+		gestSwipe: "스와이프",
+		gestTap: "탭",
+		gestPinch: "핀치",
+		keyTurn:
+			"항목마다 하나의 멈춤 위치. 휠은 결코 헛돌지 않습니다 — 그것이 «한 바퀴 다 돌았다»를 사실로 만듭니다.",
+		keyFlat: "라운드의 평평한 순서 — 아무것도 건너뛸 수 없는 길.",
+		keyEnds: "첫 번째와 마지막 정지 위치.",
+		keySideways: "옆으로, 같은 링 위에서.",
+		keySidewaysTouch: "옆으로, 같은 링 위에서 — 카드 양쪽 가장자리의 두 버튼.",
+		keyOut: "한 링 바깥으로, 자식에게.",
+		keyIn: "한 링 안쪽으로, 부모에게.",
+		keyTap:
+			"읽기 위치 아래로 가져옵니다. 두 번째 탭은 그것만의 휠을 엽니다.",
+		keyFold: "이 가지를 접거나 다시 폅니다.",
+		keyZoom: "확대·축소, 터치 화면에서는 핀치.",
+		keyZoomTouch: "확대·축소.",
+		keyMove:
+			"작업 자체를 그 아래 모든 것과 함께 옮깁니다. 노트 하나의 휠에서.",
+		keysNote:
+			"화살표로는 가지를 건너뛸 수 있지만, 돌리기로는 못 합니다. 그것이 역할 분담입니다: 보장은 돌리기에 있습니다.",
+		keysNoteTouch:
+			"탭으로는 가지를 건너뛸 수 있지만, 돌리기로는 못 합니다. 그것이 역할 분담입니다: 보장은 돌리기에 있습니다.",
+		commandsNote:
+			"이 모든 것은 명령이기도 하므로 원하는 키를 직접 지정할 수 있습니다.",
+		commandsNoteTouch:
+			"이 모든 것은 명령이기도 하므로 모바일 도구 막대에 둘 수 있습니다.",
+		actTick: "완료 표시",
+		actProgress: "진행 중으로 표시",
+		actCancel: "취소",
+		actDefer: "일주일 미루기",
+		actRaise: "우선순위 올리기",
+		actLower: "우선순위 내리기",
+		actOpenNote: "노트 열기",
+		actEdit: "개요 편집 또는 다른 곳으로 옮기기",
+		actFold: "이 가지 접기",
+		actNudge: "돌리지 않고 링에서 한 항목 이동",
+		legAngleLabel: "각도",
+		legAngle: "영역. 반지름은 깊이입니다: 중심, 영역, 프로젝트, 작업.",
+		legHues:
+			"색상은 영역입니다. 휠은 각 이름을 그려진 색 그대로 자기 테두리에 씁니다.",
+		legRamp: "밝기는 우선순위입니다 — 범례 없이는 읽을 수 없는 채널.",
+		legWedge:
+			"읽기 위치는 12시에 고정되어 있습니다. 휠이 그 앞을 돌고, 멈추는 것이 곧 본 것으로 표시됩니다.",
+		legStump:
+			"숫자가 붙은 그루터기: 접힌 가지이거나 그리기 예산을 넘은 가지. 아무것도 사라지지 않습니다.",
+		legTicks: "눈금은 점으로 그리기엔 너무 붐비는 바깥 링입니다.",
+		legGap:
+			"빈 공간도 답입니다: 모든 영역은 담긴 것이 아무리 적어도 원에서 제 몫을 지킵니다.",
+		legStraightLabel: "직선",
+		legStraight:
+			"읽고 있는 가지는 곧게 위로 뻗고, 중심에서부터 온전히 쓰여 있습니다.",
+	},
+
+	pt: {
+		title: "Ajuda do Task wheel",
+		blockRound: "Esta rodada",
+		blockKeys: "Teclas e ações",
+		blockLegend: "Ler o desenho",
+		seenOfTotal: "{seen} de {total} vistos",
+		seenNote:
+			"Parar sobre algo é o que o torna visto. Girar é o único percurso que não pode pular nada.",
+		readingVault: "Lendo o vault…",
+		nothingToReview: "Nada para revisar neste escopo.",
+		noWheel: "Nenhuma roda está aberta.",
+		openWheel: "Abrir a roda",
+		labelScope: "Escopo",
+		labelFilter: "Filtro",
+		labelSkipped: "Ignorado",
+		labelFolded: "Recolhido",
+		wholeVault: "O vault inteiro",
+		outTo: "Sair para {name}",
+		noFilter: "Nenhum. Cada tarefa deste escopo está na rodada.",
+		filterCounts: "{rule} — {shown} nesta rodada, {left} de fora.",
+		clearFilter: "Limpar",
+		skippedNote:
+			"As regras de exclusão são um limite, não um filtro: o que elas deixam de fora não é contado em lugar nenhum.",
+		showSkipReport: "Mostrar o que ficou de fora",
+		nothingFolded: "Nada recolhido nesta roda.",
+		foldedOne: "1 ramo recolhido aqui.",
+		foldedMany: "{n} ramos recolhidos aqui.",
+		unfoldAll: "Expandir tudo",
+		groupTurning: "Girar",
+		groupTree: "Percorrer a árvore",
+		groupCard: "No cartão",
+		gestDrag: "arrastar",
+		gestScroll: "rolar",
+		gestSwipe: "deslizar",
+		gestTap: "toque",
+		gestPinch: "pinçar",
+		keyTurn:
+			"Uma parada por item. A roda nunca gira solta — é isso que torna «a volta inteira» um fato.",
+		keyFlat: "A ordem plana da rodada — o percurso que não pode pular nada.",
+		keyEnds: "A primeira e a última parada.",
+		keySideways: "De lado, ficando no anel.",
+		keySidewaysTouch:
+			"De lado, ficando no anel — os dois botões nas bordas do cartão.",
+		keyOut: "Um anel para fora, até um filho.",
+		keyIn: "Um anel para dentro, até o pai.",
+		keyTap:
+			"Traz o item para baixo da cunha de leitura. Um segundo toque abre uma roda só sobre ele.",
+		keyFold: "Recolhe este ramo, ou o abre de novo.",
+		keyZoom: "Zoom, ou pinçar numa tela sensível ao toque.",
+		keyZoomTouch: "Zoom.",
+		keyMove:
+			"Move a própria tarefa, com tudo o que está abaixo dela. Numa roda de uma só nota.",
+		keysNote:
+			"Com as setas você pode pular um ramo; girando, não. Essa é a divisão de trabalho: a garantia vive no girar.",
+		keysNoteTouch:
+			"Tocando você pode pular um ramo; girando, não. Essa é a divisão de trabalho: a garantia vive no girar.",
+		commandsNote:
+			"Cada uma destas também é um comando, então você pode pendurar sua própria tecla nela.",
+		commandsNoteTouch:
+			"Cada uma destas também é um comando, então você pode colocá-la na barra móvel.",
+		actTick: "Concluir",
+		actProgress: "Marcar em andamento",
+		actCancel: "Cancelar",
+		actDefer: "Adiar uma semana",
+		actRaise: "Subir prioridade",
+		actLower: "Baixar prioridade",
+		actOpenNote: "Abrir a nota",
+		actEdit: "Editar o esboço, ou levá-la para outro lugar",
+		actFold: "Recolher este ramo",
+		actNudge: "Um item pelo anel, sem girar",
+		legAngleLabel: "Ângulo",
+		legAngle:
+			"O domínio. O raio é a profundidade: centro, domínio, projeto, tarefa.",
+		legHues:
+			"O matiz é o domínio. A roda escreve cada nome na própria borda, na cor em que está desenhado.",
+		legRamp:
+			"A claridade é a prioridade — o canal que não se lê sem uma legenda.",
+		legWedge:
+			"A cunha de leitura fica parada ao meio-dia. A roda gira diante dela, e parar sobre algo é o que o marca como visto.",
+		legStump:
+			"Um toco com contador: um ramo recolhido, ou um além do orçamento de desenho. Nada se perde nunca.",
+		legTicks: "Traços são um anel externo cheio demais para pontos.",
+		legGap:
+			"O espaço vazio é uma resposta: cada domínio guarda sua fatia do círculo, por menos que contenha.",
+		legStraightLabel: "Reto",
+		legStraight:
+			"O ramo que você está lendo sobe reto, escrito por inteiro desde o centro.",
+	},
+
+	ru: {
+		title: "Справка Task wheel",
+		blockRound: "Этот круг",
+		blockKeys: "Клавиши и действия",
+		blockLegend: "Как читать рисунок",
+		seenOfTotal: "Просмотрено {seen} из {total}",
+		seenNote:
+			"Остановиться на элементе — значит увидеть его. Вращение — единственный путь, который ничего не может пропустить.",
+		readingVault: "Чтение хранилища…",
+		nothingToReview: "В этом охвате нечего просматривать.",
+		noWheel: "Ни одно колесо не открыто.",
+		openWheel: "Открыть колесо",
+		labelScope: "Охват",
+		labelFilter: "Фильтр",
+		labelSkipped: "Пропущено",
+		labelFolded: "Свёрнуто",
+		wholeVault: "Всё хранилище",
+		outTo: "Выйти к {name}",
+		noFilter: "Нет. Каждая задача этого охвата входит в круг.",
+		filterCounts: "{rule} — {shown} в этом круге, {left} за бортом.",
+		clearFilter: "Сбросить",
+		skippedNote:
+			"Правила пропуска — это граница, а не фильтр: что они исключают, нигде не считается.",
+		showSkipReport: "Показать, что осталось за бортом",
+		nothingFolded: "В этом колесе ничего не свёрнуто.",
+		foldedOne: "Здесь свёрнута 1 ветка.",
+		foldedMany: "Здесь свёрнуто веток: {n}.",
+		unfoldAll: "Развернуть всё",
+		groupTurning: "Вращение",
+		groupTree: "Ходьба по дереву",
+		groupCard: "На карточке",
+		gestDrag: "перетащить",
+		gestScroll: "прокрутить",
+		gestSwipe: "смахнуть",
+		gestTap: "касание",
+		gestPinch: "щипок",
+		keyTurn:
+			"Одна фиксация на элемент. Колесо никогда не крутится вхолостую — именно это делает «полный круг» фактом.",
+		keyFlat: "Плоский порядок круга — путь, который ничего не может пропустить.",
+		keyEnds: "Первая и последняя остановка.",
+		keySideways: "Вбок, оставаясь на кольце.",
+		keySidewaysTouch:
+			"Вбок, оставаясь на кольце — две кнопки по краям карточки.",
+		keyOut: "На кольцо наружу, к потомку.",
+		keyIn: "На кольцо внутрь, к родителю.",
+		keyTap:
+			"Ставит элемент под метку чтения. Второе касание открывает колесо только над ним.",
+		keyFold: "Сворачивает эту ветку или снова раскрывает.",
+		keyZoom: "Масштаб, или щипок на сенсорном экране.",
+		keyZoomTouch: "Масштаб.",
+		keyMove:
+			"Перемещает саму задачу со всем, что под ней. В колесе одной заметки.",
+		keysNote:
+			"Стрелками можно пропустить ветку; вращением — нет. В этом разделение труда: гарантия живёт во вращении.",
+		keysNoteTouch:
+			"Касанием можно пропустить ветку; вращением — нет. В этом разделение труда: гарантия живёт во вращении.",
+		commandsNote:
+			"Каждое из них — ещё и команда, так что можно назначить свою клавишу.",
+		commandsNoteTouch:
+			"Каждое из них — ещё и команда, так что её можно вынести на мобильную панель.",
+		actTick: "Отметить сделанной",
+		actProgress: "Отметить в работе",
+		actCancel: "Отменить",
+		actDefer: "Отложить на неделю",
+		actRaise: "Повысить приоритет",
+		actLower: "Понизить приоритет",
+		actOpenNote: "Открыть заметку",
+		actEdit: "Изменить структуру или перенести в другое место",
+		actFold: "Свернуть эту ветку",
+		actNudge: "Один элемент по кольцу, не вращая",
+		legAngleLabel: "Угол",
+		legAngle: "Сфера. Радиус — глубина: центр, сфера, проект, задача.",
+		legHues:
+			"Оттенок — это сфера. Колесо пишет каждое имя на своём ободе тем цветом, которым оно нарисовано.",
+		legRamp:
+			"Светлота — это приоритет: канал, который не прочесть без легенды.",
+		legWedge:
+			"Метка чтения неподвижна на двенадцати часах. Колесо вращается мимо неё, и остановка на элементе отмечает его увиденным.",
+		legStump:
+			"Пенёк со счётчиком: свёрнутая ветка или ветка за пределами бюджета рисунка. Ничего никогда не пропадает.",
+		legTicks: "Штрихи — внешнее кольцо, слишком тесное для точек.",
+		legGap:
+			"Пустое место — тоже ответ: каждая сфера хранит свой сектор круга, как бы мало в нём ни было.",
+		legStraightLabel: "Прямо",
+		legStraight:
+			"Ветка, которую вы читаете, идёт прямо вверх и выписана целиком от центра.",
+	},
+
+	zh: {
+		title: "Task wheel 帮助",
+		blockRound: "本轮",
+		blockKeys: "按键与操作",
+		blockLegend: "读懂图形",
+		seenOfTotal: "已看 {seen} / {total}",
+		seenNote:
+			"停在某个条目上，它才算被看过。只有转动这条路径不会跳过任何东西。",
+		readingVault: "正在读取仓库…",
+		nothingToReview: "此范围内没有可回顾的内容。",
+		noWheel: "没有打开的转盘。",
+		openWheel: "打开转盘",
+		labelScope: "范围",
+		labelFilter: "过滤",
+		labelSkipped: "跳过",
+		labelFolded: "折叠",
+		wholeVault: "整个仓库",
+		outTo: "退到 {name}",
+		noFilter: "无。此范围内的每个任务都在本轮之中。",
+		filterCounts: "{rule} — 本轮 {shown} 个，排除 {left} 个。",
+		clearFilter: "清除",
+		skippedNote:
+			"跳过规则是边界而非过滤器：被排除的内容不会计入任何地方。",
+		showSkipReport: "显示被排除的内容",
+		nothingFolded: "此转盘中没有折叠的内容。",
+		foldedOne: "此处折叠了 1 条分支。",
+		foldedMany: "此处折叠了 {n} 条分支。",
+		unfoldAll: "全部展开",
+		groupTurning: "转动",
+		groupTree: "在树中移动",
+		groupCard: "卡片上",
+		gestDrag: "拖动",
+		gestScroll: "滚动",
+		gestSwipe: "滑动",
+		gestTap: "点按",
+		gestPinch: "捏合",
+		keyTurn:
+			"每个条目一个停位。转盘从不空转 — 这正是「转完一整圈」成为事实的原因。",
+		keyFlat: "本轮的平铺顺序 — 不会跳过任何东西的路径。",
+		keyEnds: "第一个与最后一个停位。",
+		keySideways: "侧移，保持在同一环上。",
+		keySidewaysTouch: "侧移，保持在同一环上 — 卡片两侧的两个按钮。",
+		keyOut: "向外一环，去往子项。",
+		keyIn: "向内一环，去往父项。",
+		keyTap: "把它带到阅读位置下。再点一次，就打开只关于它的转盘。",
+		keyFold: "折叠此分支，或再次展开。",
+		keyZoom: "缩放，或在触屏上捏合。",
+		keyZoomTouch: "缩放。",
+		keyMove: "移动任务本身及其下的一切。仅在单个笔记的转盘上。",
+		keysNote:
+			"用方向键可以跳过分支；转动则不能。这就是分工：保证在转动之中。",
+		keysNoteTouch:
+			"点按可以跳过分支；转动则不能。这就是分工：保证在转动之中。",
+		commandsNote: "以上每一项也是命令，你可以为它绑定自己的快捷键。",
+		commandsNoteTouch: "以上每一项也是命令，你可以把它放进移动工具栏。",
+		actTick: "勾选完成",
+		actProgress: "标记进行中",
+		actCancel: "取消",
+		actDefer: "推迟一周",
+		actRaise: "提高优先级",
+		actLower: "降低优先级",
+		actOpenNote: "打开笔记",
+		actEdit: "编辑大纲，或移到别处",
+		actFold: "折叠此分支",
+		actNudge: "沿环移动一个条目，无需转动",
+		legAngleLabel: "角度",
+		legAngle: "领域。半径是深度：中心、领域、项目、任务。",
+		legHues: "色相是领域。转盘把每个名字用它的颜色写在自己的边缘上。",
+		legRamp: "明度是优先级 — 没有图例就读不出的通道。",
+		legWedge:
+			"阅读位置静止在十二点。转盘从它面前转过，停在某个条目上即标记为已看。",
+		legStump:
+			"带计数的残枝：被折叠的分支，或超出绘制预算的分支。任何东西都不会丢失。",
+		legTicks: "刻度线是拥挤得画不下圆点的外环。",
+		legGap: "空白也是答案：每个领域都保有自己的一片圆，无论其中多么稀少。",
+		legStraightLabel: "笔直",
+		legStraight: "你正在读的分支笔直向上，从中心起完整写出。",
+	},
+};

@@ -1,0 +1,10 @@
+{
+	"id": "task-wheel",
+	"name": "Task Wheel",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "Review every open task with certainty. Your tasks become a turnable radial tree: angle is life domain, radius is hierarchy depth. Turn the wheel, pass each task once, finish the round.",
+	"author": "Max Kloosterman",
+	"authorUrl": "https://github.com/maxonamission",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,1393 @@
+/* Task Wheel — all colour comes from the theme's own variables, so the wheel
+   follows light and dark without a second palette of its own (kaderdocument
+   §3.5). The per-node colour arrives from the layout as `--tw-colour`; this
+   file decides how that colour is used, never which colour it is. */
+
+.task-wheel-view {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+	padding: var(--size-4-3);
+	overflow-y: auto;
+
+	/* A phone puts its own bar over the bottom of the pane, and the last line
+	   here — the key and how to work the wheel — sat behind it. Obsidian
+	   publishes the room it needs; on desktop the variable is zero and this
+	   costs nothing. */
+	padding-bottom: calc(
+		var(--size-4-3) + var(--safe-area-inset-bottom, 0px) + var(--tw-bottom-bar, 0px)
+	);
+}
+
+/* Obsidian's own mobile navigation bar sits inside the pane, so leave room for
+   it on top of the safe area. */
+.is-mobile .task-wheel-view {
+	--tw-bottom-bar: 3em;
+}
+
+/* Nothing in this column may be squeezed. A flex item shrinks below its own
+   content by default, and in a pane too short for everything that puts the
+   card's text on top of the wheel — which is exactly what happened on the
+   first Android test. */
+.task-wheel-view > * {
+	flex: 0 0 auto;
+}
+
+/* The wheel takes whatever the others leave, and the card floats inside it. */
+.task-wheel-stage {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 14em;
+}
+
+.task-wheel-canvas {
+	position: absolute;
+	inset: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* the filter panel                                                     */
+/* ------------------------------------------------------------------ */
+
+/* Top left of the wheel, out of the reading wedge's way, and closed until
+   asked for. Only the panel itself takes the pointer; the rest of that corner
+   still turns the wheel. */
+/*
+ * The top-left corner of the wheel: the filter panel, and under it the way one
+ * step wider. A column, so the button moves down when the panel opens instead
+ * of being covered by it (BC_E3_S37, aanvulling 22 aug 2026).
+ */
+.task-wheel-corner {
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--size-2-2);
+	max-width: min(80%, 17em);
+	pointer-events: none;
+}
+
+.task-wheel-controls {
+	max-width: 100%;
+
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	pointer-events: auto;
+}
+
+/* What this wheel is about, in the pane itself.
+
+   Obsidian's own title bar says it too, but only sometimes: it asks
+   `getDisplayText()` on its own schedule and does not ask again, so a wheel
+   opened over a note kept "Task wheel" over it. This line is ours, so it
+   cannot go stale — and it is the tap that opens the note (BC_E3_S25). It sits
+   opposite the filter, which owns the other top corner. */
+.task-wheel-scope {
+	position: absolute;
+	top: 0;
+	right: 0;
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	max-width: min(55%, 14em);
+	padding: var(--size-2-2) var(--size-2-3);
+
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: none;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.task-wheel-scope:hover {
+	color: var(--text-normal);
+}
+
+.task-wheel-scope-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+}
+
+.task-wheel-scope-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+/* A long note name gives way rather than pushing the box across the wheel. */
+.task-wheel-scope-name {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.task-wheel-controls-head {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	width: 100%;
+	padding: var(--size-2-2) var(--size-2-3);
+	border: none;
+	box-shadow: none;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	cursor: pointer;
+}
+
+.task-wheel-controls.is-open .task-wheel-controls-head {
+	color: var(--text-normal);
+	border-bottom: 1px solid var(--background-modifier-border);
+	border-radius: 0;
+}
+
+.task-wheel-controls-icon {
+	display: inline-flex;
+}
+
+.task-wheel-controls-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+/* What the closed panel still has to say: a filter is running, and this much
+   is being kept out of the round. */
+.task-wheel-controls-badge {
+	margin-left: auto;
+	padding: 0 var(--size-2-2);
+	border-radius: var(--radius-s);
+	background: color-mix(in oklab, var(--text-accent) 18%, transparent);
+	color: var(--text-accent);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.task-wheel-controls-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-2);
+	padding: var(--size-2-3);
+}
+
+.task-wheel-controls-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	font-size: var(--font-ui-smaller);
+}
+
+.task-wheel-controls-label {
+	flex: 0 0 5.5em;
+	color: var(--text-muted);
+}
+
+.task-wheel-controls-row select,
+.task-wheel-controls-row input {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: var(--font-ui-smaller);
+	height: auto;
+	padding: var(--size-2-1) var(--size-2-2);
+}
+
+.task-wheel-controls-clear {
+	align-self: flex-start;
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-2-1) var(--size-2-3);
+	cursor: pointer;
+}
+
+/* ------------------------------------------------------------------ */
+/* the reading card                                                     */
+/* ------------------------------------------------------------------ */
+
+/* The card floats over the wheel, low down, where a square drawing in a tall
+   pane leaves room to spare. Two rules keep it out of the way:
+
+   Its size never changes. A panel that grows and shrinks over a drawing keeps
+   uncovering and re-covering the thing you are reading, which is worse than one
+   that sits still and clips its text.
+
+   It is see-through to the hand: a drag that starts on the card still turns the
+   wheel, and only the fold button takes a tap of its own. */
+.task-wheel-card {
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+	width: min(88%, 26em);
+	height: 9.6em;
+	/* Binds only in a pane too short to be useful anyway — landscape on a phone.
+	   The text gives way there, never the action row. */
+	max-height: 72%;
+	overflow: hidden;
+	pointer-events: none;
+
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-1);
+
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	padding: var(--size-2-3) var(--size-4-3);
+}
+
+/* The text may run out of room; the button below it may not. */
+.task-wheel-card-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	/* Room for the two nudge buttons pinned over the card's edges. They overlay
+	   the card rather than sit in a row of their own, so the text has to be told
+	   to keep clear of them — otherwise a long title runs straight under a
+	   chevron. */
+	padding: 0 2.6em;
+}
+
+/* One item on, one item back, without turning.
+   Pinned to the card's own left and right edges and centred against the text,
+   so they read as "where the wheel goes next" rather than as two more things to
+   do to this task. Deliberately not in the action row: that row is already full
+   at eight to ten buttons on a phone, and these are not actions on the task.
+   The walk they make is the flat one — the same order turning makes, the one
+   that cannot skip anything. */
+.task-wheel-nudge {
+	position: absolute;
+	/* A button gets its own font-size from the browser, not from the card. Left
+	   alone, the em below would be measured against 13px while the action row's
+	   is measured against the card's 16px, and the two would not line up. */
+	font-size: inherit;
+	top: var(--size-2-3);
+	/* Down to the top of the action row and no further: a tall target beside the
+	   text that never covers a button. The row is 2.5em with the card's gap and
+	   its own bottom padding under it, so that is exactly what is reserved. */
+	bottom: calc(2.5em + var(--size-2-1) + var(--size-2-3));
+	width: 2.4em;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	box-shadow: none;
+	background: transparent;
+	/* Same footing as the action icons: a control, not decoration, so it clears
+	   the 3:1 that non-text contrast asks for on a light theme too. */
+	color: var(--text-muted);
+	cursor: pointer;
+	pointer-events: auto;
+	border-radius: var(--radius-s);
+}
+
+.task-wheel-nudge.is-back {
+	left: var(--size-2-2);
+}
+
+.task-wheel-nudge.is-forward {
+	right: var(--size-2-2);
+}
+
+.task-wheel-nudge:hover,
+.task-wheel-nudge:focus-visible {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	box-shadow: none;
+}
+
+.task-wheel-nudge .svg-icon {
+	width: 1.2em;
+	height: 1.2em;
+}
+
+/* Always there, whether or not it holds a button — a row that comes and goes
+   would resize the card, which is the thing this card promises not to do. */
+.task-wheel-card-foot {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	/* As tall as the buttons it holds, and no taller. The card's frame is fixed,
+	   so this row's height is part of the budget rather than something it may
+	   take from the text. Never wrapping, for the same reason: a second row
+	   would push the row out of a frame that is not allowed to grow. */
+	min-height: 2.5em;
+	flex-wrap: nowrap;
+}
+
+
+/* One line, never two: the trail places the item, and a path that wraps costs
+   the title the room it needs to be read. */
+.task-wheel-card-trail {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.task-wheel-card-step {
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.task-wheel-card-swatch {
+	width: 0.7em;
+	height: 0.7em;
+	border-radius: 50%;
+	background: var(--tw-colour, var(--text-muted));
+	flex: 0 0 auto;
+}
+
+.task-wheel-card-sep {
+	color: var(--text-faint);
+}
+
+.task-wheel-card-title {
+	margin: var(--size-2-1) 0 0;
+	font-size: var(--font-ui-medium);
+	line-height: var(--line-height-tight);
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+
+	/* The card holds a fixed frame, so the title gets a fixed share of it. Two
+	   lines carry any real task; beyond that the wheel is the place to look,
+	   not a panel that has eaten the drawing. */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	overflow: hidden;
+}
+
+/* Only in a wheel over one note: the title is a thing you can change. It has
+   to take a tap of its own, since the rest of the card is see-through to the
+   hand and a drag that starts here still turns the wheel. */
+.task-wheel-card-title.is-editable {
+	pointer-events: auto;
+	cursor: text;
+	border-radius: var(--radius-s);
+}
+
+.task-wheel-card-title.is-editable:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* Exactly the room the title had, so opening the editor does not move the
+   drawing underneath — the card's whole promise is that it sits still. */
+.task-wheel-card-rename {
+	pointer-events: auto;
+	width: 100%;
+	margin: var(--size-2-1) 0 0;
+	padding: 0;
+	resize: none;
+	font-family: inherit;
+	font-size: var(--font-ui-medium);
+	line-height: var(--line-height-tight);
+	color: var(--text-normal);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border-focus);
+	border-radius: var(--radius-s);
+	min-height: calc(2 * var(--line-height-tight) * 1em);
+}
+
+/* A link inside a task's words. It takes the tap it is given — the card under
+   it turns the wheel and the title around it opens the rename box, and both
+   would be the wrong answer to a tap on a link. Colour comes from the theme's
+   own link variables, so it looks like every other link in the vault. */
+.task-wheel-card-link {
+	pointer-events: auto;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.task-wheel-card-link:hover {
+	text-decoration: underline;
+}
+
+.task-wheel-card-chips {
+	display: flex;
+	gap: var(--size-2-2);
+	margin-top: var(--size-2-2);
+	overflow: hidden;
+}
+
+.task-wheel-chip {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: var(--background-modifier-hover);
+	border-radius: var(--radius-s);
+	padding: 0 var(--size-2-2);
+	white-space: nowrap;
+}
+
+/* Tinted rather than filled: the chip has to stay readable against whatever
+   the theme puts behind it, and a saturated hue with text on top does not. */
+.task-wheel-chip.is-priority {
+	color: var(--text-normal);
+	background: color-mix(in oklab, var(--tw-colour, transparent) 22%, transparent);
+	box-shadow: inset 0 0 0 1px
+		color-mix(in oklab, var(--tw-colour, transparent) 45%, transparent);
+}
+
+.task-wheel-chip.is-tag {
+	color: var(--text-accent);
+}
+
+/* The one chip that is about now rather than about later. */
+.task-wheel-chip.is-in-progress {
+	color: var(--text-normal);
+	box-shadow: inset 0 0 0 1px var(--text-accent);
+}
+
+.task-wheel-chip.is-cancelled {
+	color: var(--text-faint);
+	text-decoration: line-through;
+}
+
+.task-wheel-card-count {
+	margin: var(--size-2-2) 0 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.task-wheel-card-stump,
+.task-wheel-card-source {
+	margin: var(--size-2-2) 0 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* The review actions: icons, quiet, evenly spaced. Quiet because they are not
+   what the eye should land on — the wheel is — and icons because six labelled
+   buttons do not fit across a phone, while the card holds a fixed frame. The
+   name lives on as the tooltip and the accessible label. */
+.task-wheel-action {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* One size on every platform. Obsidian gives buttons a 44 px tap target on
+	   mobile, which is right for a button standing on its own and wrong inside
+	   a fixed frame — it silently ate the row's room and cut the icons in half
+	   on the owner's phone. This is a comfortable target that both platforms
+	   agree on. */
+	min-height: 0;
+	/* Comfortable at 2.5em, and allowed to give some of that back when there
+	   are eight of them on a phone: shrinking a little beats a row that runs
+	   off the card. The floor is what a finger can still land on. */
+	flex: 0 1 2.5em;
+	width: 2.5em;
+	min-width: 2em;
+	height: 2.5em;
+	padding: 0;
+	border: none;
+	box-shadow: none;
+	background: transparent;
+	/* Muted rather than faint: these are controls, and a control has to clear
+	   the 3:1 that non-text contrast asks for. Faint managed 3.6:1 on a dark
+	   theme and only 2.85:1 on a light one, where it read as decoration
+	   (measured 17 aug 2026). */
+	color: var(--text-muted);
+	cursor: pointer;
+	pointer-events: auto;
+	border-radius: var(--radius-s);
+}
+
+/* A status the task already carries: the button now takes it off again, and it
+   has to look like something that is switched on rather than something that is
+   merely available. */
+.task-wheel-action.is-on {
+	color: var(--text-accent);
+	background: var(--background-modifier-hover);
+}
+
+.task-wheel-action:hover,
+.task-wheel-action:focus-visible {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+	box-shadow: none;
+}
+
+.task-wheel-action .svg-icon {
+	width: 1.05em;
+	height: 1.05em;
+}
+
+.task-wheel-card-empty {
+	margin: 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+/* No tasks at all: the message takes the card's place in the middle. */
+.task-wheel-empty {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: min(80%, 24em);
+	text-align: center;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.task-wheel-empty p {
+	margin: 0 0 var(--size-2-2);
+}
+
+.task-wheel-empty-hint {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+/* What the filter is leaving out. Deliberately not faint: this is the line
+   that keeps the wheel honest about a round being a round of a selection. */
+.task-wheel-filter {
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: var(--size-2-2);
+	margin-bottom: var(--size-2-3);
+	font-size: var(--font-ui-smaller);
+}
+
+.task-wheel-filter-label {
+	color: var(--text-accent);
+	font-weight: var(--font-semibold);
+}
+
+.task-wheel-filter-rule {
+	color: var(--text-normal);
+}
+
+.task-wheel-filter-count {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* The track the reading wedge has already run along this round. Faint on
+   purpose: it is a memory of where you have been, not a thing to look at. */
+.task-wheel-sweep path {
+	fill: none;
+	stroke: var(--text-accent);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+	opacity: 0.28;
+}
+
+/* ------------------------------------------------------------------ */
+/* the wheel                                                            */
+/* ------------------------------------------------------------------ */
+
+.task-wheel-canvas {
+	display: flex;
+	justify-content: center;
+	border-radius: var(--radius-m);
+	/* The whole canvas is the handle: there is no grip to aim for. */
+	cursor: grab;
+	/* The element that owns the gesture has to say so. Without this the pane
+	   behind it claims a touch as a scroll and the wheel never sees the moves —
+	   which is what happened on the first owner test on a phone. */
+	touch-action: none;
+	overscroll-behavior: contain;
+}
+
+.task-wheel-canvas.is-empty {
+	cursor: default;
+}
+
+.task-wheel-canvas:active {
+	cursor: grabbing;
+}
+
+.task-wheel-canvas:focus {
+	outline: none;
+}
+
+.task-wheel-canvas:focus-visible {
+	outline: 2px solid var(--interactive-accent);
+	outline-offset: 2px;
+}
+
+.task-wheel-svg {
+	display: block;
+	/* Fill the box the pane leaves, in both directions. The SVG's own
+	   `preserveAspectRatio` keeps the wheel round inside it, so the drawing is
+	   as large as the room allows and follows a resize with no measuring and no
+	   listener. */
+	width: 100%;
+	height: 100%;
+	/* The wheel handles its own drag, swipe and pinch gestures. */
+	touch-action: none;
+}
+
+.task-wheel-rings circle {
+	fill: none;
+	stroke: var(--background-modifier-border);
+	stroke-width: 0.5;
+}
+
+.task-wheel-budget {
+	fill: none;
+	stroke: var(--tw-colour, var(--background-modifier-border));
+	stroke-width: 3.5;
+}
+
+.task-wheel-seam {
+	stroke: var(--background-modifier-border);
+	stroke-width: 0.5;
+	opacity: 0.55;
+}
+
+/* Presence is the fisheye's second channel: how strongly a node is drawn,
+   falling away with its distance from the focus. It never reaches zero — the
+   far side of the wheel becomes a silhouette, not a blank (kaderdocument §5). */
+.task-wheel-branches path,
+.task-wheel-node {
+	opacity: var(--tw-presence, 1);
+	transition: opacity 180ms ease-out;
+}
+
+/* Fading works differently on the two themes, because fading is compositing
+   towards the background and the backgrounds are opposite. At the silhouette
+   floor a dot keeps 3.2:1 against a dark pane and only 1.9:1 against a white
+   one, where the warm hues all but vanish — and a node that cannot be seen at
+   all stops answering "is there something here?", which is the one thing the
+   far side of the wheel is still for (§3.3, measured 17 aug 2026).
+
+   So the floor is lifted on a light theme rather than the palette changed: the
+   colour still comes from the theme, only the fade stops earlier. It does not
+   reach parity and cannot — the theme's own light orange is 2.9:1 on white at
+   full strength, so 2.9 is the ceiling and 0.72 takes most of what there is.
+   Lifting further would flatten the fisheye for a fraction of a point. */
+.theme-light .task-wheel-branches path,
+.theme-light .task-wheel-node {
+	opacity: max(var(--tw-presence, 1), 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.task-wheel-branches path,
+	.task-wheel-node {
+		transition: none;
+	}
+}
+
+.task-wheel-branches path {
+	fill: none;
+	stroke: var(--tw-colour, var(--background-modifier-border));
+	stroke-width: 1.1;
+	stroke-linecap: round;
+}
+
+.task-wheel-node circle {
+	fill: var(--tw-colour, var(--text-muted));
+	stroke: var(--background-primary);
+	stroke-width: 0.6;
+}
+
+.task-wheel-node.is-tick line {
+	stroke: var(--tw-colour, var(--text-muted));
+	stroke-width: 1.8;
+	stroke-linecap: round;
+}
+
+/* A stump: the branch is still here, its contents are not shown. The dashed
+   edge says "there is more behind this"; the +N in the label says how much. */
+.task-wheel-node.is-stump circle {
+	stroke: var(--tw-colour, var(--text-muted));
+	stroke-width: 1.2;
+	stroke-dasharray: 1.5 1.5;
+}
+
+/* Folded on purpose, rather than because the rings ran out. */
+.task-wheel-node.is-collapsed circle {
+	fill: var(--background-primary);
+	stroke: var(--tw-colour, var(--text-muted));
+	stroke-width: 1.8;
+	stroke-dasharray: none;
+}
+
+/* Started work: `- [/]`. A ring, not a colour — the fill carries priority and
+   keeps carrying it, so both can be read at once. The ring is the same hue as
+   the dot so it reads as one mark rather than two. */
+.task-wheel-node.is-in-progress circle {
+	stroke: var(--tw-colour, var(--text-muted));
+	stroke-width: 1.6;
+	stroke-dasharray: none;
+}
+
+/* Cancelled work: `- [-]`. Only ever drawn when completed work is being shown,
+   and then it should look as finished as it is. */
+.task-wheel-node.is-cancelled circle {
+	fill: var(--background-primary);
+	stroke: var(--text-faint);
+	stroke-width: 1;
+	stroke-dasharray: 1 1.5;
+}
+
+/* The tap target: what a finger actually hits, since the dots out on the
+   crowded rings are a couple of pixels across. It is drawn as a circle like
+   any other, so it has to come after every rule that paints one — a stump, a
+   folded branch and started work all add a stroke, and a painted tap target
+   turns the wheel into a field of finger-sized balls. */
+.task-wheel-node circle.task-wheel-hit {
+	fill: none;
+	stroke: none;
+	pointer-events: all;
+}
+
+.task-wheel-node.is-focus {
+	opacity: 1;
+}
+
+.task-wheel-focus-ring {
+	fill: none;
+	stroke: var(--text-accent);
+	stroke-width: 1.6;
+}
+
+.task-wheel-focus-ring.is-idle {
+	display: none;
+}
+
+.task-wheel-label {
+	fill: var(--text-normal);
+	font-size: 10px;
+	dominant-baseline: middle;
+	/* A halo in the page colour, so a label crossing a ring or a branch stays
+	   readable in both themes without a box behind it. */
+	paint-order: stroke;
+	stroke: var(--background-primary);
+	stroke-width: 3px;
+	stroke-linejoin: round;
+}
+
+/* A label with no vertical room where it currently sits steps aside rather
+   than stacking on its neighbour. It comes back as the wheel turns on. */
+.task-wheel-label.is-crowded {
+	opacity: 0;
+}
+
+.task-wheel-label {
+	transition: opacity 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.task-wheel-label {
+		transition: none;
+	}
+}
+
+.task-wheel-node.is-domain .task-wheel-label {
+	font-size: 11.5px;
+	font-weight: var(--font-semibold);
+	fill: var(--tw-colour, var(--text-normal));
+}
+
+.task-wheel-node.is-task .task-wheel-label {
+	fill: var(--text-muted);
+}
+
+.task-wheel-node.is-focus .task-wheel-label {
+	fill: var(--text-normal);
+	font-weight: var(--font-semibold);
+}
+
+.task-wheel-hub circle {
+	fill: var(--background-secondary);
+	stroke: var(--background-modifier-border);
+	stroke-width: 0.75;
+}
+
+.task-wheel-hub-count {
+	fill: var(--text-normal);
+	font-size: 17px;
+	font-weight: var(--font-bold);
+	text-anchor: middle;
+}
+
+.task-wheel-hub-caption {
+	fill: var(--text-faint);
+	font-size: 7.5px;
+	text-anchor: middle;
+	letter-spacing: 0.08em;
+}
+
+.task-wheel-index line {
+	stroke: var(--text-accent);
+	stroke-width: 1.1;
+	fill: none;
+}
+
+.task-wheel-index path {
+	fill: var(--text-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* the colour key                                                       */
+/* ------------------------------------------------------------------ */
+
+.task-wheel-legend {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-3);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.task-wheel-legend-domains {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-2) var(--size-4-2);
+}
+
+.task-wheel-legend-domain {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-2-1);
+}
+
+.task-wheel-legend-swatch {
+	width: 0.7em;
+	height: 0.7em;
+	border-radius: 50%;
+	background: var(--tw-colour, var(--text-muted));
+}
+
+.task-wheel-legend-ramp {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+}
+
+.task-wheel-legend-scale {
+	display: inline-flex;
+	border-radius: var(--radius-s);
+	/* The pale end of the ramp is a whisper of hue on the page colour, which is
+	   the point — but it still needs an edge to be seen as part of the scale. */
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+.task-wheel-legend-step {
+	width: 1.1em;
+	height: 0.7em;
+	background: var(--tw-colour, var(--text-muted));
+}
+
+.task-wheel-legend-step:first-child {
+	border-radius: var(--radius-s) 0 0 var(--radius-s);
+}
+
+.task-wheel-legend-step:last-child {
+	border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+
+.task-wheel-legend-caption {
+	color: var(--text-faint);
+	white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ */
+/* diagnostics                                                          */
+/* ------------------------------------------------------------------ */
+
+/* Something went wrong while drawing. Always shown: a view that half-renders
+   and says nothing looks deliberate, which is the worst outcome on a device
+   the developer cannot reach. */
+.task-wheel-error {
+	display: none;
+}
+
+.task-wheel-error.is-on {
+	display: block;
+}
+
+.task-wheel-error p {
+	margin: 0;
+	padding: var(--size-2-2) var(--size-2-3);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-error);
+	background: var(--background-modifier-error);
+	border-radius: var(--radius-s);
+	overflow-wrap: anywhere;
+}
+
+/* A window onto a device this code never runs on. Hidden unless asked for. */
+.task-wheel-trace {
+	display: none;
+}
+
+.task-wheel-trace.is-on {
+	display: block;
+}
+
+.task-wheel-trace pre {
+	margin: 0;
+	padding: var(--size-2-2) var(--size-2-3);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.35;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	border-radius: var(--radius-s);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+/* The offer to make a heading that is not there yet, last in the picker. It
+   has to read as an action rather than as a result, or it looks like a
+   heading you already have. */
+.task-wheel-heading-new {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.task-wheel-heading-new code {
+	font-style: normal;
+	color: var(--text-accent);
+}
+
+/* ------------------------------------------------------------------ */
+/* The skip report                                                     */
+/* ------------------------------------------------------------------ */
+
+/*
+ * A rule that takes out nothing is the thing this window exists to show, so it
+ * is the one line that is allowed to shout.
+ */
+.task-wheel-skip-report h3 {
+	margin-bottom: var(--size-2-2);
+}
+
+.task-wheel-skip-report ul {
+	margin: 0 0 var(--size-4-3);
+	padding-left: var(--size-4-4);
+	line-height: 1.5;
+}
+
+.task-wheel-skip-report code {
+	font-size: var(--font-ui-small);
+}
+
+.task-wheel-skip-summary {
+	font-size: var(--font-ui-medium);
+	color: var(--text-normal);
+}
+
+.task-wheel-skip-note {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	margin-top: 0;
+}
+
+.task-wheel-skip-nothing {
+	color: var(--text-warning);
+}
+
+/* Notes offered while a link is being typed (BC_E3_S29).
+
+   Fixed, on the page itself, at the measured position of the field. Hanging it
+   inside the card looked simpler and is not: the card is a fixed-height box
+   with a transform on it, so it both clips the list and becomes the frame the
+   list is measured against. On the page there is nothing to argue with. */
+.task-wheel-suggest {
+	position: fixed;
+	z-index: 30;
+	max-height: 15em;
+	overflow-y: auto;
+
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.task-wheel-suggest-row {
+	padding: var(--size-2-2) var(--size-2-3);
+	cursor: pointer;
+	line-height: var(--line-height-tight);
+}
+
+.task-wheel-suggest-row.is-on,
+.task-wheel-suggest-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.task-wheel-suggest-name {
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+}
+
+/* Which folder it is in — two notes with one name are told apart by this. */
+.task-wheel-suggest-path {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+}
+
+/*
+ * A row in the box that says what a wheel is about: an icon that tells a folder
+ * from a note, and the path beside it (BC_E3_S36).
+ */
+.task-wheel-path-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+}
+
+.task-wheel-path-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: var(--text-muted);
+}
+
+.task-wheel-path-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+/*
+ * One step wider, in the corner of the wheel. Reads as the mirror of the note
+ * name on the other side: an icon and the name of where you would land.
+ */
+.task-wheel-out {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	max-width: 100%;
+	padding: var(--size-2-2) var(--size-2-3);
+
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	box-shadow: none;
+	background: var(--background-secondary);
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: var(--line-height-tight);
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.task-wheel-out:hover {
+	color: var(--text-normal);
+}
+
+.task-wheel-out-icon {
+	display: inline-flex;
+	flex: 0 0 auto;
+}
+
+.task-wheel-out-icon .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+/* A long folder name gives way rather than pushing the button over the wheel. */
+.task-wheel-out-name {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------ */
+/* the help panel                                                       */
+/* ------------------------------------------------------------------ */
+
+/* A reading glass beside the wheel, not a second set of controls
+   (kaderdocument §5.2). Everything here is Obsidian's own type scale and
+   spacing: the panel sits between the file explorer and the outline, and a key
+   that styled itself louder than either would read as an advertisement. */
+.task-wheel-help {
+	padding: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+}
+
+.task-wheel-help-block {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* A button and a body, the same fold the filter panel builds. It was a
+   `<details>` first — free keyboard and screen-reader behaviour — and the panel
+   came back blank from the owner's phone (25 aug 2026). That was the one
+   construct here that appears nowhere else in this plugin, and a control that
+   works on one platform is not a control. */
+.task-wheel-help-head {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	width: 100%;
+	padding: var(--size-2-3) var(--size-4-2);
+	border: none;
+	box-shadow: none;
+	border-radius: 0;
+	background: transparent;
+	color: var(--text-normal);
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-medium);
+	text-align: left;
+	cursor: pointer;
+}
+
+.task-wheel-help-head:hover {
+	background: var(--background-modifier-hover);
+}
+
+.task-wheel-help-caret {
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: var(--text-faint);
+}
+
+.task-wheel-help-caret .svg-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.task-wheel-help-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-3);
+	padding: 0 var(--size-4-2) var(--size-4-2);
+}
+
+.task-wheel-help-row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-2-2);
+}
+
+.task-wheel-help-label {
+	flex: 0 0 auto;
+	color: var(--text-normal);
+}
+
+.task-wheel-help-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Reads as a link, behaves as the button it is: every one of these hands the
+   work to the wheel's own menu handler. */
+.task-wheel-help-link {
+	all: unset;
+	cursor: pointer;
+	margin-left: var(--size-2-2);
+	color: var(--text-accent);
+	white-space: nowrap;
+}
+
+.task-wheel-help-link:hover {
+	text-decoration: underline;
+}
+
+.task-wheel-help-link:focus-visible {
+	outline: 1px solid var(--background-modifier-border-focus);
+	outline-offset: 2px;
+	border-radius: var(--radius-s);
+}
+
+.task-wheel-help-seen {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--size-2-2);
+	color: var(--text-normal);
+	font-variant-numeric: tabular-nums;
+}
+
+.task-wheel-help-meter {
+	height: 4px;
+	border-radius: 2px;
+	background: var(--background-modifier-border);
+	overflow: hidden;
+}
+
+.task-wheel-help-meter > span {
+	display: block;
+	height: 100%;
+	background: var(--text-accent);
+}
+
+.task-wheel-help-note {
+	margin: 0;
+	color: var(--text-faint);
+}
+
+.task-wheel-help-group {
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	font-size: var(--font-smallest);
+}
+
+.task-wheel-help-keys {
+	flex: 0 0 auto;
+	display: inline-flex;
+	gap: var(--size-2-1);
+}
+
+.task-wheel-help-keys kbd {
+	font-family: var(--font-monospace);
+	font-size: var(--font-smallest);
+	padding: 0 var(--size-2-2);
+	border: 1px solid var(--background-modifier-border);
+	border-bottom-width: 2px;
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+	color: var(--text-normal);
+	white-space: nowrap;
+}
+
+.task-wheel-help-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-1);
+}
+
+.task-wheel-help-action {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+}
+
+.task-wheel-help-action .svg-icon {
+	width: 1em;
+	height: 1em;
+	flex: 0 0 auto;
+}
+
+/* The domains of the wheel in front of the reader. The strip in the wheel's own
+   pane leaves these out on purpose — the wheel writes them on its rim — but a
+   reader who has opened the key is asking exactly this. */
+.task-wheel-help-hues {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-2-1) var(--size-4-2);
+	margin-top: var(--size-2-2);
+}
+
+.task-wheel-help-hue {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-2-1);
+}
+
+.task-wheel-help-swatch {
+	width: 0.7em;
+	height: 0.7em;
+	border-radius: 50%;
+	background: var(--tw-colour, var(--text-muted));
+}
+
+.task-wheel-help-ramp {
+	flex: 0 0 auto;
+	display: inline-flex;
+	border-radius: var(--radius-s);
+	box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+.task-wheel-help-step {
+	width: 0.9em;
+	height: 0.7em;
+	background: var(--tw-colour, var(--text-muted));
+}
+
+.task-wheel-help-step:first-child {
+	border-radius: var(--radius-s) 0 0 var(--radius-s);
+}
+
+.task-wheel-help-step:last-child {
+	border-radius: 0 var(--radius-s) var(--radius-s) 0;
+}
+
+/* The four shapes a colour cannot explain, drawn beside the sentence that
+   names them. */
+.task-wheel-help-glyph {
+	flex: 0 0 auto;
+	width: 34px;
+	height: 20px;
+	align-self: center;
+}
+
+.task-wheel-help-beam {
+	fill: var(--text-accent);
+	opacity: 0.22;
+}
+
+.task-wheel-help-limb {
+	stroke: var(--text-faint);
+	stroke-width: 1.2;
+}
+
+.task-wheel-help-cap {
+	stroke: var(--text-muted);
+	stroke-width: 2.4;
+	stroke-linecap: round;
+}
+
+.task-wheel-help-gap {
+	fill: none;
+	stroke: var(--background-modifier-border);
+	stroke-width: 1.4;
+	stroke-dasharray: 3 3;
+}
+
+/* On a phone the help opens as a modal, not as a sidebar leaf. Measured, not
+   preferred: the phone's drawer keeps the pane of an unshown view detached
+   from the document (attached=false, leaf 0×0 — 25 aug 2026), and everything
+   drawn into it landed nowhere. A modal owns its own surface. */
+.task-wheel-help-modal {
+	padding: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	min-height: 8em;
+}
+
+/* The modal has the width the sidebar never has, so it reads differently:
+   labels become small headers above their value instead of a bolted-on prefix,
+   rows get air, and a link looks like the chip it is. The sidebar keeps its
+   dense two-column rows — right for a strip, a wall of text in a sheet
+   (eigenaar, 25 aug 2026: "wel heel veel en lastig te lezen"). */
+.task-wheel-help-modal {
+	font-size: var(--font-ui-small);
+}
+
+.task-wheel-help-modal .task-wheel-help-body {
+	gap: var(--size-4-1);
+}
+
+.task-wheel-help-modal .task-wheel-help-row {
+	display: block;
+}
+
+.task-wheel-help-modal .task-wheel-help-label {
+	display: block;
+	margin-bottom: 2px;
+	font-size: var(--font-smallest);
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-faint);
+}
+
+.task-wheel-help-modal .task-wheel-help-link {
+	display: inline-block;
+	margin-left: var(--size-2-2);
+	padding: 0 var(--size-2-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	background: var(--background-primary);
+}
+
+.task-wheel-help-modal .task-wheel-help-keys {
+	margin-right: var(--size-2-2);
+}
