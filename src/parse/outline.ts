@@ -180,6 +180,27 @@ export function headingsOf(lines: readonly string[]): NoteHeading[] {
 	return found;
 }
 
+/**
+ * Whether a note still holds a section with exactly this heading path.
+ *
+ * A section wheel is anchored to a path of titles, and a title is something a
+ * writer renames without a thought. This is how the wheel tells "the section
+ * is empty" apart from "the section is gone" — the difference between an
+ * honest empty circle and one that quietly stopped being about anything
+ * (BC_E3_S64).
+ */
+export function hasHeadingPath(
+	content: string,
+	heading: readonly string[],
+): boolean {
+	if (heading.length === 0) return false;
+	return headingsOf(linesOf(content)).some(
+		(found) =>
+			found.path.length === heading.length &&
+			found.path.every((step, i) => step === heading[i]),
+	);
+}
+
 /** Index of the first line after a leading front-matter block, if any. */
 function skipFrontMatter(lines: readonly string[]): number {
 	if (lines.length === 0 || !FRONT_MATTER_DELIM.test(lines[0])) return 0;

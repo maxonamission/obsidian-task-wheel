@@ -225,6 +225,13 @@ export interface WheelTree {
 	byId: ReadonlyMap<string, WheelNode>;
 	/** Notes that produced no tasks at all, useful for diagnostics. */
 	emptyNotes: string[];
+	/**
+	 * On a section wheel: the note no longer holds this heading path at all —
+	 * renamed or removed. Distinct from a section that is merely empty, and
+	 * the view says so out loud rather than showing a circle about nothing
+	 * (BC_E3_S64). Absent on every other scope.
+	 */
+	sectionMissing?: boolean;
 }
 
 /** A note as handed to the parser. Deliberately not an Obsidian `TFile`. */
@@ -253,18 +260,36 @@ export type DomainSource = "folder" | "tag";
 export type WheelScope =
 	| { kind: "vault" }
 	| { kind: "folder"; path: string }
-	| { kind: "note"; path: string };
+	| { kind: "note"; path: string }
+	/**
+	 * One section of one note — the fourth rung of the ladder (BC_E3_S64).
+	 *
+	 * `heading` is the full path of titles from the note's top down to the
+	 * section's own heading, because a bare title is not an identity: two
+	 * sections may share a name under different parents. Two sections that
+	 * share the *whole* path already merge into one node on the note wheel,
+	 * so this scope inherits exactly the tree's own identity semantics —
+	 * no new ambiguity is introduced here.
+	 */
+	| { kind: "section"; path: string; heading: string[] };
 
 export const VAULT_SCOPE: WheelScope = { kind: "vault" };
 
 /** A stable key for a scope, for keeping state per wheel. */
 export function scopeKey(scope: WheelScope): string {
-	return scope.kind === "vault" ? "vault" : `${scope.kind}:${scope.path}`;
+	if (scope.kind === "vault") return "vault";
+	if (scope.kind === "section") {
+		return `section:${scope.path}#${scope.heading.join("#")}`;
+	}
+	return `${scope.kind}:${scope.path}`;
 }
 
 /** What the tab is called, and what the wheel is a wheel of. */
 export function scopeLabel(scope: WheelScope): string {
 	if (scope.kind === "vault") return "Task wheel";
+	if (scope.kind === "section") {
+		return scope.heading[scope.heading.length - 1] ?? scope.path;
+	}
 
 	const base = scope.path.slice(scope.path.lastIndexOf("/") + 1);
 	return scope.kind === "note" ? base.replace(/\.md$/i, "") : base;
@@ -284,6 +309,10 @@ export function scopeLabel(scope: WheelScope): string {
  */
 export function outward(scope: WheelScope): WheelScope | null {
 	if (scope.kind === "vault") return null;
+
+	// A section goes out to its note — one rung, not straight to the folder:
+	// the ladder is climbed the way it was descended.
+	if (scope.kind === "section") return { kind: "note", path: scope.path };
 
 	const cut = scope.path.lastIndexOf("/");
 	if (cut <= 0) return VAULT_SCOPE;

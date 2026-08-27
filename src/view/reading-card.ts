@@ -46,7 +46,7 @@ export interface CardActions {
 	start?: () => void;
 	/** Cancel the task, or bring it back. */
 	cancel?: () => void;
-	/** Push the due date a week out. */
+	/** Park it a week out: sets the scheduled date (⏳), never the deadline. */
 	defer?: () => void;
 	/** Move the priority one step up (+1) or down (-1). */
 	priority?: (step: number) => void;
@@ -145,6 +145,8 @@ export interface SectionActions {
 	addTask: () => void;
 	/** Hang a new section under this one. */
 	addSubheading: () => void;
+	/** Open a wheel over this section — the menu twin of the double tap (BC_E3_S64). */
+	openWheel?: () => void;
 }
 
 export function renderReadingCard(
@@ -791,6 +793,17 @@ function openSectionMenu(
 	carry?: CarryActions,
 ): void {
 	const menu = new Menu();
+
+	if (section.openWheel !== undefined) {
+		const open = section.openWheel;
+		menu.addItem((item) =>
+			item
+				.setTitle("Open a wheel over this section")
+				.setIcon("circle-dot")
+				.onClick(() => open()),
+		);
+		menu.addSeparator();
+	}
 
 	menu.addItem((item) =>
 		item

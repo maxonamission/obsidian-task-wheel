@@ -83,6 +83,25 @@ export async function writeDue(
 }
 
 /**
+ * Park a task: set its scheduled date (⏳).
+ *
+ * This is what *Push a week out* writes since BC_E3_S65. It used to move the
+ * due date, which falsified a fact — when something must be done — to record
+ * a decision about attention; and the wheel's own "parked for later" lens,
+ * which deliberately reads only 🛫/⏳ (kaderdocument §10), then failed to
+ * recognise the wheel's own deferrals. The scheduled date is the field that
+ * *means* "not before this day", so it is the one an attention decision may
+ * write. The due date is never touched.
+ */
+export async function writeScheduled(
+	app: App,
+	ref: LineRef,
+	date: string | null,
+): Promise<WriteOutcome> {
+	return rewrite(app, ref, (line) => setDate(line, "scheduled", date));
+}
+
+/**
  * Tick a task off.
  *
  * Through the Tasks plugin when it is installed, so a recurring task rolls

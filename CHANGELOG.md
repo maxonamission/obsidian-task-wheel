@@ -4,6 +4,25 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.4]
+
+A wheel over one section, and deferring that actually parks.
+
+- **Added**: the section wheel. Double-tap a heading — the wedge or a ring —
+  in a wheel over one note, or pick *Open a wheel over this section* from
+  the heading's menu, and you get a wheel over just that section, with its
+  subheadings as the wedges. The ladder now runs vault → folder → note →
+  section, and each rung goes back out one step. Deep notes gain drawing
+  rings exactly where they ran out of them. Every section keeps its own
+  round and filter; a renamed or removed heading is said out loud instead of
+  leaving a circle about nothing.
+- **Fixed**: *Push a week out* now parks the task — it writes a scheduled
+  date (⏳) a week ahead and leaves the due date (📅) alone. Deferred tasks
+  now show up under *Parked for later* and drop out of *Ready now*, and
+  your deadlines stop being quietly rewritten. Pressing again moves another
+  week forward; a task past its due date honestly stays visible under the
+  *Overdue* lens — the deadline is a fact, only your attention moved.
+
 ## [0.1.3]
 
 Fixing a task's place in its note no longer needs a detour.

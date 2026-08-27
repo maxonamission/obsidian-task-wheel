@@ -17,7 +17,7 @@
  *    night; urgency belongs to the colour channel (§2.1, §2.4).
  */
 
-import { outlineNote, type OutlinedTask } from "./outline";
+import { hasHeadingPath, outlineNote, type OutlinedTask } from "./outline";
 import {
 	isExcluded,
 	isExcludedHeading,
@@ -102,9 +102,18 @@ export function buildTreeFrom(
 		// anybody's plate: they belong to the document. Dropped before anything
 		// else looks at them, exactly like an excluded folder — not counted as
 		// filtered out, because they were never in the round to begin with.
-		const onTopic = outlined.filter(
+		const excluded = outlined.filter(
 			(task) => !isExcludedHeading(task.headingPath, options),
 		);
+
+		// A section wheel is about one subtree of headings: tasks elsewhere in
+		// the note are a boundary like the scope itself, never counted as
+		// filtered out (BC_E3_S64). The skip rules above run on the *full*
+		// heading paths first, so they mean the same thing on every wheel.
+		const onTopic =
+			options.scope.kind === "section"
+				? withinSection(excluded, options.scope.heading)
+				: excluded;
 
 		const open = selectTasks(onTopic, options);
 		const kept = selectFiltered(open, note, options);
@@ -125,8 +134,46 @@ export function buildTreeFrom(
 	sortTree(root);
 	countTasks(root, showsFinished);
 
+	// "Empty" and "gone" are different answers on a section wheel: the anchor
+	// is a path of titles, and a rename quietly takes it away. Checked against
+	// the note's own text, not against whether any task survived — a section
+	// with zero open tasks is an honestly empty circle, not a missing one.
+	const scope = options.scope;
+	const sectionMissing =
+		scope.kind === "section"
+			? !outlinedNotes.some(
+					({ note }) =>
+						note.path === scope.path &&
+						hasHeadingPath(note.content, scope.heading),
+				)
+			: undefined;
+
 	const domains = root.children.map((child) => child.label);
-	return { root, domains, byId, emptyNotes, filteredOut, showsFinished };
+	return {
+		root,
+		domains,
+		byId,
+		emptyNotes,
+		filteredOut,
+		showsFinished,
+		sectionMissing,
+	};
+}
+
+/**
+ * The tasks that sit under a section's heading path, subheadings included.
+ *
+ * A plain prefix match on titles: the scope's identity is the full path, and
+ * ``headingsOf`` never records empty titles, so element-wise equality is the
+ * whole test.
+ */
+function withinSection(
+	tasks: OutlinedTask[],
+	heading: readonly string[],
+): OutlinedTask[] {
+	return tasks.filter((task) =>
+		heading.every((step, i) => task.headingPath[i] === step),
+	);
 }
 
 /* ------------------------------------------------------------------ */
@@ -255,12 +302,16 @@ function groupTasks(
 ): TaskGroup[] {
 	const groups = new Map<string, TaskGroup>();
 
+	const base = sectionDepth(options);
+
 	for (const task of tasks) {
 		// A wheel over one note has no folders left to spread over the circle,
-		// so its own headings become the angular axis (kaderdocument §4.1).
+		// so its own headings become the angular axis (kaderdocument §4.1). A
+		// wheel over one section starts that axis one path deeper: its
+		// subheadings are the wedges (BC_E3_S64).
 		const wedge: Wedge =
-			options.scope.kind === "note"
-				? headingWedge(task.headingPath[0] ?? options.fallbackDomain)
+			options.scope.kind === "note" || options.scope.kind === "section"
+				? headingWedge(task.headingPath[base] ?? options.fallbackDomain)
 				: resolveWedge(
 						{
 							notePath: note.path,
@@ -308,8 +359,11 @@ function ensureContainers(
 	// A wheel over one note is already inside that note: a project ring would
 	// be one node with everything under it, a wasted ring on the smallest wheel
 	// there is. Its first heading became the domain, so the groups start after
-	// it.
-	const scoped = options.scope.kind === "note";
+	// it. A section wheel is the same shape, one path deeper: the heading at
+	// `base` became the domain, and the groups start after that (BC_E3_S64).
+	const scoped =
+		options.scope.kind === "note" || options.scope.kind === "section";
+	const base = sectionDepth(options);
 
 	const domain = ensureChild(byId, root, {
 		// A wedge that *is* a note says so, because a whole note is carried, moved
@@ -344,13 +398,20 @@ function ensureContainers(
 	// heading — so it carries the line it sits on, and can be moved and added to
 	// like any other (found by the owner, 15 aug 2026). Only in a note wheel: a
 	// wedge elsewhere is a folder or a tag, and neither is a line in a file.
-	if (scoped && group.headingLines[0] !== undefined && group.headingLines[0] >= 0) {
+	// The paths in these sources stay absolute whatever the wheel's scope —
+	// they aim edits at lines in the real note, and they are what a section
+	// scope is built from when a wedge is opened as a wheel of its own.
+	if (
+		scoped &&
+		group.headingLines[base] !== undefined &&
+		group.headingLines[base] >= 0
+	) {
 		domain.source ??= {
 			path: note.path,
-			line: group.headingLines[0],
+			line: group.headingLines[base],
 			indent: 0,
-			headingPath: [],
-			raw: group.headingRaws[0] ?? null,
+			headingPath: group.headingPath.slice(0, base),
+			raw: group.headingRaws[base] ?? null,
 		};
 	}
 
@@ -374,7 +435,7 @@ function ensureContainers(
 
 	if (!options.useHeadingsAsGroups) return parent;
 
-	const from = scoped ? 1 : 0;
+	const from = scoped ? base + 1 : 0;
 	for (let i = from; i < group.headingPath.length; i++) {
 		const heading = group.headingPath[i];
 		parent = ensureChild(byId, parent, {
@@ -608,4 +669,15 @@ function sanitise(text: string): string {
 /** A wedge that is one of a note's own headings — the note wheel's angular axis. */
 function headingWedge(heading: string): Wedge {
 	return { label: heading, key: `d:${heading}`, note: false };
+}
+
+/**
+ * How many heading-path steps the scope itself already spends.
+ *
+ * Zero everywhere except on a section wheel, where the wedges start below the
+ * section's own heading. Kept as one function so the wedge choice and the
+ * ring start can never disagree about where "below" begins.
+ */
+function sectionDepth(options: ParseOptions): number {
+	return options.scope.kind === "section" ? options.scope.heading.length : 0;
 }

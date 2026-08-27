@@ -138,7 +138,11 @@ export function below(path: string, folder: string): string {
 /** Whether a note falls inside the wheel's scope at all. */
 export function inScope(path: string, scope: WheelScope): boolean {
 	if (scope.kind === "vault") return true;
-	if (scope.kind === "note") return path === scope.path;
+	// A section lives in one note; which *tasks* of that note are in view is
+	// decided in `build-tree`, where the heading paths are known.
+	if (scope.kind === "note" || scope.kind === "section") {
+		return path === scope.path;
+	}
 	return under(path, scope.path);
 }
 

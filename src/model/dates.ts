@@ -54,3 +54,19 @@ export function today(now: Date = new Date()): string {
 	const day = String(now.getDate()).padStart(2, "0");
 	return `${year}-${month}-${day}`;
 }
+
+/**
+ * Where *Push a week out* parks a task: a week beyond today, or beyond the
+ * existing parked date when that lies further ahead.
+ *
+ * Counting on from a future ⏳ keeps a twice-deferred task moving forward
+ * rather than snapping back to a week from today each time. Counting from a
+ * *past* ⏳ is where the old due-date version went wrong: a week after a date
+ * long gone can itself be gone, and a button called "push a week out" that
+ * parks nothing is a broken promise (BC_E3_S65). The result of this function
+ * is always in the future, which is what "parked" means.
+ */
+export function aWeekOut(scheduled: string | undefined, from: string): string {
+	const base = isIsoDate(scheduled) && scheduled > from ? scheduled : from;
+	return addDays(base, 7);
+}

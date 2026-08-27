@@ -33,7 +33,7 @@ import {
 	writeMoveUnder,
 	writeStatus,
 	writeText,
-	writeDue,
+	writeScheduled,
 	writePriority,
 	type WriteOutcome,
 } from "../vault/writeback";
@@ -49,7 +49,7 @@ import {
 	carrySeen,
 	landAfter,
 } from "../model/carry";
-import { addDays, isIsoDate, today } from "../model/dates";
+import { aWeekOut, today } from "../model/dates";
 import { paneChange } from "../model/detour";
 import { openAround } from "../model/resume";
 import { inScope } from "../parse/domain";
@@ -125,7 +125,7 @@ type Act =
 	| { kind: "done" }
 	| { kind: "status"; char: string }
 	/** No date is not an error: a task without one is deferred from today. */
-	| { kind: "defer"; due?: string }
+	| { kind: "defer"; scheduled?: string }
 	| { kind: "priority"; from: Priority; step: number }
 	| { kind: "text"; text: string }
 	| { kind: "move"; direction: MoveDirection }
@@ -185,6 +185,8 @@ export class TaskWheelView extends ItemView {
 
 	/** Something changed in the vault that this wheel has not read yet. */
 	private stale = false;
+	/** Whether the missing-section notice has been given for the current gap. */
+	private saidSectionMissing = false;
 
 	/** The header button that opens the note, in a wheel over one note. */
 	private headerAction: HTMLElement | null = null;
@@ -601,6 +603,18 @@ export class TaskWheelView extends ItemView {
 		this.onTrace(
 			`scan: ${this.tree.root.shownTaskCount} in the round, ${this.plugin.scanCache.reused} notes reused`,
 		);
+
+		// A section wheel's anchor is a path of titles, and a rename quietly
+		// takes it away. Said out loud once, on the scan that finds it gone —
+		// an empty circle that stopped being *about* anything must not look
+		// like a section that is merely finished (BC_E3_S64).
+		if (this.tree.sectionMissing === true && !this.saidSectionMissing) {
+			new Notice(
+				"Task wheel: the heading this wheel is about is no longer in the note — renamed or removed. Go out to the note to find it back.",
+			);
+		}
+		this.saidSectionMissing = this.tree.sectionMissing === true;
+
 		this.relayout();
 	}
 
@@ -656,7 +670,15 @@ export class TaskWheelView extends ItemView {
 					outcome = await writeMoveToNew(this.app, ref, what.title);
 					break;
 				case "defer":
-					outcome = await writeDue(this.app, ref, aWeekAfter(what.due));
+					// A deferral is a decision about attention, not a change to the
+					// deadline: it writes ⏳ and leaves 📅 alone, so the "parked for
+					// later" lens recognises the wheel's own deferrals and the
+					// overdue lens keeps telling the truth (BC_E3_S65).
+					outcome = await writeScheduled(
+						this.app,
+						ref,
+						aWeekOut(what.scheduled, today()),
+					);
 					break;
 				case "priority":
 					outcome = await writePriority(
@@ -770,7 +792,9 @@ export class TaskWheelView extends ItemView {
 		const scope = this.scopeOf(laid);
 		if (scope === null) {
 			new Notice(
-				"Task wheel: a tag domain is not a folder, so there is no wheel to open for it.",
+				this.wheelScope.kind === "note" || this.wheelScope.kind === "section"
+					? "Task wheel: these tasks sit above the first heading — there is no section to open for them."
+					: "Task wheel: a tag domain is not a folder, so there is no wheel to open for it.",
 			);
 			return;
 		}
@@ -783,8 +807,31 @@ export class TaskWheelView extends ItemView {
 		void this.plugin.openScoped(scope);
 	}
 
-	/** The folder or note an item stands for, if it stands for one. */
+	/** The folder, note or section an item stands for, if it stands for one. */
 	private scopeOf(laid: LaidOutNode): WheelScope | null {
+		const here = this.wheelScope.kind;
+
+		// In a wheel over one note or one section, the wedges and rings *are*
+		// headings, so "a wheel over it" means the section — the fourth rung of
+		// the blikveld ladder (kaderdocument §4.1, BC_E3_S64). The source's
+		// heading path is absolute, so the anchor is complete whatever depth
+		// this wheel already sits at.
+		if (
+			(here === "note" || here === "section") &&
+			(laid.node.kind === "group" ||
+				(laid.depth === 1 && laid.node.kind === "domain"))
+		) {
+			const source = laid.node.source;
+			// A wedge without a heading line is the bucket for tasks above the
+			// first heading — there is no section to open for that.
+			if (source === undefined || source.raw === null) return null;
+			return {
+				kind: "section",
+				path: source.path,
+				heading: [...source.headingPath, laid.node.label],
+			};
+		}
+
 		// A wedge that is a note is handled below, by its source, like any other
 		// note: in a folder wheel the outermost ring holds both (BC_E3_S35).
 		if (laid.depth === 1 && laid.node.kind === "domain") {
@@ -834,10 +881,15 @@ export class TaskWheelView extends ItemView {
 		this.headerAction?.detach();
 		this.headerAction = null;
 
-		if (this.wheelScope.kind !== "note") return;
+		if (this.wheelScope.kind !== "note" && this.wheelScope.kind !== "section") {
+			return;
+		}
 
 		this.headerAction = this.addAction("file-text", "Open this note", () => {
-			if (this.wheelScope.kind === "note") this.showNote(this.wheelScope.path, null);
+			const scope = this.wheelScope;
+			if (scope.kind === "note" || scope.kind === "section") {
+				this.showNote(scope.path, null);
+			}
 		});
 	}
 
@@ -1360,7 +1412,7 @@ export class TaskWheelView extends ItemView {
 					? undefined
 					: () =>
 							void this.act(
-								{ kind: "defer", due: laid.node.fields?.due },
+								{ kind: "defer", scheduled: laid.node.fields?.scheduled },
 								ref,
 								on,
 							),
@@ -1420,13 +1472,15 @@ export class TaskWheelView extends ItemView {
 			suggestLinks: (field: HTMLTextAreaElement) =>
 				attachLinkSuggest(this.app, field),
 			// A heading gets the same four moves, one level up. Only in a note
-			// wheel, and only when the tree knows which line it stands on.
-			// A wedge in a note wheel is that note's top heading, so it gets the
+			// or section wheel — a section wheel is the document wheel one path
+			// deeper (BC_E3_S64) — and only when the tree knows which line it
+			// stands on. A wedge in those wheels is a heading, so it gets the
 			// same menu as the rings inside it. A wedge anywhere else is a folder
 			// or a tag and has no line to edit — which is exactly what the missing
 			// source says.
 			section:
-				this.wheelScope.kind !== "note" ||
+				(this.wheelScope.kind !== "note" &&
+					this.wheelScope.kind !== "section") ||
 				(laid.node.kind !== "group" && laid.node.kind !== "domain") ||
 				laid.node.source === undefined
 					? undefined
@@ -1444,6 +1498,9 @@ export class TaskWheelView extends ItemView {
 							addTask: () => void addToSection(this.sectionHost(), laid),
 							addSubheading: () =>
 								void addSubheadingTo(this.sectionHost(), laid),
+							// The menu twin of the double tap, for whom a double
+							// tap is not a discoverable thing (BC_E3_S64).
+							openWheel: () => this.openScopeFor(laid.id),
 						},
 			// Both wheels, unlike the two above. A task you come across while
 			// reviewing the whole vault is exactly the one you want to pull onto
@@ -1872,10 +1929,23 @@ function readScope(state: unknown): WheelScope | null {
 	const raw = (state as { scope?: unknown }).scope;
 	if (typeof raw !== "object" || raw === null) return null;
 
-	const { kind, path } = raw as { kind?: unknown; path?: unknown };
+	const { kind, path, heading } = raw as {
+		kind?: unknown;
+		path?: unknown;
+		heading?: unknown;
+	};
 	if (kind === "vault") return VAULT_SCOPE;
 	if ((kind === "folder" || kind === "note") && typeof path === "string") {
 		return { kind, path };
+	}
+	if (
+		kind === "section" &&
+		typeof path === "string" &&
+		Array.isArray(heading) &&
+		heading.length > 0 &&
+		heading.every((step): step is string => typeof step === "string")
+	) {
+		return { kind, path, heading };
 	}
 	return null;
 }
@@ -1925,22 +1995,6 @@ function lineRefOf(laid: LaidOutNode): LineRef | null {
 	if (source === undefined || raw === undefined) return null;
 
 	return { path: source.path, line: source.line, raw };
-}
-
-/**
- * A week from the due date, or from today when there is none.
- *
- * Deferring is the review action for "not now"; a week is far enough to clear
- * the round and near enough to come back. Counting from the existing due date
- * keeps a twice-deferred task moving forward rather than snapping back to a
- * week from today each time.
- *
- * The arithmetic itself lives in `model/dates`, on the calendar rather than on
- * a timestamp. Doing it here with a `Date` wrote six days instead of seven in
- * every zone east of Greenwich — including this plugin's own.
- */
-function aWeekAfter(due?: string): string {
-	return addDays(isIsoDate(due) ? due : today(), 7);
 }
 
 /** One step up or down the priority ladder, stopping at the ends. */
