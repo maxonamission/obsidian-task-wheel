@@ -3,9 +3,10 @@ import {
 	alongRing,
 	approach,
 	type Detent,
-	detentAt,
 	indexOfId,
-	stepIndex,
+	nearestTurnStop,
+	stepTurnStop,
+	turnStops,
 } from "../layout/detents";
 import { normaliseAngle } from "../layout/geometry";
 import {
@@ -205,9 +206,15 @@ export class WheelController {
 			return;
 		}
 
+		// A round starts at the beginning, and the beginning is the first stop
+		// turning would rest on — not the first detent, which is a folder.
 		const kept = indexOfId(detents, keepId);
 		this.index =
-			kept >= 0 ? kept : keepId === null ? 0 : this.nearestIndex(this.rotation);
+			kept >= 0
+				? kept
+				: keepId === null
+					? (turnStops(detents)[0]?.index ?? 0)
+					: this.nearestIndex(this.rotation);
 		this.rotation = detents[this.index].rotation;
 		renderer.setZoom(this.zoomLevel);
 		renderer.setRotation(this.rotation);
@@ -239,10 +246,17 @@ export class WheelController {
 		this.options.onZoom?.(next);
 	}
 
-	/** Move a whole number of stops, in the flat order. */
+	/**
+	 * Move a whole number of stops, in the flat order.
+	 *
+	 * Over the **turn stops** only: the round's items and the stumps. A heading
+	 * is somewhere the reader can stand — with the arrows, or by tapping — but
+	 * not somewhere turning puts them, because there is nothing to do there
+	 * (BC_E3_S67).
+	 */
 	step(delta: number): void {
 		if (this.detents.length === 0) return;
-		this.snapTo(stepIndex(this.detents, this.index, delta));
+		this.snapTo(stepTurnStop(this.detents, this.index, delta));
 	}
 
 	/**
@@ -498,7 +512,10 @@ export class WheelController {
 		if (Math.abs(drag.travel) > 0.5) drag.moved = true;
 
 		this.apply(drag.rotation + drag.travel);
-		this.report(detentAt(this.detents, this.rotation));
+		// What the card shows mid-drag is where the wheel *would* settle, so it
+		// reads the turn stops too: a heading flashing past under the wedge is
+		// exactly the wandering focus this rule ends.
+		this.report(nearestTurnStop(this.detents, this.rotation));
 	}
 
 	private finish(id: number, at?: Spot, time?: number): void {
@@ -678,12 +695,15 @@ export class WheelController {
 			case "PageUp":
 				this.step(-1);
 				break;
+			// The ends of the *turn* order, so they agree with what turning does.
 			case "Home":
-				this.snapTo(0);
+				this.snapTo(turnStops(this.detents)[0]?.index ?? 0);
 				break;
-			case "End":
-				this.snapTo(this.detents.length - 1);
+			case "End": {
+				const stops = turnStops(this.detents);
+				this.snapTo(stops[stops.length - 1]?.index ?? 0);
 				break;
+			}
 			case " ":
 			case "Enter":
 				this.options.onToggle?.();
@@ -747,7 +767,7 @@ export class WheelController {
 		this.apply(tweenAt(tween.from, tween.to, progress));
 
 		if (progress < 1) {
-			this.report(detentAt(this.detents, this.rotation));
+			this.report(nearestTurnStop(this.detents, this.rotation));
 			this.requestFrame();
 			return;
 		}
@@ -776,8 +796,15 @@ export class WheelController {
 		this.options.onFocus(detent);
 	}
 
+	/**
+	 * Where a gesture settles: the nearest stop turning may rest on.
+	 *
+	 * Drag and momentum land through here, so they obey the same rule as the
+	 * scroll wheel and PageUp/PageDown — one rule for "turning", whichever
+	 * hand it was done with.
+	 */
 	private nearestIndex(rotation: number): number {
-		return detentAt(this.detents, rotation)?.index ?? 0;
+		return nearestTurnStop(this.detents, rotation)?.index ?? 0;
 	}
 
 	/**

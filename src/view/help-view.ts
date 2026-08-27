@@ -246,6 +246,27 @@ export class TaskWheelHelpView extends ItemView {
 	}
 
 	/**
+	 * Whether this panel is on the screen at all.
+	 *
+	 * A pane that is not in the document has no size and can never be given
+	 * one: everything drawn into it lands nowhere, and the reader sees an empty
+	 * panel with nothing to say about why. That was measured on a phone
+	 * (BC_E3_S54) and turned out to happen on desktop too — a right-sidebar
+	 * leaf that Obsidian failed to open stays in the workspace, is handed back
+	 * by `getLeavesOfType`, carries our view, and is detached for ever, so the
+	 * panel was reused into the same nowhere after every restart (eigenaar,
+	 * 27 aug 2026: `attached=false, leaf 0×0, try 0…8`).
+	 *
+	 * The caller uses this to tell a panel worth reusing from one worth
+	 * replacing. Deliberately a question about the *document*, not about
+	 * Obsidian's own bookkeeping: it is the only thing that decides whether a
+	 * drawing can be seen.
+	 */
+	onScreen(): boolean {
+		return this.contentEl.isConnected;
+	}
+
+	/**
 	 * Fill the panel again the moment it is found empty.
 	 *
 	 * Not a patch over the cause but the same rule as above, applied where the

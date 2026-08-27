@@ -111,6 +111,31 @@ export function arcPath(
 	startAngle: number,
 	endAngle: number,
 ): string {
+	// A whole circle is not an arc. Drawn as one, its two endpoints all but
+	// coincide, and the browser must *re-derive the arc's centre* from that
+	// vanishing chord — an SVG arc carries no centre of its own. With the
+	// endpoints rounded to a thousandth of a unit and a chord of six
+	// thousandths, the derived perpendicular bisector swings by degrees, and
+	// the centre lands tens of units off the hub, somewhere new every time
+	// the seam moves. On a wheel with a single wedge — the one case with a
+	// 360° band — the thick ring around the wheel visibly lurched at every
+	// stop while everything else stood still (BC_E3_S70; the owner's
+	// question "waarom verspringt dat coordinaat" was the literal answer).
+	// Two half arcs have no such chord: each spans 180°, and the centre is
+	// perfectly conditioned.
+	// At 359,9° the gap this hides is under a thousandth of the circle —
+	// subpixel on any rim — while the chord it avoids is already down to
+	// half a unit and shrinking towards the degenerate case.
+	if (endAngle - startAngle >= FULL_CIRCLE - 0.1) {
+		const from = pointAt(radius, startAngle);
+		const to = pointAt(radius, startAngle + 180);
+		return (
+			`M${round(from.x)},${round(from.y)}` +
+			`A${round(radius)},${round(radius)} 0 1 1 ${round(to.x)},${round(to.y)}` +
+			`A${round(radius)},${round(radius)} 0 1 1 ${round(from.x)},${round(from.y)}`
+		);
+	}
+
 	const width = Math.min(endAngle - startAngle, FULL_CIRCLE - 0.001);
 	const from = pointAt(radius, startAngle);
 	const to = pointAt(radius, startAngle + width);

@@ -1,6 +1,6 @@
 import { normaliseAngle } from "./geometry";
 import type { WheelLayout } from "./radial";
-import type { WheelTree } from "../model/types";
+import { isRoundItem, type WheelNode, type WheelTree } from "../model/types";
 
 /**
  * How far round this round has got.
@@ -40,7 +40,7 @@ export function sweepSpans(
 	seen: ReadonlySet<string>,
 ): SweepSpan[] {
 	const slices = layout.nodes
-		.filter((laid) => laid.depth > 0 && seen.has(laid.id))
+		.filter((laid) => laid.depth > 0 && covered(laid.node, seen, layout.showsFinished))
 		.map((laid) => ({
 			start: normaliseAngle(laid.angle - laid.span / 2),
 			end: normaliseAngle(laid.angle - laid.span / 2) + laid.span,
@@ -74,7 +74,32 @@ export function sweepSpans(
 	return merged;
 }
 
-/** How many of the wheel's stops have been under the reading wedge. */
+/**
+ * Whether this node's slice is behind the reader.
+ *
+ * A task counts when it has been under the wedge. A container counts when
+ * **everything of the round below it** has — which is what makes a finished
+ * wedge read as one solid band now that containers are no longer stops of
+ * their own. Derived rather than marked: a container that were marked seen on
+ * the way past would colour its whole slice for one task read inside it, and
+ * a wedge is the widest slice there is (BC_E3_S67).
+ *
+ * A stump therefore stays uncoloured until the reader has turned into it and
+ * been round what it holds — which is more honest than the band it used to
+ * get for being passed once.
+ */
+function covered(
+	node: WheelNode,
+	seen: ReadonlySet<string>,
+	showsFinished: boolean,
+): boolean {
+	if (isRoundItem(node, showsFinished)) return seen.has(node.id);
+	if (node.shownTaskCount === 0) return false;
+
+	return node.children.every((child) => covered(child, seen, showsFinished));
+}
+
+/** How many of the round's items have been under the reading wedge. */
 export function sweepProgress(
 	tree: WheelTree,
 	seen: ReadonlySet<string>,
@@ -85,11 +110,18 @@ export function sweepProgress(
 	// so "you have seen everything" fired for everything currently on screen
 	// (18 aug 2026). The promise is about the round, and the round is the tree:
 	// turn towards a stump and it opens, so everything in it is reachable.
+	//
+	// And it counts the round's *items*, not every node. Headings, notes and
+	// folders used to count too, so a wheel of 144 tasks measured itself
+	// against 204 and disagreed with its own hub — "nothing left" in the
+	// middle and "60 to go" at the edge (BC_E3_S67). `isRoundItem` is the one
+	// definition; by construction this total is now `root.shownTaskCount`.
 	let total = 0;
 	let passed = 0;
 
-	for (const id of tree.byId.keys()) {
+	for (const [id, node] of tree.byId) {
 		if (id === tree.root.id) continue;
+		if (!isRoundItem(node, tree.showsFinished)) continue;
 		total += 1;
 		if (seen.has(id)) passed += 1;
 	}

@@ -187,7 +187,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "tap",
 		gestPinch: "pinch",
 		keyTurn:
-			"One click stop per item. The wheel never free-spins, which is what makes “all the way round” a fact.",
+			"One click stop per task and per stump — turning never rests on a heading. The wheel never free-spins, which is what makes “all the way round” a fact.",
 		keyFlat: "The flat round order — the walk that cannot skip anything.",
 		keyEnds: "The first and the last stop.",
 		keySideways: "Sideways, staying on the ring.",
@@ -274,7 +274,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "tik",
 		gestPinch: "knijpen",
 		keyTurn:
-			"Eén klikstand per item. Het wiel spint nooit vrij door — dat is wat “helemaal rond geweest” een feit maakt.",
+			"Eén klikstand per taak en per stomp — draaien landt nooit op een kop. Het wiel spint nooit vrij door, en dat is wat “helemaal rond geweest” een feit maakt.",
 		keyFlat: "De platte ronde-volgorde — de wandeling die niets kan overslaan.",
 		keyEnds: "De eerste en de laatste stop.",
 		keySideways: "Opzij, op dezelfde ring.",
@@ -362,7 +362,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "نقرة",
 		gestPinch: "قرص",
 		keyTurn:
-			"محطة واحدة لكل عنصر. العجلة لا تدور بحرية أبدًا — وهذا ما يجعل «دورة كاملة» حقيقة.",
+			"محطة واحدة لكل مهمة ولكل فرع مطوي — لا يتوقف الدوران على عنوان. العجلة لا تدور بحرية، وهذا ما يجعل «دورة كاملة» حقيقة.",
 		keyFlat: "الترتيب المسطّح للجولة — المسار الذي لا يتخطى شيئًا.",
 		keyEnds: "المحطة الأولى والأخيرة.",
 		keySideways: "جانبيًا، مع البقاء على الحلقة نفسها.",
@@ -443,7 +443,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "Tipp",
 		gestPinch: "kneifen",
 		keyTurn:
-			"Eine Raststellung pro Element. Das Rad dreht nie frei durch — das macht „einmal ganz herum“ zu einer Tatsache.",
+			"Eine Raststellung pro Aufgabe und pro eingeklapptem Zweig — beim Drehen wird nie auf einer Überschrift gehalten. Das Rad dreht nie frei durch, und das macht „einmal ganz herum“ zu einer Tatsache.",
 		keyFlat: "Die flache Rundenfolge — der Gang, der nichts überspringen kann.",
 		keyEnds: "Der erste und der letzte Halt.",
 		keySideways: "Seitwärts, auf demselben Ring.",
@@ -531,7 +531,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "toque",
 		gestPinch: "pellizcar",
 		keyTurn:
-			"Una parada por elemento. La rueda nunca gira libre — eso es lo que convierte «toda la vuelta» en un hecho.",
+			"Una parada por tarea y por rama plegada: al girar nunca se detiene en un encabezado. La rueda nunca gira libre, y eso es lo que convierte «toda la vuelta» en un hecho.",
 		keyFlat: "El orden plano de la ronda — el recorrido que no puede saltarse nada.",
 		keyEnds: "La primera y la última parada.",
 		keySideways: "De lado, sin salir del anillo.",
@@ -620,7 +620,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "toucher",
 		gestPinch: "pincer",
 		keyTurn:
-			"Un cran par élément. La roue ne tourne jamais librement — c'est ce qui fait de « tout le tour » un fait.",
+			"Un cran par tâche et par branche repliée — la rotation ne s'arrête jamais sur un titre. La roue ne tourne jamais librement, et c'est ce qui fait de « tout le tour » un fait.",
 		keyFlat: "L'ordre plat du tour — le parcours qui ne peut rien sauter.",
 		keyEnds: "Le premier et le dernier arrêt.",
 		keySideways: "De côté, en restant sur l'anneau.",
@@ -709,7 +709,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "टैप",
 		gestPinch: "पिंच",
 		keyTurn:
-			"हर आइटम पर एक ठहराव। पहिया कभी खुला नहीं घूमता — इसी से «पूरा चक्कर» एक तथ्य बनता है।",
+			"हर कार्य और हर मुड़ी हुई शाखा पर एक ठहराव — घुमाने पर शीर्षक पर कभी नहीं रुकता। पहिया कभी खुला नहीं घूमता, इसी से «पूरा चक्कर» एक तथ्य बनता है।",
 		keyFlat: "राउंड का सपाट क्रम — वह रास्ता जो कुछ नहीं छोड़ सकता।",
 		keyEnds: "पहला और आख़िरी पड़ाव।",
 		keySideways: "बगल में, उसी रिंग पर।",
@@ -795,7 +795,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "tocco",
 		gestPinch: "pizzica",
 		keyTurn:
-			"Uno scatto per elemento. La ruota non gira mai libera — è questo che rende «tutto il giro» un fatto.",
+			"Uno scatto per attività e per ramo ripiegato: ruotando non ci si ferma mai su un titolo. La ruota non gira mai libera, ed è questo che rende «tutto il giro» un fatto.",
 		keyFlat: "L'ordine piatto del giro — il percorso che non può saltare nulla.",
 		keyEnds: "La prima e l'ultima fermata.",
 		keySideways: "Di lato, restando sull'anello.",
@@ -884,7 +884,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "タップ",
 		gestPinch: "ピンチ",
 		keyTurn:
-			"項目ごとに一つの止まり位置。ホイールは空回りしません — それが「一周した」を事実にします。",
+			"タスクごと、折りたたんだ枝ごとに一つの止まり位置。回しても見出しには止まりません。ホイールは空回りしないので、「一周した」が事実になります。",
 		keyFlat: "ラウンドの平坦な順序 — 何も飛ばせない歩き方。",
 		keyEnds: "最初と最後の停止位置。",
 		keySideways: "横へ、同じリング上を。",
@@ -970,7 +970,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "탭",
 		gestPinch: "핀치",
 		keyTurn:
-			"항목마다 하나의 멈춤 위치. 휠은 결코 헛돌지 않습니다 — 그것이 «한 바퀴 다 돌았다»를 사실로 만듭니다.",
+			"작업마다, 접힌 가지마다 하나의 멈춤 위치. 돌릴 때 제목에는 멈추지 않습니다. 휠은 결코 헛돌지 않으므로 «한 바퀴 다 돌았다»가 사실이 됩니다.",
 		keyFlat: "라운드의 평평한 순서 — 아무것도 건너뛸 수 없는 길.",
 		keyEnds: "첫 번째와 마지막 정지 위치.",
 		keySideways: "옆으로, 같은 링 위에서.",
@@ -1056,7 +1056,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "toque",
 		gestPinch: "pinçar",
 		keyTurn:
-			"Uma parada por item. A roda nunca gira solta — é isso que torna «a volta inteira» um fato.",
+			"Uma parada por tarefa e por ramo recolhido — ao girar nunca para num cabeçalho. A roda nunca gira solta, e é isso que torna «a volta inteira» um fato.",
 		keyFlat: "A ordem plana da rodada — o percurso que não pode pular nada.",
 		keyEnds: "A primeira e a última parada.",
 		keySideways: "De lado, ficando no anel.",
@@ -1145,7 +1145,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "касание",
 		gestPinch: "щипок",
 		keyTurn:
-			"Одна фиксация на элемент. Колесо никогда не крутится вхолостую — именно это делает «полный круг» фактом.",
+			"Одна фиксация на каждую задачу и каждую свёрнутую ветку — при вращении колесо не останавливается на заголовке. Колесо никогда не крутится вхолостую, и именно это делает «полный круг» фактом.",
 		keyFlat: "Плоский порядок круга — путь, который ничего не может пропустить.",
 		keyEnds: "Первая и последняя остановка.",
 		keySideways: "Вбок, оставаясь на кольце.",
@@ -1233,7 +1233,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		gestTap: "点按",
 		gestPinch: "捏合",
 		keyTurn:
-			"每个条目一个停位。转盘从不空转 — 这正是「转完一整圈」成为事实的原因。",
+			"每个任务、每个折叠分支一个停位——转动时不会停在标题上。转盘从不空转，这正是「转完一整圈」成为事实的原因。",
 		keyFlat: "本轮的平铺顺序 — 不会跳过任何东西的路径。",
 		keyEnds: "第一个与最后一个停位。",
 		keySideways: "侧移，保持在同一环上。",

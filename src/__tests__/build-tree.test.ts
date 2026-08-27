@@ -76,7 +76,10 @@ describe("buildTree — the rings", () => {
 	it("makes headings a ring between the note and its tasks", () => {
 		const section = find(tree.root, "Voorbereiding");
 		expect(section.kind).toBe("group");
-		expect(section.depth).toBe(4); // root → domain → project → note heading → section
+		// root → domain → project → section. The note opens with `# DDI job aid`,
+		// a heading that only says its name again, and such a heading gets no
+		// ring of its own (BC_E3_S70) — see `title-heading.test.ts`.
+		expect(section.depth).toBe(3);
 	});
 
 	it("nests subtasks under the task they are indented below", () => {

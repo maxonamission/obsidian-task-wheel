@@ -77,6 +77,29 @@ export function isFinished(fields: TaskFields | undefined): boolean {
 }
 
 /**
+ * Whether this node is one of the round's items — a piece of work to review.
+ *
+ * The one definition three mechanisms share: what the hub counts, what a
+ * completed round is measured against, and where an action sends the reader
+ * next. They used to answer it separately, and drifted: the hub counted tasks
+ * while the round counted every node, headings included, so a wheel could say
+ * "nothing left" and "60 to go" at the same time (BC_E3_S67).
+ *
+ * A heading, a note and a folder are containers: they hold work, they are not
+ * work. A finished task is not an item either, unless the round is deliberately
+ * about finished work — the same rule `shownTaskCount` follows, and for the
+ * same reason. A finished task that only survives as a carrier for open work
+ * below it is a scaffold, not something to review.
+ */
+export function isRoundItem(
+	node: Pick<WheelNode, "kind" | "fields">,
+	showsFinished: boolean,
+): boolean {
+	if (node.kind !== "task") return false;
+	return showsFinished || !isFinished(node.fields);
+}
+
+/**
  * Obsidian Tasks fields, parsed but never re-serialised from scratch.
  *
  * `raw` holds the untouched line so a review action can rewrite one field and

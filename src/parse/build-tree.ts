@@ -17,7 +17,12 @@
  *    night; urgency belongs to the colour channel (§2.1, §2.4).
  */
 
-import { hasHeadingPath, outlineNote, type OutlinedTask } from "./outline";
+import {
+	hasHeadingPath,
+	outlineNote,
+	titleHeadingOf,
+	type OutlinedTask,
+} from "./outline";
 import {
 	isExcluded,
 	isExcludedHeading,
@@ -30,6 +35,7 @@ import { showsFinishedWork } from "./round";
 import { TASK_LINE } from "./task-line";
 import {
 	isFinished,
+	isRoundItem,
 	type NoteInput,
 	type ParseOptions,
 	type WheelNode,
@@ -106,14 +112,20 @@ export function buildTreeFrom(
 			(task) => !isExcludedHeading(task.headingPath, options),
 		);
 
+		// A heading that only repeats the note's name gets no ring of its own
+		// (BC_E3_S70). Dropped here, after the skip rules have read the full
+		// paths — a rule the reader wrote means the same on every wheel — and
+		// before anything else looks at them, so the section scope, the wedges
+		// and the rings all see one and the same shape.
+		const shaped = withoutTitleHeading(excluded, note);
+
 		// A section wheel is about one subtree of headings: tasks elsewhere in
 		// the note are a boundary like the scope itself, never counted as
-		// filtered out (BC_E3_S64). The skip rules above run on the *full*
-		// heading paths first, so they mean the same thing on every wheel.
+		// filtered out (BC_E3_S64).
 		const onTopic =
 			options.scope.kind === "section"
-				? withinSection(excluded, options.scope.heading)
-				: excluded;
+				? withinSection(shaped, options.scope.heading)
+				: shaped;
 
 		const open = selectTasks(onTopic, options);
 		const kept = selectFiltered(open, note, options);
@@ -144,7 +156,7 @@ export function buildTreeFrom(
 			? !outlinedNotes.some(
 					({ note }) =>
 						note.path === scope.path &&
-						hasHeadingPath(note.content, scope.heading),
+						hasHeadingPath(note.path, note.content, scope.heading),
 				)
 			: undefined;
 
@@ -158,6 +170,39 @@ export function buildTreeFrom(
 		showsFinished,
 		sectionMissing,
 	};
+}
+
+/**
+ * The same tasks, with a title-repeating top heading taken out of their paths.
+ *
+ * `titleHeadingOf` decides whether the note has one (see there for why, and for
+ * how narrow the test is). All this does is drop that first step from every
+ * path that starts with it, keeping the three arrays in step — heading titles,
+ * their lines and their raw text are read together everywhere downstream, and a
+ * path one shorter than its lines would send an edit at the wrong line.
+ *
+ * Tasks that sit *above* the heading — front matter aside, a note may open with
+ * a checkbox before its first heading — have an empty path and are untouched.
+ */
+function withoutTitleHeading(
+	tasks: OutlinedTask[],
+	note: NoteInput,
+): OutlinedTask[] {
+	if (tasks.length === 0) return tasks;
+
+	const title = titleHeadingOf(note.path, note.content);
+	if (title === null) return tasks;
+
+	return tasks.map((task) =>
+		task.headingPath[0] === title
+			? {
+					...task,
+					headingPath: task.headingPath.slice(1),
+					headingLines: task.headingLines.slice(1),
+					headingRaws: task.headingRaws.slice(1),
+				}
+			: task,
+	);
 }
 
 /**
@@ -604,7 +649,7 @@ function countTasks(
 
 	if (current.kind === "task") {
 		total += 1;
-		if (showsFinished || !isFinished(current.fields)) open += 1;
+		if (isRoundItem(current, showsFinished)) open += 1;
 	}
 
 	for (const child of current.children) {

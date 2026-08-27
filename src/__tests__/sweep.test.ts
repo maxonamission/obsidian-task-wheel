@@ -14,17 +14,21 @@ const NOTES: NoteInput[] = [
 const tree = buildTree(NOTES, DEFAULT_PARSE_OPTIONS);
 const layout = layoutWheel(tree);
 const stops = layout.nodes.filter((laid) => laid.depth > 0);
+/** The round's own items: the tasks, which is what the hub counts. */
+const items = stops.filter((laid) => laid.node.kind === "task");
+/** And the containers that hold them, which the round does not count. */
+const containers = stops.filter((laid) => laid.node.kind !== "task");
 
 describe("sweepProgress", () => {
 	it("starts at nothing", () => {
 		const progress = sweepProgress(tree, new Set());
 		expect(progress.seen).toBe(0);
-		expect(progress.total).toBe(stops.length);
+		expect(progress.total).toBe(items.length);
 		expect(progress.complete).toBe(false);
 	});
 
 	it("counts what has been under the wedge", () => {
-		const seen = new Set([stops[0].id, stops[1].id]);
+		const seen = new Set([items[0].id, items[1].id]);
 		expect(sweepProgress(tree, seen).seen).toBe(2);
 	});
 
@@ -33,20 +37,45 @@ describe("sweepProgress", () => {
 		expect(sweepProgress(tree, seen).seen).toBe(0);
 	});
 
-	it("is complete only when every stop has been passed", () => {
-		const almost = new Set(stops.slice(1).map((laid) => laid.id));
+	it("is complete only when every item has been passed", () => {
+		const almost = new Set(items.slice(1).map((laid) => laid.id));
 		expect(sweepProgress(tree, almost).complete).toBe(false);
 
-		const all = new Set(stops.map((laid) => laid.id));
+		const all = new Set(items.map((laid) => laid.id));
 		expect(sweepProgress(tree, all).complete).toBe(true);
 	});
 
-	it("agrees with the number of stops the wheel offers", () => {
-		// Everything in the tree, not everything currently drawn: the round is
-		// about the vault, and turning towards a stump opens it.
-		expect(sweepProgress(tree, new Set()).total).toBe(tree.byId.size - 1);
+	it("says the same number as the hub — one definition, not two", () => {
+		// The hub counts tasks and the round used to count every node, headings
+		// and notes included: 144 in the middle and 204 at the edge, on the same
+		// wheel (BC_E3_S67). By construction they cannot disagree again.
+		expect(containers.length).toBeGreaterThan(0);
+		expect(sweepProgress(tree, new Set()).total).toBe(tree.root.shownTaskCount);
+	});
+
+	it("does not wait on a heading nobody can stand on any more", () => {
+		// Turning no longer stops on containers, so a round that counted them
+		// could never be closed by turning at all.
+		const everyItem = new Set(items.map((laid) => laid.id));
+		expect(sweepProgress(tree, everyItem).complete).toBe(true);
+	});
+
+	it("counts what the tree holds, not what is drawn", () => {
+		// The round is about the vault; turning towards a stump opens it.
+		const inTree = [...tree.byId.values()].filter(
+			(node) => node.kind === "task",
+		).length;
+		expect(sweepProgress(tree, new Set()).total).toBe(inTree);
 	});
 });
+
+/** Whether a span covers this node's whole slice. */
+function wide(
+	span: { start: number; end: number },
+	node?: { span: number },
+): boolean {
+	return node !== undefined && span.end - span.start >= node.span - 0.01;
+}
 
 describe("sweepSpans", () => {
 	it("draws nothing before the round begins", () => {
@@ -54,9 +83,35 @@ describe("sweepSpans", () => {
 	});
 
 	it("draws one arc per item passed", () => {
-		const spans = sweepSpans(layout, new Set([stops[0].id]));
+		const spans = sweepSpans(layout, new Set([items[0].id]));
 		expect(spans).toHaveLength(1);
-		expect(spans[0].end - spans[0].start).toBeCloseTo(stops[0].span, 6);
+		expect(spans[0].end - spans[0].start).toBeCloseTo(items[0].span, 6);
+	});
+
+	it("colours a container once everything of the round below it is seen", () => {
+		// Containers are no longer stops of their own, so their slice has to be
+		// derived — otherwise a finished wedge would keep drawing gaps where the
+		// heading and the note sit (BC_E3_S67).
+		const note = containers.find((laid) => laid.node.kind === "project");
+		expect(note).toBeDefined();
+
+		const below = items.filter((laid) => laid.id.startsWith(`${note?.id}`));
+		expect(below.length).toBeGreaterThan(1);
+
+		const part = new Set(below.slice(1).map((laid) => laid.id));
+		expect(sweepSpans(layout, part).some((span) => wide(span, note))).toBe(false);
+
+		const whole = new Set(below.map((laid) => laid.id));
+		expect(sweepSpans(layout, whole).some((span) => wide(span, note))).toBe(true);
+	});
+
+	it("does not colour a container for one task read inside it", () => {
+		// The old marking would have: a wedge is the widest slice on the wheel,
+		// and one task is not the wedge.
+		const first = items[0];
+		const spans = sweepSpans(layout, new Set([first.id]));
+		const total = spans.reduce((sum, span) => sum + (span.end - span.start), 0);
+		expect(total).toBeCloseTo(first.span, 6);
 	});
 
 	it("merges neighbours into one band rather than a row of ticks", () => {

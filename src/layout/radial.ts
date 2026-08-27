@@ -45,6 +45,7 @@ import {
 } from "./geometry";
 import { orderedChildren } from "./order";
 import { warpFor, type WarpOptions } from "./warp";
+import { windowFor } from "./window";
 
 export interface LayoutOptions {
 	rings: RingConfig;
@@ -251,6 +252,14 @@ export interface WheelLayout {
 	 * 23 aug 2026).
 	 */
 	labelSteps: number;
+	/**
+	 * Half the width of the whole drawing — the window the view puts on it.
+	 *
+	 * From the tree, not from what this layout happens to draw: a branch that
+	 * unfolds only while the focus stands in it must not change the size of
+	 * the drawing when it does (BC_E3_S70). See `layout/window.ts`.
+	 */
+	window: number;
 }
 
 /**
@@ -349,17 +358,21 @@ export function layoutWheel(
 		nodes.filter((laid) => laid.depth > 1).map((laid) => laid.span),
 	);
 
+	const deepest = reachableDepth(tree, config);
+	const radius = ringRadius(deepest, config.rings);
+
 	return {
 		nodes,
 		links,
 		budgets,
 		byId,
 		rings: ringsUsed(nodes, config),
-		radius: ringRadius(reachableDepth(tree, config), config.rings),
+		radius,
 		order: nodes.filter((laid) => laid.depth > 0).map((laid) => laid.id),
 		showsFinished: tree.showsFinished,
 		warp,
 		labelSteps: config.labelSteps,
+		window: windowFor(tree, radius, deepest, config.rings),
 	};
 }
 

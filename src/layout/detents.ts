@@ -17,7 +17,7 @@
  * step in the drawing, which is the only ordering a turning motion can honour.
  */
 
-import type { NodeKind } from "../model/types";
+import { isRoundItem, type NodeKind } from "../model/types";
 import { angleDelta, normaliseAngle } from "./geometry";
 import type { WheelLayout } from "./radial";
 
@@ -33,6 +33,25 @@ export interface Detent {
 	parentId: string | null;
 	/** Rotation that brings it under the reading wedge, in [0, 360). */
 	rotation: number;
+	/**
+	 * Whether **turning** may come to rest here.
+	 *
+	 * True for the round's items and for stumps; false for the headings, notes
+	 * and folders that merely hold them. Turning used to stop on all of them,
+	 * which put the reader on a heading two times in five — "waar niets te doen
+	 * is", as the measurement for the action-landing rule had already put it
+	 * (kaderdocument §5). The same argument, so now the same answer
+	 * (BC_E3_S67).
+	 *
+	 * A stump is a stop for exactly the reason a heading is not: there *is*
+	 * something to do — it holds work nobody has seen, and turning into it is
+	 * how that work is reached. Without it a round on a vault bigger than the
+	 * drawing could never be closed by turning at all.
+	 *
+	 * The arrows, a tap and the card's side arrows keep every detent: a ring
+	 * holds containers, and walking a ring is how you reach one to fold it.
+	 */
+	turnStop: boolean;
 }
 
 /** One stop per visible node, in turn order. */
@@ -51,7 +70,52 @@ export function buildDetents(layout: WheelLayout): Detent[] {
 		angle: laid.angle,
 		parentId: laid.parentId,
 		rotation: normaliseAngle(-laid.angle),
+		turnStop:
+			isRoundItem(laid.node, layout.showsFinished) ||
+			laid.collapsed ||
+			laid.hiddenCount > 0,
 	}));
+}
+
+/**
+ * The stops turning is allowed to rest on, in turn order.
+ *
+ * Falls back to every detent when nothing qualifies — a wheel that could not
+ * be turned at all would be a worse answer than one that stops on a heading.
+ */
+export function turnStops(detents: readonly Detent[]): Detent[] {
+	const stops = detents.filter((detent) => detent.turnStop);
+	return stops.length > 0 ? stops : [...detents];
+}
+
+/** Step to the next stop turning may rest on, wrapping round the circle. */
+export function stepTurnStop(
+	detents: readonly Detent[],
+	index: number,
+	delta: number,
+): number {
+	const stops = turnStops(detents);
+	if (stops.length === 0) return index;
+
+	const here = detents[index];
+	// Where the reader stands may itself be a container — the arrows can put
+	// them there. Then "the next one" is measured from the nearest turn stop
+	// in the direction of travel, not from a place that is not in the walk.
+	const at = here === undefined ? -1 : stops.findIndex((s) => s.id === here.id);
+	if (at >= 0) {
+		const next = stops[(((at + delta) % stops.length) + stops.length) % stops.length];
+		return next.index;
+	}
+
+	return nearestTurnStop(detents, here?.rotation ?? 0)?.index ?? index;
+}
+
+/** The stop turning would settle on for this rotation. */
+export function nearestTurnStop(
+	detents: readonly Detent[],
+	rotation: number,
+): Detent | null {
+	return detentAt(turnStops(detents), rotation);
 }
 
 /**

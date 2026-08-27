@@ -181,6 +181,49 @@ export function headingsOf(lines: readonly string[]): NoteHeading[] {
 }
 
 /**
+ * The heading that only says the note's own name again, if there is one.
+ *
+ * A great many notes open with a heading that repeats their title —
+ * `VRG-019 Privacy by Design.md` beginning with `# VRG-019 Privacy by Design`.
+ * Drawn as its own ring it is a container holding everything and saying
+ * nothing, and it costs every task in that note a ring: notes that follow the
+ * convention put their work one ring further out than notes that do not. On a
+ * folder of both kinds the outermost occupied ring then moves in and out as
+ * you turn, which is what the owner saw and reported as a shifting outer ring
+ * (measured 27 aug 2026, BC_E3_S70: ring 3 for sixteen tasks, ring 4 for
+ * twenty-four, same folder).
+ *
+ * So it gets no ring, and its children hang off the note directly — the same
+ * rule the note wheel already applies to the project ring, for the same
+ * reason: a ring with one node that adds nothing is a wasted ring.
+ *
+ * Only when it is the note's **one** outermost heading, and only when it
+ * really is the title. Two top headings mean the first is a real division,
+ * and a heading that differs from the name is saying something the name does
+ * not — both keep their ring. Conservative on purpose: a wrongly dropped ring
+ * would move work somewhere the reader did not put it.
+ */
+export function titleHeadingOf(path: string, content: string): string | null {
+	const name = path
+		.slice(path.lastIndexOf("/") + 1)
+		.replace(/\.md$/i, "")
+		.trim();
+	if (name.length === 0) return null;
+
+	// `path.length === 1` is the outermost heading of the note, whatever its
+	// level: a note that starts at `##` has that as its top, exactly as the
+	// tree reads it.
+	const top = headingsOf(linesOf(content)).filter(
+		(heading) => heading.path.length === 1,
+	);
+	if (top.length !== 1) return null;
+
+	return top[0].text.trim().toLowerCase() === name.toLowerCase()
+		? top[0].text
+		: null;
+}
+
+/**
  * Whether a note still holds a section with exactly this heading path.
  *
  * A section wheel is anchored to a path of titles, and a title is something a
@@ -190,15 +233,24 @@ export function headingsOf(lines: readonly string[]): NoteHeading[] {
  * (BC_E3_S64).
  */
 export function hasHeadingPath(
+	path: string,
 	content: string,
 	heading: readonly string[],
 ): boolean {
 	if (heading.length === 0) return false;
-	return headingsOf(linesOf(content)).some(
-		(found) =>
-			found.path.length === heading.length &&
-			found.path.every((step, i) => step === heading[i]),
-	);
+
+	// Against the paths as the **wheel** reads them, not as the file writes
+	// them: a title heading that gets no ring is not part of any anchor, so
+	// asking the raw file would call every section of such a note missing.
+	const title = titleHeadingOf(path, content);
+	return headingsOf(linesOf(content)).some((found) => {
+		const steps =
+			title !== null && found.path[0] === title ? found.path.slice(1) : found.path;
+		return (
+			steps.length === heading.length &&
+			steps.every((step, i) => step === heading[i])
+		);
+	});
 }
 
 /** Index of the first line after a leading front-matter block, if any. */

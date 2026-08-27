@@ -4,6 +4,35 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.6]
+
+The drawing sits still now — and turning lands on the work.
+
+- **Fixed**: on a wheel with a single wedge, the thick band around the wheel
+  lurched to a new place at every stop while everything else stood still. A
+  full-circle band was drawn as one SVG arc, whose two endpoints all but
+  coincide — and a browser re-derives an arc's centre from its endpoints, so
+  the ring landed visibly off the hub, somewhere new every turn. A whole
+  circle is now drawn as two half arcs, whose centre cannot wander.
+- **Fixed**: the drawing no longer changes size while you turn. Its window
+  was sized to what happened to be drawn, and what is drawn follows the
+  focus — a deep or long-labelled branch unfolding under the reading wedge
+  rescaled the whole wheel. The window now comes from the notes themselves
+  and only changes when they do.
+- **Fixed**: a note opening with a heading that merely repeats its own name
+  no longer spends a ring on it. Tasks in a folder of notes with and without
+  such a heading now share one ring, so the outermost ring reads steady
+  instead of stepping in and out as you turn. The heading itself is still
+  there for editing; it just is not a ring.
+- **Changed**: turning now lands on tasks — and on folded branches — rather
+  than on every container in between, and the count in the hub counts tasks.
+  A round of 40 tasks is 40 stops; the arrows, tapping and the menus still
+  reach every heading and note. A container's arc colours along as
+  everything of the round below it has been seen.
+- **Fixed**: on desktop, the help panel could open as an empty pane when the
+  workspace refused the sidebar view (seen on Obsidian 1.13.7); the help now
+  verifies it is actually on screen and falls back to a window if not.
+
 ## [0.1.5]
 
 Scrolling now moves one task at a time.

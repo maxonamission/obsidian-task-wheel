@@ -9,6 +9,8 @@ import {
 	detentAt,
 	indexOfId,
 	stepIndex,
+	stepTurnStop,
+	turnStops,
 } from "../layout/detents";
 import { normaliseAngle } from "../layout/geometry";
 import {
@@ -230,5 +232,90 @@ describe("walking the tree with the arrow keys", () => {
 			index = stepIndex(detents, index, 1);
 		}
 		expect(seen.size).toBe(detents.length);
+	});
+});
+
+describe("turn stops — waar draaien op landt (BC_E3_S67)", () => {
+	const { layout, detents } = detentsOf();
+
+	it("laat draaien nooit op een kop, notitie of map uitkomen", () => {
+		// Dit is de klacht die het besluit droeg: bij draaien sprong de focus
+		// ook op containers, "waar niets te doen is" (meettabel §5).
+		const containers = turnStops(detents).filter(
+			(stop) => stop.kind !== "task",
+		);
+		for (const stop of containers) {
+			const laid = layout.byId.get(stop.id);
+			// De enige container die stop blijft is een stomp: díe houdt werk
+			// vast dat nog niemand heeft gezien.
+			expect(laid?.collapsed === true || (laid?.hiddenCount ?? 0) > 0).toBe(true);
+		}
+	});
+
+	it("laat elke taak van de ronde stop blijven", () => {
+		const items = layout.nodes.filter(
+			(laid) => laid.depth > 0 && laid.node.kind === "task",
+		);
+		const stops = new Set(turnStops(detents).map((stop) => stop.id));
+		for (const laid of items) expect(stops.has(laid.id)).toBe(true);
+	});
+
+	it("bezoekt in één volle draai elke stop precies één keer", () => {
+		const stops = turnStops(detents);
+		const seen = new Set<string>();
+		let index = stops[0].index;
+
+		for (let step = 0; step < stops.length; step++) {
+			const here = detents[index];
+			expect(seen.has(here.id)).toBe(false);
+			seen.add(here.id);
+			index = stepTurnStop(detents, index, 1);
+		}
+
+		expect(seen.size).toBe(stops.length);
+		expect(index).toBe(stops[0].index);
+	});
+
+	it("slaat niets over: elke taak komt in die draai langs", () => {
+		// De hele belofte van het instrument. De vlakke volgorde deed dit ook,
+		// maar zette je onderweg op koppen; deze doet het zonder.
+		const stops = turnStops(detents);
+		const walked = new Set<string>();
+		let index = stops[0].index;
+		for (let step = 0; step < stops.length; step++) {
+			walked.add(detents[index].id);
+			index = stepTurnStop(detents, index, 1);
+		}
+
+		const items = layout.nodes.filter(
+			(laid) => laid.depth > 0 && laid.node.kind === "task",
+		);
+		for (const laid of items) expect(walked.has(laid.id)).toBe(true);
+	});
+
+	it("vindt vanaf een container de weg terug in de draaivolgorde", () => {
+		// De pijltjes mogen op een kop staan; draaien moet daarna gewoon verder
+		// kunnen zonder de lezer vast te zetten.
+		const container = detents.find((stop) => !stop.turnStop);
+		expect(container).toBeDefined();
+
+		const next = stepTurnStop(detents, container?.index ?? 0, 1);
+		expect(detents[next].turnStop).toBe(true);
+	});
+
+	it("houdt terugdraaien de spiegel van vooruit", () => {
+		const stops = turnStops(detents);
+		const start = stops[3].index;
+		const forward = stepTurnStop(detents, start, 1);
+		expect(stepTurnStop(detents, forward, -1)).toBe(start);
+	});
+
+	it("laat een wiel zonder enkele taak toch draaien", () => {
+		// Liever een wiel dat op een kop stopt dan een wiel dat vastzit.
+		const empty = detentsOf([
+			{ path: "Werk/Leeg.md", content: "# Kop\n\ngeen taken hier" },
+		]);
+		const stops = turnStops(empty.detents);
+		expect(stops.length).toBe(empty.detents.length);
 	});
 });

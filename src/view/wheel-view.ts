@@ -1204,11 +1204,19 @@ export class TaskWheelView extends ItemView {
 
 		const detents = buildDetents(layout);
 		this.onTrace(
-			`draw: ${layout.nodes.length} items, ${detents.length} stops, ${tree.root.shownTaskCount} open`,
+			`draw: ${layout.nodes.length} items, ${detents.length} stops, ` +
+				`${tree.root.shownTaskCount} open, window ${layout.window}`,
 		);
 
 		this.safely("drawing the wheel", () => {
 			this.renderer = new WheelRenderer(canvasEl, layout);
+			// The drawing is the one layer no headless test can reach: the angles
+			// are pure and have their own tests, but which of them reached the
+			// screen is decided incrementally, in a browser. With diagnostics on
+			// it says so itself (BC_E3_S70).
+			this.renderer.watchPlacement(
+				this.plugin.settings.diagnostics ? (line) => this.onTrace(line) : null,
+			);
 		});
 		this.safely("wiring the turn", () => {
 			if (this.renderer === null) return;
@@ -1713,6 +1721,11 @@ export class TaskWheelView extends ItemView {
 
 	/** The wheel came to rest. Now the fisheye opens around where it landed. */
 	private onSettle(detent: Detent | null): void {
+		// Asked when the wheel has come to rest rather than per frame: a snap is
+		// thirty frames, and thirty identical lines would bury the one that
+		// matters. Does nothing unless diagnostics are on.
+		this.renderer?.reportPlacement();
+
 		const id = detent?.id ?? null;
 		if (id === null) return;
 

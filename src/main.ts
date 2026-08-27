@@ -464,20 +464,49 @@ export default class TaskWheelPlugin extends Plugin {
 			// afterwards leaves the same instance in place — empty, if anything
 			// emptied it (eigenaar, 25 aug 2026).
 			if (existing.view instanceof TaskWheelHelpView) existing.view.reopen();
-			this.reportHelp("reused");
-			return;
+
+			// A leaf that is not in the document cannot be drawn into, and
+			// reusing it is how an empty panel survives a restart: Obsidian keeps
+			// the failed leaf in the saved workspace, hands it back here, and the
+			// panel is filled into nowhere again (eigenaar, 27 aug 2026). Rather
+			// than reuse it, throw it away and open afresh below.
+			if (this.helpOnScreen(existing)) {
+				this.reportHelp("reused");
+				return;
+			}
+			this.sayHelp("reused leaf was detached — opening a fresh one");
+			workspace.detachLeavesOfType(VIEW_TYPE_TASK_WHEEL_HELP);
 		}
 
 		const leaf = workspace.getRightLeaf(false);
-		if (leaf === null) return;
+		if (leaf !== null) {
+			await leaf.setViewState({
+				type: VIEW_TYPE_TASK_WHEEL_HELP,
+				active: true,
+			});
+			await workspace.revealLeaf(leaf);
+			await leaf.loadIfDeferred();
 
-		await leaf.setViewState({
-			type: VIEW_TYPE_TASK_WHEEL_HELP,
-			active: true,
-		});
-		await workspace.revealLeaf(leaf);
-		await leaf.loadIfDeferred();
-		this.reportHelp("opened");
+			if (this.helpOnScreen(leaf)) {
+				this.reportHelp("opened");
+				return;
+			}
+		}
+
+		// The sidebar would not have it. Obsidian's own log says why — "Failed to
+		// open view: e.open is not a function" on 1.13.7 — and from here the
+		// reason does not matter: a panel that cannot be shown is no help at all,
+		// and the modal is the same content on a surface that owns itself
+		// (BC_E3_S69). Said out loud, because a reader who asked for the panel
+		// and got a window deserves to know it was not their doing.
+		workspace.detachLeavesOfType(VIEW_TYPE_TASK_WHEEL_HELP);
+		this.sayHelp("Help opened in a window — the sidebar had no room for it");
+		new TaskWheelHelpModal(this, this.activeWheel()).open();
+	}
+
+	/** Whether this leaf's help panel is really on the screen. */
+	private helpOnScreen(leaf: WorkspaceLeaf): boolean {
+		return leaf.view instanceof TaskWheelHelpView && leaf.view.onScreen();
 	}
 
 	/**

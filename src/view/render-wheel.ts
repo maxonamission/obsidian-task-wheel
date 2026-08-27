@@ -21,6 +21,13 @@ import {
 	type LaidOutNode,
 	type WheelLayout,
 } from "../layout/radial";
+import {
+	BAND_GAP,
+	LABEL_CHARS,
+	LABEL_GAP,
+	READING_GAP,
+	TITLE_GAP,
+} from "../layout/window";
 import { clampZoom, viewBoxAttr, viewBoxFor } from "../layout/zoom";
 import { plainText } from "../parse/links";
 
@@ -38,46 +45,8 @@ import { plainText } from "../parse/links";
  * redraw: a rescan rebuilds, a turn does not.
  */
 
-/**
- * How far outside the outermost ring the wedge bands sit, and the titles
- * outside those.
- *
- * Both are measured from the tree's own depth rather than fixed, so a shallow
- * vault fills the canvas instead of drawing a small wheel inside a wide empty
- * ring. The depth a tree can reach does not change while you turn, so neither
- * does the size of the drawing.
- */
-const BAND_GAP = 18;
-const TITLE_GAP = 12;
-
-/**
- * Room kept outside the titles for the longest label.
- *
- * Every unit of it is width the wheel itself does not get, and most of the ring
- * has no label at all — so this is cut to what a truncated label actually
- * needs rather than to the worst case. Anything longer is what the reading card
- * is for.
- */
-const LABEL_MARGIN = 62;
-
-/** Gap between a node and its label. */
-const LABEL_GAP = 7;
-
-/** And for a centred one, which has the dot underneath it rather than beside. */
-const READING_GAP = 11;
-
-/** Breathing room between the longest label and the edge of the drawing. */
-const EDGE_PAD = 4;
-
-/**
- * Label lengths, past which the reading card is the place to read it.
- *
- * `reading` is the branch you are on — the focus and the containers between it
- * and the hub. Those get more than twice the room of an ordinary label, because
- * they are what the drawing is being asked about; the rest stay short so the
- * wheel keeps reading as a shape rather than as a list (owner, 19 aug 2026).
- */
-const LABEL_CHARS = { domain: 11, leaf: 14, reading: 30 } as const;
+// The window metrics live with the layout: the size of the drawing is decided
+// there, from the tree, so that it cannot move while you turn (BC_E3_S70).
 
 /**
  * The hub's radius, and so where a wedge seam starts.
@@ -160,6 +129,7 @@ export class WheelRenderer {
 	private readonly bands: Array<{
 		el: SVGPathElement;
 		seam: SVGLineElement;
+		domain: string;
 		startAngle: number;
 		endAngle: number;
 	}> = [];
@@ -180,6 +150,38 @@ export class WheelRenderer {
 	private half: number;
 	private zoom: number;
 
+	/**
+	 * Where a placement report goes, when the reader has diagnostics on.
+	 *
+	 * The drawing is the one layer that cannot be checked without a browser:
+	 * the angles are pure functions and have their own tests, but *which of
+	 * them reached the screen* is decided here, incrementally, and only a
+	 * running Obsidian knows the answer. So the drawing says it out loud
+	 * instead — the same instrument that found the detached help pane
+	 * (BC_E3_S70).
+	 */
+	private report: ((line: string) => void) | null = null;
+
+	/**
+	 * Have the drawing report what each turn did to it.
+	 *
+	 * Off unless the reader switched diagnostics on, and reported when the
+	 * wheel comes to **rest** rather than per frame: a snap is thirty frames
+	 * and thirty identical lines would bury the one that matters.
+	 */
+	watchPlacement(report: ((line: string) => void) | null): void {
+		this.report = report;
+	}
+
+	/** Report the placement once, as the wheel stands right now. */
+	reportPlacement(): void {
+		if (this.report === null) return;
+		this.checkPlacement(normaliseAngle(-this.turned), this.lastMoved);
+	}
+
+	/** How many nodes the last turn actually moved. */
+	private lastMoved = 0;
+
 	constructor(parent: HTMLElement, layout: WheelLayout, zoom = 1) {
 		parent.empty();
 
@@ -189,8 +191,7 @@ export class WheelRenderer {
 		// choosing this rule, it is honouring one (audit M3, 23 aug 2026).
 		this.nearSteps = layout.labelSteps;
 		this.titleRadius = this.rim + TITLE_GAP;
-		this.half = this.titleRadius + LABEL_MARGIN;
-		this.half = this.roomForLabels(layout);
+		this.half = layout.window;
 		this.zoom = clampZoom(zoom);
 
 		this.svg = parent.createSvg("svg", {
@@ -230,6 +231,153 @@ export class WheelRenderer {
 		this.drawIndex();
 		this.measureLabels();
 		this.setRotation(0);
+	}
+
+	/**
+	 * Say what this turn actually did to the drawing.
+	 *
+	 * Three numbers, and each answers a question the screenshots could not:
+	 *
+	 *  - **drift** — the furthest any node sits from where it should be right
+	 *    now. Placement is incremental and skips a node whose angle barely
+	 *    changed, so a node left behind by mistake shows up here and nowhere
+	 *    else. Anything past the skip threshold is a node that stayed put when
+	 *    it should have moved.
+	 *  - **swaps** — how many neighbours on a ring are drawn in the wrong
+	 *    order. The magnifier is order-preserving by construction and has its
+	 *    own tests, so a swap here means the *drawing* diverged from the
+	 *    angles, not that the arithmetic is wrong. This is the number that
+	 *    would say "the outer ring is scrambled" out loud.
+	 *  - **held** — whether whatever is under the reading wedge is drawn at
+	 *    the reading angle, which is the one promise the warp makes.
+	 *
+	 * Only when the reader asked for diagnostics: it is a sort per ring, per
+	 * turn, and the hot path may not pay for a question nobody asked.
+	 */
+	private checkPlacement(reading: number, moved: number): void {
+		let drift = 0;
+		let driftAt = "";
+		const rings = new Map<number, Array<{ was: number; now: number; label: string }>>();
+
+		for (const spot of this.places) {
+			const held = spot.holds
+				? pinnedAngle(spot.laid, reading)
+				: spot.laid.drawAngle;
+			const want = warpAngle(held, reading, this.warp);
+			const off = Math.abs(angleDelta(spot.at, want));
+			if (off > drift) {
+				drift = off;
+				driftAt = spot.laid.node.label;
+			}
+
+			const ring = rings.get(spot.laid.depth) ?? [];
+			ring.push({ was: spot.laid.drawAngle, now: spot.at, label: spot.laid.node.label });
+			rings.set(spot.laid.depth, ring);
+		}
+
+		let swaps = 0;
+		let swapAt = "";
+		for (const [ring, items] of rings) {
+			const order = [...items].sort((a, b) => a.was - b.was);
+			for (let i = 1; i < order.length; i++) {
+				if (angleDelta(order[i - 1].now, order[i].now) < -0.001) {
+					swaps += 1;
+					if (swapAt === "") {
+						swapAt = `ring ${ring}: ${order[i - 1].label} ↔ ${order[i].label}`;
+					}
+				}
+			}
+		}
+
+		const focus = this.focusId === null ? null : this.drawnAt.get(this.focusId);
+		const held =
+			focus === undefined || focus === null
+				? "none"
+				: `${Math.abs(angleDelta(focus, reading)).toFixed(2)}°`;
+
+		this.report?.(
+			`place: ${moved}/${this.places.length} moved, ` +
+				`drift ${drift.toFixed(2)}° (${driftAt || "—"}), ` +
+				`swaps ${swaps}${swaps > 0 ? ` — ${swapAt}` : ""}, ` +
+				`reading off by ${held}`,
+		);
+		this.checkRim(reading);
+		this.checkFrame();
+	}
+
+	/**
+	 * And the mapping from drawing to screen, which is the one layer left.
+	 *
+	 * The place-report proved the items faithful to the layout; the rim-report
+	 * proved the arcs faithful to their spans; the window is one number from
+	 * the tree. If the eye still sees the outer band move while all of that
+	 * stands still, what moves is how the drawing lands on the glass — the
+	 * SVG's own matrix. So say where the hub and the twelve-o'clock rim point
+	 * fall in screen pixels, and at what scale, at every rest. Numbers that
+	 * hold still here mean the jump is not ours; numbers that move name the
+	 * layer that does it.
+	 */
+	private checkFrame(): void {
+		if (typeof this.svg.getScreenCTM !== "function") return;
+		const matrix = this.svg.getScreenCTM();
+		if (matrix === null) return;
+
+		// The images of (0, 0) — the hub — and (0, -rim) — the rim at twelve.
+		const rimX = matrix.c * -this.rim + matrix.e;
+		const rimY = matrix.d * -this.rim + matrix.f;
+		this.report?.(
+			`frame: scale ${matrix.a.toFixed(3)}, ` +
+				`hub ${matrix.e.toFixed(0)},${matrix.f.toFixed(0)}, ` +
+				`rim-top ${rimX.toFixed(0)},${rimY.toFixed(0)}`,
+		);
+	}
+
+	/**
+	 * And the same honesty for the rim layer — the bands and the swept track.
+	 *
+	 * The place-report above watches the *items*; it found them faithful while
+	 * the owner still saw the thick outer ring lurch (27 aug 2026). The rim's
+	 * arcs are the one thing drawn up there, so this says, at every rest, what
+	 * each band was meant to span and what it is drawn spanning right now —
+	 * width and both ends. An arc whose drawn width strays far from its meant
+	 * width, or whose ends land where no wedge is, would be the artefact
+	 * caught in the act.
+	 */
+	private checkRim(reading: number): void {
+		const arcs = this.bands.map((band) => {
+			const from = warpAngle(band.startAngle, reading, this.warp);
+			const to = warpAngle(band.endAngle, reading, this.warp);
+			const drawn = normaliseAngle(to - from) || 360;
+			const meant = normaliseAngle(band.endAngle - band.startAngle) || 360;
+			return (
+				`${band.domain} ${meant.toFixed(0)}°→${drawn.toFixed(0)}° ` +
+				`at ${from.toFixed(0)}°`
+			);
+		});
+
+		let spans = "";
+		if (this.sweptSpans.length > 0) {
+			let worstMeant = 0;
+			let worstDrawn = 0;
+			let stray = 0;
+			for (const span of this.sweptSpans) {
+				const from = warpAngle(span.start, reading, this.warp);
+				const to = warpAngle(span.end, reading, this.warp);
+				const meant = normaliseAngle(span.end - span.start) || 360;
+				const drawn =
+					span.end - span.start >= 360 ? 360 : normaliseAngle(to - from);
+				if (Math.abs(drawn - meant) > stray) {
+					stray = Math.abs(drawn - meant);
+					worstMeant = meant;
+					worstDrawn = drawn;
+				}
+			}
+			spans =
+				` · sweep ${this.sweptSpans.length} spans, ` +
+				`worst ${worstMeant.toFixed(0)}°→${worstDrawn.toFixed(0)}°`;
+		}
+
+		this.report?.(`rim: ${arcs.join(", ")}${spans}`);
 	}
 
 	/**
@@ -300,6 +448,8 @@ export class WheelRenderer {
 				),
 			);
 		}
+
+		this.lastMoved = moved.size;
 
 		// The ring around the item being read rides on the item.
 		if (this.focusId !== null && moved.has(this.focusId)) {
@@ -461,58 +611,6 @@ export class WheelRenderer {
 	}
 
 	/**
-	 * How much room the labels of *this wheel* can ever need.
-	 *
-	 * Worked out before anything is drawn, from what the wheel could show rather
-	 * than from what it happens to show right now — and that "rather than" is the
-	 * whole point. It used to be measured after drawing, over the labels that
-	 * were up: a long name under the reading wedge widened the window, and the
-	 * next stop narrowed it again, so the wheel changed size at nearly every
-	 * click (gemeten 23 aug 2026: 432 tot 562 eenheden, 30% verschil, op 12 van
-	 * de 20 stops). The reader sees a drawing that will not sit still — the last
-	 * of the restlessness (eigenaar, 23 aug 2026).
-	 *
-	 * So every drawn item is asked the worst it could do: swung round to three
-	 * o'clock, with the longest label it is ever given. A name is written out at
-	 * reading length only on the branch being read, and there it is centred over
-	 * its own dot — so it reaches out half its width, where a label hanging
-	 * beside its dot reaches out all of it. The bigger of those two is what the
-	 * item can cost.
-	 *
-	 * The widths are the estimates, which are rounded *up* from the measured
-	 * ones (7 against 6,57 units per character on the rim, 6 against 5,11
-	 * elsewhere), so the window is never too small for what the browser then
-	 * paints.
-	 */
-	private roomForLabels(layout: WheelLayout): number {
-		let needed = this.half;
-
-		for (const laid of layout.nodes) {
-			if (laid.depth === 0) continue;
-			const onRim = laid.depth === 1;
-			const words = plainText(laid.node.label);
-
-			// A wedge title is never centred and never written out long. Every other
-			// item may be either, depending on where the reader stands.
-			const reach = onRim
-				? this.titleRadius + widthOf(words, LABEL_CHARS.domain, true)
-				: laid.radius +
-					Math.max(
-						// Centred over its own dot, at reading length: half either way.
-						READING_GAP + widthOf(words, LABEL_CHARS.reading, false) / 2,
-						// Or hanging off one side, and then it is an ordinary name.
-						LABEL_GAP + widthOf(words, LABEL_CHARS.leaf, false),
-					);
-
-			// Whole units, so the window stays exactly symmetrical about the middle
-			// once it has been through the rounding that writing it out does.
-			needed = Math.max(needed, Math.ceil(reach + EDGE_PAD));
-		}
-
-		return needed;
-	}
-
-	/**
 	 * Ask the browser how wide every label lies — all of them, in one go.
 	 *
 	 * One pass of nothing but reads costs one layout; the same reads scattered
@@ -608,6 +706,7 @@ export class WheelRenderer {
 			this.bands.push({
 				el: band,
 				seam,
+				domain: budget.domain,
 				startAngle: budget.startAngle,
 				endAngle: budget.endAngle,
 			});
@@ -836,18 +935,6 @@ function drawTick(group: SVGGElement, laid: LaidOutNode): SVGLineElement {
  */
 function estimate(el: SVGTextElement, onRim: boolean): number {
 	const chars = el.textContent?.length ?? 0;
-	return chars * (onRim ? RIM_CHAR : LEAF_CHAR);
-}
-
-/**
- * How wide a label of this text lies, at most, in drawing units.
- *
- * The same estimate the labels themselves start out with, asked before anything
- * exists to measure — which is what lets the window be sized from what the
- * wheel *could* show rather than from what it happens to show.
- */
-function widthOf(words: string, limit: number, onRim: boolean): number {
-	const chars = Math.min(words.length, limit) + (words.length > limit ? 1 : 0);
 	return chars * (onRim ? RIM_CHAR : LEAF_CHAR);
 }
 

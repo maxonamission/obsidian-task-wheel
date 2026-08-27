@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	angleDelta,
+	arcPath,
 	branchPath,
 	containsAngle,
 	normaliseAngle,
@@ -90,5 +91,48 @@ describe("branchPath", () => {
 
 	it("is a straight line out of the hub", () => {
 		expect(branchPath(0, 0, 40, 90)).not.toContain("A");
+	});
+});
+
+describe("arcPath — an arc's centre is derived from its endpoints", () => {
+	/** Every anchor point the path visits, in order. */
+	function anchors(path: string): Array<{ x: number; y: number }> {
+		return [...path.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)(?=[AL]|$)/g)].map(
+			(hit) => ({ x: Number(hit[1]), y: Number(hit[2]) }),
+		);
+	}
+
+	function apart(a: { x: number; y: number }, b: { x: number; y: number }): number {
+		return Math.hypot(a.x - b.x, a.y - b.y);
+	}
+
+	it("draws a partial arc as one arc", () => {
+		expect(arcPath(340, 0, 90).match(/A/g)).toHaveLength(1);
+		expect(arcPath(340, 0, 359).match(/A/g)).toHaveLength(1);
+	});
+
+	it("never hands the browser a vanishing chord", () => {
+		// A full circle drawn as one arc leaves two endpoints a hair apart, and
+		// the centre the browser re-derives from that chord lands tens of units
+		// off the hub — the thick outer band the owner saw lurch (BC_E3_S70).
+		// Whole circles become two half arcs, whose anchors stand a diameter
+		// apart: the worst-conditioned chord any of them carries is no chord.
+		for (const start of [0, 328, 337]) {
+			const path = arcPath(340, start, start + 360);
+			expect(path.match(/A/g)).toHaveLength(2);
+
+			const points = anchors(path);
+			for (let i = 1; i < points.length; i++) {
+				expect(apart(points[i - 1], points[i])).toBeGreaterThan(340);
+			}
+		}
+	});
+
+	it("comes home exactly on a whole circle", () => {
+		const points = anchors(arcPath(340, 328, 688));
+		expect(points[0]).toEqual(points[points.length - 1]);
+		for (const point of points) {
+			expect(Math.hypot(point.x, point.y)).toBeCloseTo(340, 1);
+		}
 	});
 });

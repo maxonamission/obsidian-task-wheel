@@ -148,14 +148,26 @@ describe("the section scope itself", () => {
 
 describe("hasHeadingPath", () => {
 	it("finds a nested path and refuses a near miss", () => {
-		expect(hasHeadingPath(NOTE.content, ["Werk", "KNSB", "Details"])).toBe(true);
-		expect(hasHeadingPath(NOTE.content, ["KNSB"])).toBe(false);
-		expect(hasHeadingPath(NOTE.content, ["Werk", "Details"])).toBe(false);
+		const path = NOTE.path;
+		expect(hasHeadingPath(path, NOTE.content, ["Werk", "KNSB", "Details"])).toBe(
+			true,
+		);
+		expect(hasHeadingPath(path, NOTE.content, ["KNSB"])).toBe(false);
+		expect(hasHeadingPath(path, NOTE.content, ["Werk", "Details"])).toBe(false);
 	});
 
 	it("does not read a heading inside a code fence", () => {
 		const fenced = ["# Echt", "```", "# Nep", "```"].join("\n");
-		expect(hasHeadingPath(fenced, ["Echt"])).toBe(true);
-		expect(hasHeadingPath(fenced, ["Nep"])).toBe(false);
+		expect(hasHeadingPath("Werk/Plan.md", fenced, ["Echt"])).toBe(true);
+		expect(hasHeadingPath("Werk/Plan.md", fenced, ["Nep"])).toBe(false);
+	});
+
+	it("asks along the wheel's paths, not the file's", () => {
+		// The note's one top heading repeats its name, so it has no ring — and a
+		// section anchor from that wheel starts a step lower. Asking the raw file
+		// would call every such section missing (BC_E3_S70).
+		const titled = ["# Plan", "## KNSB", "- [ ] Jaarplan lezen"].join("\n");
+		expect(hasHeadingPath("Werk/Plan.md", titled, ["KNSB"])).toBe(true);
+		expect(hasHeadingPath("Werk/Plan.md", titled, ["Plan", "KNSB"])).toBe(false);
 	});
 });
