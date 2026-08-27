@@ -14,6 +14,7 @@ import {
 	tweenAt,
 	type TravelSample,
 } from "../layout/momentum";
+import { pixelsOf, scrollTurn } from "../layout/scroll";
 import { clampZoom, ZOOM_STEP } from "../layout/zoom";
 import type { WheelRenderer } from "./render-wheel";
 
@@ -30,9 +31,6 @@ import type { WheelRenderer } from "./render-wheel";
  * Pointer events cover mouse, pen and touch in one path, so swipe on mobile is
  * the same code as drag on desktop.
  */
-
-/** Wheel-event travel that adds up to one step, in pixels. */
-const WHEEL_STEP = 42;
 
 /** How far a contact may wander and still count as a tap, in pixels. */
 const TAP_SLOP = 12;
@@ -634,13 +632,9 @@ export class WheelController {
 		event.preventDefault();
 
 		const raw = event.deltaY !== 0 ? event.deltaY : event.deltaX;
-		this.scrolled += raw * lineHeight(event);
-
-		const steps = Math.trunc(this.scrolled / WHEEL_STEP);
-		if (steps === 0) return;
-
-		this.scrolled -= steps * WHEEL_STEP;
-		this.step(steps);
+		const turn = scrollTurn(this.scrolled, pixelsOf(raw, event.deltaMode));
+		this.scrolled = turn.travel;
+		if (turn.steps !== 0) this.step(turn.steps);
 	}
 
 	private onKeyDown(event: KeyboardEvent): void {
@@ -859,14 +853,3 @@ function unwrap(from: number, to: number): number {
 	return raw > 180 ? raw - 360 : raw;
 }
 
-/**
- * Wheel deltas come in pixels, lines or pages depending on the device.
- *
- * A trackpad reports pixels, a notched mouse wheel often reports lines, and a
- * line counted as a pixel would make a mouse wheel feel broken.
- */
-function lineHeight(event: WheelEvent): number {
-	if (event.deltaMode === 1) return 16;
-	if (event.deltaMode === 2) return 200;
-	return 1;
-}

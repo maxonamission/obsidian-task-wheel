@@ -4,6 +4,18 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.5]
+
+Scrolling now moves one task at a time.
+
+- **Fixed**: turning the wheel with a mouse could jump several tasks per
+  notch, which is a fast way to lose your place in a round. A scroll wheel
+  reports distance rather than notches, and how much distance a notch is
+  worth is a system-wide setting made for reading documents. One scroll now
+  moves at most one stop, whatever your system sends. Spinning faster still
+  travels faster, turning back answers immediately, and trackpads are
+  unchanged.
+
 ## [0.1.4]
 
 A wheel over one section, and deferring that actually parks.
