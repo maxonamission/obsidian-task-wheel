@@ -3,9 +3,9 @@ import {
 	Modal,
 	Notice,
 	Platform,
-	setIcon,
 	type WorkspaceLeaf,
 } from "obsidian";
+import { putIcon } from "./icon";
 import { helpSubject } from "../model/help";
 import { nodeColour, PRIORITY_LADDER } from "../layout/colour";
 import type TaskWheelPlugin from "../main";
@@ -548,8 +548,7 @@ function block(
 		cls: "task-wheel-help-head",
 		attr: { "aria-expanded": String(open) },
 	});
-	const caret = head.createSpan({ cls: "task-wheel-help-caret" });
-	setIcon(caret, open ? "chevron-down" : "chevron-right");
+	putIcon(head, open ? "chevron-down" : "chevron-right", "task-wheel-help-caret");
 	head.createSpan({ text: title });
 	head.addEventListener("click", () => {
 		on.open.set(key, on.open.get(key) !== true);
@@ -644,8 +643,7 @@ function drawKeys(body: HTMLElement, s: HelpStrings): void {
 	const actions = body.createDiv({ cls: "task-wheel-help-actions" });
 	for (const action of cardActions(s)) {
 		const row = actions.createSpan({ cls: "task-wheel-help-action" });
-		const icon = row.createSpan();
-		setIcon(icon, action.icon);
+		putIcon(row, action.icon);
 		row.createSpan({ text: action.name });
 	}
 

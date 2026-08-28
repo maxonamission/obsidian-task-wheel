@@ -4,6 +4,20 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.7]
+
+The buttons on the reading card are visible again.
+
+- **Fixed**: on iPad, every control on the reading card was an empty box —
+  the eight actions and both step arrows, drawn at the right size, holding no
+  icon at all. Icons now always sit in an element of their own, the way the
+  rest of the plugin already placed them, which is the arrangement that
+  renders on every device tested.
+- **Changed**: those same icons are drawn with a slightly heavier line, so
+  they read as controls rather than as decoration on a light theme. Their
+  colour is unchanged: the row stays quiet, because the wheel is what your
+  eye should land on.
+
 ## [0.1.6]
 
 The drawing sits still now — and turning lands on the work.

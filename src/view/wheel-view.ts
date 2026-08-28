@@ -3,11 +3,11 @@ import {
 	MarkdownView,
 	Menu,
 	Notice,
-	setIcon,
 	TFile,
 	type ViewStateResult,
 	type WorkspaceLeaf,
 } from "obsidian";
+import { putIcon } from "./icon";
 import {
 	type CarryPreset,
 	NO_FILTER,
@@ -1265,7 +1265,7 @@ export class TaskWheelView extends ItemView {
 			cls: "task-wheel-scope",
 			attr: { type: "button", "aria-label": `Open ${path}` },
 		});
-		setIcon(button.createSpan({ cls: "task-wheel-scope-icon" }), "file-text");
+		putIcon(button, "file-text", "task-wheel-scope-icon");
 		button.createSpan({
 			cls: "task-wheel-scope-name",
 			text: scopeLabel(this.wheelScope),
@@ -1298,7 +1298,7 @@ export class TaskWheelView extends ItemView {
 			cls: "task-wheel-out",
 			attr: { type: "button", "aria-label": `Out to ${label}` },
 		});
-		setIcon(button.createSpan({ cls: "task-wheel-out-icon" }), "zoom-out");
+		putIcon(button, "zoom-out", "task-wheel-out-icon");
 		button.createSpan({ cls: "task-wheel-out-name", text: label });
 		button.addEventListener("click", () => this.goWider());
 	}

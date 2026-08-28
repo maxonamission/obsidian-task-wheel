@@ -523,6 +523,36 @@
 	height: 1.05em;
 }
 
+/* A heavier line, at the same quiet grey (eigenaar, 28 aug 2026: the row was
+   "minder duidelijk" on a light theme).
+
+   The colour is deliberately left where it is. These are drawn icons, not
+   filled ones, and at about a sixteenth of an inch a hairline in mid-grey
+   reads weaker than the very same grey in a solid shape — so weight is as
+   real a control here as hue, and it is the one that does not cost the row
+   its quiet. That quiet is a decision, not an oversight: the eye is meant to
+   land on the wheel, and the colour was already lifted once for this reason
+   (faint to muted, 17 aug 2026, when faint measured 2,85:1 on a light theme
+   against 3,6:1 on a dark one).
+
+   Written against the theme's own icon stroke rather than as a flat number,
+   so a theme that draws its icons heavier keeps the difference it chose. */
+.task-wheel-action .svg-icon,
+.task-wheel-nudge .svg-icon {
+	stroke-width: calc(var(--icon-stroke, 1.75px) + 0.5px);
+}
+
+/* Every icon sits in a span of its own — see `src/view/icon.ts` for why. The
+   span carries no size of its own, so the icon keeps the box it always had;
+   it is a flex box only so it centres the icon exactly as the button did when
+   the icon hung in it directly. */
+.task-wheel-action-icon,
+.task-wheel-nudge-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
 .task-wheel-card-empty {
 	margin: 0;
 	font-size: var(--font-ui-small);

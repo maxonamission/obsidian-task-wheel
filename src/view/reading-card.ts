@@ -1,4 +1,5 @@
-import { Menu, setIcon } from "obsidian";
+import { Menu } from "obsidian";
+import { putIcon } from "./icon";
 import { nodeColour } from "../layout/colour";
 import { ancestorsOf, type LaidOutNode, type WheelLayout } from "../layout/radial";
 import { plainText, splitLinks } from "../parse/links";
@@ -215,7 +216,7 @@ function renderSteps(parent: HTMLElement, actions: CardActions): void {
 				: ["task-wheel-nudge", "is-forward"],
 			attr: { "aria-label": label, title: label },
 		});
-		setIcon(button, icon);
+		putIcon(button, icon, "task-wheel-nudge-icon");
 		button.addEventListener("click", (event) => {
 			event.preventDefault();
 			event.stopPropagation();
@@ -676,7 +677,7 @@ function action(
 			"aria-pressed": String(on),
 		},
 	});
-	setIcon(button, icon);
+	putIcon(button, icon, "task-wheel-action-icon");
 	button.addEventListener("click", (event) => {
 		event.preventDefault();
 		event.stopPropagation();

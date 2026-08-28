@@ -4,9 +4,9 @@ import {
 	prepareFuzzySearch,
 	renderResults,
 	type SearchResult,
-	setIcon,
 	TFolder,
 } from "obsidian";
+import { putIcon } from "./icon";
 
 /**
  * Suggestions under the box that says what a wheel is about.
@@ -111,9 +111,10 @@ class PathSuggest extends AbstractInputSuggest<PathRow> {
 
 	renderSuggestion(row: PathRow, el: HTMLElement): void {
 		el.addClass("task-wheel-path-row");
-		setIcon(
-			el.createSpan({ cls: "task-wheel-path-icon" }),
+		putIcon(
+			el,
 			row.kind === "folder" ? "folder" : "file-text",
+			"task-wheel-path-icon",
 		);
 
 		const line = el.createSpan();

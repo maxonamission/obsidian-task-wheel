@@ -114,3 +114,45 @@ describe("the stylesheet", () => {
 		);
 	});
 });
+
+/**
+ * An icon goes into a span of its own, never straight onto a button.
+ *
+ * The owner's iPad drew every control on the reading card as an empty box —
+ * eight actions and both nudges, right size, no icon — while the Filter chip
+ * and the scope chip in the same screenshot carried theirs. Those are buttons
+ * too; the only difference was where the icon went. Ten failures and two
+ * successes split exactly along `setIcon(button)` against `setIcon(span)`,
+ * on a screen where the phone showed all twelve (28 aug 2026, BC_E3_S71).
+ *
+ * So `src/view/icon.ts` owns the construction and every control goes through
+ * it. This is what keeps that true — the same guard the spaced-class rule
+ * above keeps, and for the same reason: a device-only failure is invisible
+ * here, so the rule has to be.
+ */
+describe("icons on controls", () => {
+	/** `setIcon` taken from Obsidian, rather than a menu item's own method. */
+	const IMPORTS_SET_ICON = /import\s*\{[^}]*\bsetIcon\b[^}]*\}\s*from\s*["']obsidian["']/s;
+
+	it("are only ever put on by the one helper", () => {
+		const offenders = sourceFiles(SRC)
+			.filter((file) => IMPORTS_SET_ICON.test(readFileSync(file, "utf8")))
+			.map((file) => file.slice(SRC.length + 1));
+
+		expect(offenders).toEqual(["view/icon.ts"]);
+	});
+
+	it("would notice a control that put one on itself", () => {
+		expect(IMPORTS_SET_ICON.test('import { setIcon } from "obsidian";')).toBe(true);
+		expect(IMPORTS_SET_ICON.test('import { Menu, setIcon } from "obsidian";')).toBe(
+			true,
+		);
+		expect(
+			IMPORTS_SET_ICON.test('import {\n\tMenu,\n\tsetIcon,\n} from "obsidian";'),
+		).toBe(true);
+		// A menu item's own `.setIcon()` is a different thing and stays allowed.
+		expect(IMPORTS_SET_ICON.test('menu.addItem((i) => i.setIcon("copy"));')).toBe(
+			false,
+		);
+	});
+});

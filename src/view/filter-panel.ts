@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { putIcon } from "./icon";
 import { describe, isFiltering } from "../parse/filter";
 import { PRIORITY_LADDER } from "../layout/colour";
 import {
@@ -92,7 +92,7 @@ export function renderFilterPanel(
 				: "Filter. Nothing is filtered out.",
 		},
 	});
-	setIcon(header.createSpan({ cls: "task-wheel-controls-icon" }), "filter");
+	putIcon(header, "filter", "task-wheel-controls-icon");
 	header.createSpan({ cls: "task-wheel-controls-title", text: "Filter" });
 
 	// The closed panel still has to say that a filter is running, and how much
