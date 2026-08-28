@@ -1,9 +1,11 @@
 /**
  * The two colour channels, and deliberately no third (kaderdocument §3.4).
  *
- *  - **Hue is the domain.** Eight hues, taken straight from the Obsidian theme
- *    variables, so a theme that retunes its palette retunes the wheel with it
- *    and light and dark both work without a second palette of our own.
+ *  - **Hue is the domain.** Eight hues, taken from the Obsidian theme variables,
+ *    so a theme that retunes its palette retunes the wheel with it and light and
+ *    dark both work without a second palette of our own. One hue is mixed from
+ *    two of those variables rather than read off one — see `DERIVED`, which is
+ *    the only place it happens and says why.
  *  - **Lightness is the priority.** Every colour is the domain hue mixed
  *    towards the editor background: the highest priority is the pure hue, the
  *    lowest is a whisper of it. Mixing towards the *background* rather than
@@ -73,13 +75,46 @@ export const PALETTES = {
 	 * carries no meaning that has to survive. What is left leads with
 	 * blue/orange, the strongest pair that stays distinct under both.
 	 *
+	 * The sixth is `magenta`, and it is the one hue in either palette that is
+	 * not taken from the theme as it is offered — see `DERIVED` for why.
+	 *
 	 * It is not a guarantee and is not offered as one: the values come from
 	 * the theme, so this is only as separable as that theme's own blue and
 	 * orange. It does little for tritanopia, which confuses blue and yellow
 	 * and is rare enough that designing around it would cost the common case.
 	 */
-	"colour-blind": ["blue", "orange", "purple", "yellow", "cyan", "pink"],
+	"colour-blind": ["blue", "orange", "purple", "yellow", "cyan", "magenta"],
 } as const satisfies Record<string, readonly string[]>;
+
+/**
+ * The one hue that is not a theme variable read straight off — and why.
+ *
+ * Of the eight hues a theme names, red and green are the pair that collapses,
+ * which leaves six. But `pink` is not a sixth colour so much as a place on the
+ * red axis, and how far along it is entirely the theme's business: some make it
+ * a magenta, and some make it very nearly red. The owner's desktop theme makes
+ * it red, so a palette that promises to leave red out was handing red to the
+ * sixth domain (28 aug 2026, six domains, `Work` in slot six).
+ *
+ * Five hues was the honest alternative and is worse: with six domains the sixth
+ * would repeat the first, and slot six sits next to slot one — two wedges of the
+ * same blue, side by side. So the sixth hue stays, and is built instead of read:
+ * the theme's own pink pulled a fixed step towards the theme's own blue. A
+ * red-leaning pink lands in magenta; a pink that was already a magenta lands in
+ * orchid. Neither is red, both still move when the theme moves, and the mix is
+ * the same one rule in light and dark.
+ *
+ * The step is as small as it can be and still do the job. Less than this and a
+ * theme whose pink is red keeps reading as red, which is the whole complaint.
+ */
+const DERIVED: Readonly<Record<string, string>> = {
+	magenta: "color-mix(in oklab, var(--color-pink) 70%, var(--color-blue) 30%)",
+};
+
+/** The CSS a palette entry stands for: a theme variable unless it is built. */
+export function hueColour(hue: string): string {
+	return DERIVED[hue] ?? `var(--color-${hue})`;
+}
 
 export type PaletteName = keyof typeof PALETTES;
 
@@ -132,7 +167,7 @@ export function domainColour(
 ): string {
 	const hues = palette.length > 0 ? palette : PALETTES[DEFAULT_PALETTE];
 	const hue = hues[((domainIndex % hues.length) + hues.length) % hues.length];
-	return `var(--color-${hue})`;
+	return hueColour(hue);
 }
 
 export function priorityStrength(priority: Priority): number {

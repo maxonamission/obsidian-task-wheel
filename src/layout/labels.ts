@@ -21,8 +21,15 @@ import { normaliseAngle } from "./geometry";
  * decides what the answer is.
  */
 
-/** Within this many degrees of straight up or down, a title is centred. */
-const UPRIGHT = 15;
+/**
+ * Within this many degrees of straight up or down, a title is centred.
+ *
+ * Exported because the window has to know it: a label is only ever written out
+ * long while it is centred, so this angle is the bound on how far sideways a
+ * long label can be — and sizing the drawing for a long label at three o'clock
+ * reserves room for something that cannot happen (BC_E3_S79).
+ */
+export const UPRIGHT = 15;
 
 /**
  * And within this many, the label of the branch being read.
@@ -31,7 +38,7 @@ const UPRIGHT = 15;
  * about a wedge title: the whole point is that it stays centred while you are
  * looking at it, and the wheel only leaves that state when you turn it.
  */
-const CENTRED = 40;
+export const CENTRED = 40;
 
 /**
  * What a label measures before the browser can be asked, in drawing units.

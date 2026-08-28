@@ -886,8 +886,11 @@ export class WheelRenderer {
 			cls: "task-wheel-label",
 			attr: { x: anchor.x, y: anchor.y },
 		});
+		// A wedge title has both forms too, since BC_E3_S79 — the wedge under the
+		// reading wedge was carrying the shortest name on the wheel. Everything
+		// off the reading branch and off the rim says the same thing either way.
 		const long = labelText(laid);
-		const short = laid.onPath && !onRim ? labelText(laid, true) : long;
+		const short = onRim || laid.onPath ? labelText(laid, true) : long;
 		el.textContent = long;
 
 		const handle: LabelHandle = {
@@ -986,13 +989,24 @@ function estimate(el: SVGTextElement, onRim: boolean): number {
 	return chars * (onRim ? RIM_CHAR : LEAF_CHAR);
 }
 
+/**
+ * What a label says — in its written-out form, or in the short one `ordinary`
+ * asks for.
+ *
+ * Which of the two is used at a given turn is not decided here: `placeLabels`
+ * picks the long form while the label stands centred over its own dot and the
+ * short one as soon as it swings aside. Both are worked out up front so that
+ * choice costs nothing per turn.
+ */
 function labelText(laid: LaidOutNode, ordinary = false): string {
 	// Without the link syntax: a label is plain text and cannot be followed, so
 	// showing the brackets spends the little room there is on punctuation.
 	const words = plainText(laid.node.label);
 	const limit =
 		laid.depth === 1
-			? LABEL_CHARS.domain
+			? ordinary
+				? LABEL_CHARS.domain
+				: LABEL_CHARS.title
 			: laid.onPath && !ordinary
 				? LABEL_CHARS.reading
 				: LABEL_CHARS.leaf;

@@ -11,6 +11,7 @@ import {
 	RIM_CHAR,
 	RIM_HEIGHT,
 } from "../layout/labels";
+import { LABEL_CHARS } from "../layout/window";
 import { taskAfter } from "../layout/order";
 import { buildTree } from "../parse/build-tree";
 import { DEFAULT_PARSE_OPTIONS, type NoteInput } from "../model/types";
@@ -62,8 +63,20 @@ function planFor(laid: LaidOutNode, focusId: string | null): LabelPlan {
 	const onRim = laid.depth === 1;
 	const radius = laid.radius + (laid.onPath ? 11 : 7);
 	const radians = (laid.drawAngle * Math.PI) / 180;
-	const long = laid.node.label.slice(0, laid.onPath && !onRim ? 30 : 14);
-	const short = laid.node.label.slice(0, onRim ? 11 : 14);
+	// The two forms, exactly as `drawLabel` builds them: a wedge title and the
+	// branch being read are written out while centred, everything else is not.
+	const long = laid.node.label.slice(
+		0,
+		onRim
+			? LABEL_CHARS.title
+			: laid.onPath
+				? LABEL_CHARS.reading
+				: LABEL_CHARS.leaf,
+	);
+	const short = laid.node.label.slice(
+		0,
+		onRim ? LABEL_CHARS.domain : LABEL_CHARS.leaf,
+	);
 
 	return {
 		angle: laid.drawAngle,

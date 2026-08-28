@@ -28,8 +28,8 @@
  * bargain — position stability above snugness (kaderdocument §3, eis 1).
  */
 
-import { ringRadius, type RingConfig } from "./geometry";
-import { LEAF_CHAR, RIM_CHAR } from "./labels";
+import { ringRadius, toRadians, type RingConfig } from "./geometry";
+import { CENTRED, LEAF_CHAR, RIM_CHAR, UPRIGHT } from "./labels";
 import { plainText } from "../parse/links";
 import type { WheelTree } from "../model/types";
 
@@ -67,12 +67,42 @@ export const EDGE_PAD = 4;
 /**
  * Label lengths, past which the reading card is the place to read it.
  *
- * `reading` is the branch you are on — the focus and the containers between it
- * and the hub. Those get more than twice the room of an ordinary label, because
- * they are what the drawing is being asked about; the rest stay short so the
- * wheel keeps reading as a shape rather than as a list (owner, 19 aug 2026).
+ * There are two forms of every label, and which one is used is decided per turn
+ * by `anchorFor`: written out while it stands centred over its own dot near the
+ * top or bottom of the wheel, cut short the moment it swings round and hangs off
+ * to one side. So the pairs here are *long, short*:
+ *
+ *  - `reading` / `leaf` — the branch you are on, against everything else. The
+ *    branch being read gets the room because it is what the drawing is being
+ *    asked about; the rest stay short so the wheel keeps reading as a shape
+ *    rather than as a list (owner, 19 aug 2026).
+ *  - `title` / `domain` — a wedge title, on the rim. It used to have only the
+ *    short form, which left the wedge under the reading wedge carrying the
+ *    *shortest* label on the whole wheel: "Product launch" as "Product la…",
+ *    while an ordinary task beside it had three characters more (owner, 28 aug
+ *    2026). It is the name the wheel is about at that moment; it now gets the
+ *    same treatment as the branch being read.
+ *
+ * The long forms are free — see `windowFor`, which is where that is proved
+ * rather than asserted.
  */
-export const LABEL_CHARS = { domain: 11, leaf: 14, reading: 30 } as const;
+export const LABEL_CHARS = {
+	domain: 11,
+	title: 34,
+	leaf: 14,
+	reading: 40,
+} as const;
+
+/**
+ * How far sideways a label can be carried and still be written out long.
+ *
+ * `anchorFor` centres a label only within 40° of vertical — 15° for a wedge
+ * title — and a label is written out long only while it is centred. So the sine
+ * of that angle is the bound on the sideways part of a long label's position:
+ * never the whole radius, which is what the window used to charge for it.
+ */
+const CENTRED_SWING = Math.sin(toRadians(CENTRED));
+const UPRIGHT_SWING = Math.sin(toRadians(UPRIGHT));
 
 /**
  * How wide a label of this text lies, at most, in drawing units.
@@ -89,13 +119,31 @@ export function widthOf(words: string, limit: number, onRim: boolean): number {
 /**
  * Half the width of the whole drawing, from what this tree could ever show.
  *
- * Every node is asked the worst it could do: swung round to three o'clock, on
- * the outermost ring it can ever stand on (its own, or the cap where deeper
- * work folds into a stump), with its longest label form. A name is written out
- * at reading length only on the branch being read, and there it is centred
- * over its own dot — so it reaches out half its width, where a label hanging
- * beside its dot reaches out all of it. The bigger of the two is what the node
- * can cost.
+ * Every node is asked the worst it could do: on the outermost ring it can ever
+ * stand on (its own, or the cap where deeper work folds into a stump), in each
+ * of its two label forms, at the angle where that form reaches furthest from
+ * the middle. Those are two different angles, and that is the whole of the
+ * arithmetic here:
+ *
+ *  - **Hanging beside its dot**, in its short form, a label reaches furthest at
+ *    three o'clock: the dot is a whole radius out and the text runs outward
+ *    from there.
+ *  - **Centred over its dot**, written out long, it cannot *be* at three
+ *    o'clock — `anchorFor` gives up centring long before that and the long form
+ *    goes with it. It reaches furthest at the edge of the band where it is still
+ *    centred, and there its dot is only `sin 40°` of a radius out (`sin 15°` for
+ *    a wedge title).
+ *
+ * That second bound was missing (BC_E3_S79). The window paid for a long label at
+ * three o'clock, which no turn of the wheel can produce, and the label lengths
+ * were cut to afford it. Measured over a whole revolution on the demo vault, the
+ * furthest any label actually reaches is 239 units — and it stays 239 whether
+ * the long forms are allowed 30 characters or 60, because what sets it is a
+ * short wedge title hanging off the side.
+ *
+ * Only the horizontal reach is worked out. The drawing is square about the hub,
+ * and the tallest a label can stand is one radius plus its own height — always
+ * less than the `LABEL_MARGIN` the floor below keeps past the titles.
  */
 export function windowFor(
 	tree: WheelTree,
@@ -110,17 +158,22 @@ export function windowFor(
 		if (node.depth === 0) continue;
 		const words = plainText(node.label);
 
-		// A wedge title is never centred and never written out long. Every other
-		// node may be either, depending on where the reader stands.
+		// A wedge title sits on the rim, an ordinary node on its ring; both have
+		// the same two forms, at their own two angles.
 		const reach =
 			node.depth === 1
-				? titleRadius + widthOf(words, LABEL_CHARS.domain, true)
-				: ringRadius(Math.min(node.depth, deepest), rings) +
-					Math.max(
-						// Centred over its own dot, at reading length: half either way.
-						READING_GAP + widthOf(words, LABEL_CHARS.reading, false) / 2,
-						// Or hanging off one side, and then it is an ordinary name.
-						LABEL_GAP + widthOf(words, LABEL_CHARS.leaf, false),
+				? Math.max(
+						// Centred at the top of the wheel, written out: its dot is at most
+						// `sin 15°` of the rim sideways, and the text half its width past
+						// that.
+						titleRadius * UPRIGHT_SWING +
+							widthOf(words, LABEL_CHARS.title, true) / 2,
+						// Or swung round to the side, and then it is a short title.
+						titleRadius + widthOf(words, LABEL_CHARS.domain, true),
+					)
+				: reachOf(
+						ringRadius(Math.min(node.depth, deepest), rings),
+						words,
 					);
 
 		// Whole units, so the window stays exactly symmetrical about the middle
@@ -129,4 +182,19 @@ export function windowFor(
 	}
 
 	return needed;
+}
+
+/**
+ * How far from the middle a node on this ring can carry its own name.
+ *
+ * The gaps are radial — a label is lifted off its dot along the radius — so they
+ * ride along with the sine on a centred label and count in full on one that
+ * hangs out sideways at three o'clock.
+ */
+function reachOf(radius: number, words: string): number {
+	return Math.max(
+		(radius + READING_GAP) * CENTRED_SWING +
+			widthOf(words, LABEL_CHARS.reading, false) / 2,
+		radius + LABEL_GAP + widthOf(words, LABEL_CHARS.leaf, false),
+	);
 }

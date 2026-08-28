@@ -4,6 +4,32 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.10]
+
+The wedge you are reading says its name, and the colour-blind palette keeps its
+promise.
+
+- **Fixed**: *Colour-blind friendly* could still hand a domain the colour it
+  says it leaves out. Its sixth hue asked the theme for *pink* — and pink is not
+  a colour so much as a place on the red axis, with how far along it entirely
+  the theme's business. Some themes make it red, and then the sixth domain came
+  out red. That hue is now built rather than asked for: the theme's own pink
+  pulled a fixed step towards the theme's own blue, which lands a red-leaning
+  pink in magenta and a true pink in orchid. It still moves when your theme
+  moves, and it is the only hue in either palette that is mixed rather than read.
+- **Fixed**: the wedge under the reading wedge no longer carries the shortest
+  label on the wheel. A wedge title was cut to eleven characters wherever it
+  stood — three fewer than an ordinary task beside it — so "Product launch" read
+  as "Product la…" at the very moment the wheel was about it. A title is now
+  written out while it stands under the reading wedge and goes short again as it
+  swings aside, the same way the branch you are reading always has.
+- **Changed**: the name of the task you are reading gets forty characters
+  instead of thirty. Both of these are free: the drawing is sized for a *short*
+  label hanging off the side at three o'clock, and a written-out label only ever
+  appears near the top or bottom, where it barely reaches sideways at all. The
+  window was paying for a long label at three o'clock, which no turn of the
+  wheel can produce — so the wheel is if anything a little roomier than before.
+
 ## [0.1.9]
 
 The released plugin can be rebuilt from its own source again.

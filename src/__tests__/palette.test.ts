@@ -4,6 +4,7 @@ import {
 	DEFAULT_PALETTE,
 	DOMAIN_HUES,
 	domainColour,
+	hueColour,
 	nodeColour,
 	PALETTES,
 	paletteOf,
@@ -29,20 +30,46 @@ import { VAULT } from "./fixtures/vault";
 const NAMES = Object.keys(PALETTES) as PaletteName[];
 
 describe("what a palette is", () => {
-	it("only ever names hues the theme defines", () => {
+	it("names hues the theme defines, or builds one from those", () => {
 		for (const name of NAMES) {
 			for (const hue of PALETTES[name]) {
-				expect(DOMAIN_HUES).toContain(hue);
+				if (DOMAIN_HUES.includes(hue as (typeof DOMAIN_HUES)[number])) continue;
+				// The one exception is allowed to exist, but not to be a colour: it
+				// still has to be built out of the theme's own variables.
+				expect(hueColour(hue)).toContain("var(--color-");
 			}
 		}
 	});
 
-	it("hands out a theme variable, never a colour of its own", () => {
+	it("hands out a theme variable, or a mix of them — never a value", () => {
+		// No hex, no rgb(), no named CSS colour: whatever a palette hands out has
+		// to still move when the theme moves, which is the whole feature.
 		for (const name of NAMES) {
 			for (let index = 0; index < 12; index++) {
-				expect(domainColour(index, paletteOf(name))).toMatch(
-					/^var\(--color-[a-z]+\)$/,
-				);
+				const colour = domainColour(index, paletteOf(name));
+				expect(colour).toContain("var(--color-");
+				expect(colour).not.toMatch(/#[0-9a-f]{3}|rgb|hsl\(/i);
+			}
+		}
+	});
+
+	/**
+	 * The promise the colour-blind palette makes, held to the letter (BC_E3_S78).
+	 *
+	 * It used to name `pink` for its sixth hue, on the reasoning that pink is not
+	 * red. Whether that is true is the theme's decision, and the owner's desktop
+	 * theme decided it was: the sixth domain came out red on a palette that says
+	 * it leaves red out (28 aug 2026). So the test is no longer "does it name red"
+	 * but "does anything it hands out reach for red or green, however indirectly".
+	 */
+	it("keeps red and green out of the colour-blind palette entirely", () => {
+		for (let index = 0; index < 12; index++) {
+			const colour = domainColour(index, paletteOf("colour-blind"));
+			expect(colour).not.toContain("--color-red");
+			expect(colour).not.toContain("--color-green");
+			// And not pink either, unless it has been pulled off that axis first.
+			if (colour.includes("--color-pink")) {
+				expect(colour).toContain("color-mix");
 			}
 		}
 	});
