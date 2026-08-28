@@ -959,6 +959,61 @@
 
 .task-wheel-trace.is-on {
 	display: block;
+	/* And no more than this. Left to grow, fourteen lines of trace took two
+	   thirds of a phone screen and squeezed the wheel to a 224 px strip with
+	   its hub on the bottom edge (eigenaarstrace, 28 aug 2026) — so the gesture
+	   you make while capturing a problem is not the gesture that caused it.
+	   A panel you consult must not reshape the thing it is reporting on. */
+	flex: 0 0 auto;
+	max-height: 11em;
+	overflow-y: auto;
+	/* Its own scroll, kept to itself: reading the trace should not drag the
+	   pane behind it. */
+	overscroll-behavior: contain;
+}
+
+/* Taking the lines with you. The panel exists to be read off a phone, and a
+   phone is where selecting text out of a scrolling pane is hardest — so the
+   copy is a button rather than a gesture (eigenaar, 28 aug 2026). */
+.task-wheel-trace-bar {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	padding: var(--size-2-2) var(--size-2-3) 0;
+}
+
+.task-wheel-trace-title {
+	flex: 1 1 auto;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.task-wheel-trace-copy {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	padding: var(--size-2-1) var(--size-2-2);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	box-shadow: none;
+	cursor: pointer;
+}
+
+.task-wheel-trace-copy:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+}
+
+.task-wheel-trace-icon .svg-icon {
+	width: 0.95em;
+	height: 0.95em;
+	stroke-width: calc(var(--icon-stroke, 1.75px) + 0.5px);
 }
 
 .task-wheel-trace pre {
@@ -971,6 +1026,9 @@
 	border-radius: var(--radius-s);
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
+	/* And selectable by hand as well, for whoever prefers that. */
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 /* The offer to make a heading that is not there yet, last in the picker. It

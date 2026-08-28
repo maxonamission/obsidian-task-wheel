@@ -10,6 +10,18 @@ const prod = process.argv[2] === "production";
 // attestation lesson from Readability Compass (BC_E1_S26).
 const version = JSON.parse(readFileSync("manifest.json", "utf8")).version;
 
+// And a stamp for *this* build, which the version cannot give.
+//
+// Between two releases there are a dozen test builds, all carrying the same
+// version. When a trace comes back from the owner's phone, "0.1.7" cannot say
+// which of them produced it — and a round was spent reading a trace for a fix
+// that build did not yet contain (28 aug 2026). The minute the bundle was made
+// tells them apart, and travels in the diagnostics header.
+const built = new Date()
+	.toISOString()
+	.slice(0, 16)
+	.replace("T", " ");
+
 const context = await esbuild.context({
 	entryPoints: ["src/main.ts"],
 	bundle: true,
@@ -21,7 +33,10 @@ const context = await esbuild.context({
 		...builtinModules,
 	],
 	banner: {
-		js: `/* Task Wheel ${version} — https://github.com/maxonamission/codebase-basecamp */`,
+		js: `/* Task Wheel ${version} (build ${built}) — https://github.com/maxonamission/codebase-basecamp */`,
+	},
+	define: {
+		__TASK_WHEEL_BUILD__: JSON.stringify(built),
 	},
 	format: "cjs",
 	target: "es2018",

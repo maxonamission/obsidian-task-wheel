@@ -686,8 +686,13 @@ function drawLegend(
 					attr: { "aria-label": priority, title: priority },
 				});
 				// Drawn in the first domain's hue: it is the lightness that
-				// carries the meaning, not the colour it is shown in.
-				step.style.setProperty("--tw-colour", nodeColour(0, priority));
+				// carries the meaning, not the colour it is shown in. Taken
+				// from the wheel in front of the reader, so the ramp is in a
+				// colour that wheel actually uses (BC_E3_S72).
+				step.style.setProperty(
+					"--tw-colour",
+					nodeColour(0, priority, on.wheel()?.palette()),
+				);
 			}
 			line.createSpan({ cls: "task-wheel-help-text", text: row.text });
 			continue;
@@ -710,12 +715,16 @@ function drawHues(parent: HTMLElement, wheel: TaskWheelView | null): void {
 	parent.empty();
 	const domains = wheel?.domainNames() ?? [];
 
+	const palette = wheel?.palette();
+
 	for (const [index, name] of domains.entries()) {
 		const one = parent.createSpan({ cls: "task-wheel-help-hue" });
 		const swatch = one.createSpan({ cls: "task-wheel-help-swatch" });
 		// `normal` is the absence of a priority marker, and so most of the
-		// wheel: the swatch shows the hue as the reader mostly meets it.
-		swatch.style.setProperty("--tw-colour", nodeColour(index, "normal"));
+		// wheel: the swatch shows the hue as the reader mostly meets it. In
+		// that wheel's own palette — this key names the domains in front of
+		// the reader, so it has to show the colours they are actually drawn in.
+		swatch.style.setProperty("--tw-colour", nodeColour(index, "normal", palette));
 		one.createSpan({ text: name });
 	}
 }

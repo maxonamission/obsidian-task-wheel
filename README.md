@@ -2,11 +2,11 @@
 
 *See every open task once — and know that you did.*
 
-Task Wheel draws all the open tasks in your vault as a turnable radial tree.
-The **angle** is the life domain a task belongs to; the **radius** is how deep
-it sits in the hierarchy. You turn the wheel, and each task comes past a fixed
-reading wedge at the top, one stop at a time, until you have been all the way
-round.
+Task Wheel is a visual overview of every open task you have: a turnable radial
+tree you review one stop at a time. The **angle** is the life domain a task
+belongs to; the **radius** is how deep it sits in the hierarchy. You turn the
+wheel, and each task comes past a fixed reading wedge at the top, one stop at a
+time, until you have been all the way round.
 
 It is a **review instrument, not an execution instrument**. The point is being
 able to say with certainty that you have seen everything. Ticking a task off is

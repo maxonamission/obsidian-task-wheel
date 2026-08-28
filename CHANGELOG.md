@@ -4,6 +4,40 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.8]
+
+Turning on a phone stops opening things you did not ask for, and the wedges
+can be recoloured.
+
+- **Fixed**: on a phone, turning the wheel opened Obsidian's side panels and
+  pulled down the command panel. A quick turn was read as a swipe — and it
+  took almost nothing to trigger: a finger that moved at all in the first
+  tenth of a second was enough, which is why turning only worked if you
+  pressed, paused, and then dragged. A gesture the wheel takes now stops at
+  the wheel, and a panel that still slips open under a turning finger is put
+  straight back — only inside the drawing, and only to the state that finger
+  found. Beside the wheel, and anywhere else, your own swipes reach the
+  panels exactly as before.
+- **Added**: a choice of hues for the wedges, under *Wedge colours*. A palette
+  selects from the colours your own theme defines, so retuning the theme still
+  retunes the wheel and one rule keeps serving both light and dark.
+  **Colour-blind friendly** leaves out red and green — the pair that collapses
+  for the two most common kinds — and leads with blue and orange, which stay
+  apart. Hue says which domain a task belongs to, never how urgent it is.
+- **Changed**: stepping into a wheel now stays in the tab you are in, and
+  stepping back out returns to the wider one. The ladder runs vault → folder →
+  note → section, so a tab per step used to leave one behind for every branch
+  you looked at. Nothing is lost by walking rather than stacking: every wheel
+  keeps its own round, filter, zoom and folded branches. Set it back under
+  *Stepping into a wheel*; a wheel opened from the file list, the ribbon or a
+  command still gets a tab of its own.
+- **Fixed**: a wheel that was already open is found again reliably. Tabs you
+  had not touched since starting Obsidian were invisible to the check, so
+  opening the same wheel made a second one.
+- **Changed**: the troubleshooting panel has a *Copy* button and keeps far
+  more of what it recorded, so a report can carry the trace itself rather
+  than a photograph of part of it.
+
 ## [0.1.7]
 
 The buttons on the reading card are visible again.

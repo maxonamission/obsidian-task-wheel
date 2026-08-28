@@ -5,7 +5,12 @@ import {
 	type SettingGroupItem,
 } from "obsidian";
 import { today } from "./model/dates";
-import { PRIORITY_LADDER } from "./layout/colour";
+import {
+	DEFAULT_PALETTE,
+	type PaletteName,
+	paletteSize,
+	PRIORITY_LADDER,
+} from "./layout/colour";
 import {
 	type CarryPreset,
 	type DateRule,
@@ -177,6 +182,32 @@ export interface TaskWheelSettings
 	 */
 	wedgeMinimum: number;
 	/**
+	 * Which hues the wedges are handed, in order.
+	 *
+	 * A named selection of the theme's own hues — never colour values of our
+	 * own, which is what keeps a theme in charge of what "blue" looks like
+	 * (BC_E3_S72). Plugin-wide rather than per blikveld: the filter and the
+	 * round belong to a blikveld because they are about *what you are
+	 * reviewing now*, while a palette is about how things look, and that
+	 * should not flip when you open a smaller wheel.
+	 */
+	wedgePalette: PaletteName;
+	/**
+	 * What tapping your way *into* a wheel does with the tab you were in.
+	 *
+	 * Only stepping within a wheel — in through an item, out through the way
+	 * back. A wheel opened from the file list, the ribbon or a command is one
+	 * you asked for and still gets a tab of its own.
+	 *
+	 * Reusing is the default because the ladder is deep and the tabs added up:
+	 * folder to note to section is three taps, and every branch you looked at
+	 * left one behind. Twenty of them by the end of a round, on a desktop
+	 * (eigenaar, 28 aug 2026). It costs nothing to walk back either — a
+	 * blikveld keeps its own round, filter, zoom and folds wherever it is
+	 * opened, so the wheel you return to is the wheel you left.
+	 */
+	stepInto: "same-tab" | "new-tab";
+	/**
 	 * Show what the wheel receives from the device.
 	 *
 	 * Off by default and not a feature: it exists because the wheel has to work
@@ -230,6 +261,8 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	startPath: "",
 	detail: "balanced",
 	wedgeDivision: "equal",
+	wedgePalette: DEFAULT_PALETTE,
+	stepInto: "same-tab",
 	wedgeMinimum: 15,
 	diagnostics: false,
 	language: "auto",
@@ -449,6 +482,24 @@ const DETAIL_LABELS: Record<WheelDetail, string> = {
 	dense: "Dense — more items, smaller",
 };
 
+/**
+ * The palettes, with their size in the label.
+ *
+ * The count is not decoration: past the end of a palette the hues repeat and
+ * position becomes the only difference, so a reader choosing six over eight is
+ * trading sooner repetition for better separation. That trade should be
+ * visible at the moment of choosing rather than discovered afterwards.
+ */
+const WEDGE_PALETTE_LABELS: Record<PaletteName, string> = {
+	theme: `Theme — every hue your theme offers (${paletteSize("theme")})`,
+	"colour-blind": `Colour-blind friendly — no red or green (${paletteSize("colour-blind")})`,
+};
+
+const STEP_INTO_LABELS: Record<TaskWheelSettings["stepInto"], string> = {
+	"same-tab": "Reuse this tab — stepping in stays where you are",
+	"new-tab": "Open a new tab for each step",
+};
+
 const WEDGE_DIVISION_LABELS: Record<TaskWheelSettings["wedgeDivision"], string> =
 	{
 		equal: "Equal — every domain the same slice",
@@ -625,6 +676,24 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							type: "dropdown",
 							key: "wedgeDivision",
 							options: WEDGE_DIVISION_LABELS,
+						},
+					},
+					{
+						name: "Stepping into a wheel",
+						desc: "Tapping an item twice opens a wheel over it, and the way back out returns to the wider one. Reusing the tab keeps that a walk rather than a pile: the ladder runs vault → folder → note → section, so opening a tab per step leaves one behind for every branch you looked at. Nothing is lost either way — each blikveld keeps its own round, filter, zoom and folded branches wherever it is opened. A wheel you open from the file list, the ribbon or a command is one you asked for, and always gets a tab of its own.",
+						control: {
+							type: "dropdown",
+							key: "stepInto",
+							options: STEP_INTO_LABELS,
+						},
+					},
+					{
+						name: "Wedge colours",
+						desc: "Which hues the wedges are handed. A palette selects from the colours your own theme defines, so retuning the theme retunes the wheel and both light and dark keep working from one rule. Colour-blind friendly leaves out red and green — the pair that collapses for the two most common kinds — and leads with blue and orange, which stay apart. Hue says which domain a task belongs to, never how urgent it is; urgency is the lightness. Past the end of a palette the hues start over and the wedge position tells those apart, as it always has past eight.",
+						control: {
+							type: "dropdown",
+							key: "wedgePalette",
+							options: WEDGE_PALETTE_LABELS,
 						},
 					},
 					{

@@ -45,6 +45,7 @@ import {
 } from "./geometry";
 import { orderedChildren } from "./order";
 import { warpFor, type WarpOptions } from "./warp";
+import { paletteOf, type Palette } from "./colour";
 import { windowFor } from "./window";
 
 export interface LayoutOptions {
@@ -117,6 +118,14 @@ export interface LayoutOptions {
 	 * it. What does not fit becomes a stump with a counter.
 	 */
 	visibleBudget: number;
+	/**
+	 * Which hues the wedges are handed, in order.
+	 *
+	 * A selection of the theme's own hues, never colour values of its own —
+	 * see `layout/colour.ts` for why that distinction carries the whole
+	 * feature (BC_E3_S72).
+	 */
+	palette: Palette;
 	doi: DoiOptions;
 }
 
@@ -134,6 +143,7 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
 	focusId: null,
 	collapsed: new Set<string>(),
 	visibleBudget: DEFAULT_VISIBLE_BUDGET,
+	palette: paletteOf(undefined),
 	doi: DEFAULT_DOI,
 };
 
@@ -252,6 +262,14 @@ export interface WheelLayout {
 	 * 23 aug 2026).
 	 */
 	labelSteps: number;
+	/**
+	 * The hues this wheel hands its wedges, in order.
+	 *
+	 * Travels on the drawing rather than being read a second time by the
+	 * renderer — the same reason `warp` and `labelSteps` do (audit, 23 aug
+	 * 2026): one decision, made in one place.
+	 */
+	palette: Palette;
 	/**
 	 * Half the width of the whole drawing — the window the view puts on it.
 	 *
@@ -372,6 +390,7 @@ export function layoutWheel(
 		showsFinished: tree.showsFinished,
 		warp,
 		labelSteps: config.labelSteps,
+		palette: config.palette,
 		window: windowFor(tree, radius, deepest, config.rings),
 	};
 }

@@ -1,4 +1,9 @@
-import { branchColour, domainColour, nodeColour } from "../layout/colour";
+import {
+	branchColour,
+	domainColour,
+	nodeColour,
+	type Palette,
+} from "../layout/colour";
 import {
 	angleDelta,
 	arcPath,
@@ -135,6 +140,8 @@ export class WheelRenderer {
 	}> = [];
 	/** How hard this wheel magnifies under the reading wedge. */
 	private readonly warp: WarpOptions;
+	/** The hues this wheel hands its wedges — from the layout, not read twice. */
+	private readonly palette: Palette;
 	/** Steps from the focus that count as its neighbourhood, for label priority. */
 	private readonly nearSteps: number;
 	/** What the round has passed, in layout angles, for redrawing per turn. */
@@ -187,6 +194,7 @@ export class WheelRenderer {
 
 		this.rim = layout.radius + BAND_GAP;
 		this.warp = layout.warp;
+		this.palette = layout.palette;
 		// The layout's own reach, not a second copy of it: the renderer is not
 		// choosing this rule, it is honouring one (audit M3, 23 aug 2026).
 		this.nearSteps = layout.labelSteps;
@@ -278,6 +286,15 @@ export class WheelRenderer {
 		let swaps = 0;
 		let swapAt = "";
 		for (const [ring, items] of rings) {
+			// Two items on a circle have no order to be in: whichever way round
+			// you read them, each is both before and after the other. At about
+			// 180° apart the comparison below tips over its own wrap-around and
+			// reports a swap that is not one — which is exactly what a wheel of
+			// two wedges did (eigenaarstrace, 28 aug 2026: "swaps 1 — ring 1:
+			// Action Required ↔ CRM", on a drawing that was faithful). An
+			// instrument that cries wolf costs more than the check is worth.
+			if (items.length < 3) continue;
+
 			const order = [...items].sort((a, b) => a.was - b.was);
 			for (let i = 1; i < order.length; i++) {
 				if (angleDelta(order[i - 1].now, order[i].now) < -0.001) {
@@ -554,6 +571,31 @@ export class WheelRenderer {
 	}
 
 	/**
+	 * Whether a point on the screen falls inside the drawing itself.
+	 *
+	 * Inside the rim is the wheel; the corners of the pane around it are not.
+	 * The distinction did not matter while the canvas was only a surface to
+	 * turn from — the whole of it is the handle, deliberately, because there
+	 * is no grip to aim for. It matters for what the wheel *takes away from
+	 * Obsidian*: repairing a side panel that opened under a turning finger is
+	 * right in the middle of the drawing and wrong in the empty corner, where
+	 * the reader may well have been reaching for that panel on purpose
+	 * (eigenaar, 28 aug 2026: *"nu kan ik het paneel helemaal niet meer
+	 * tevoorschijn halen"*).
+	 */
+	withinRim(x: number, y: number): boolean {
+		if (typeof this.svg.getScreenCTM !== "function") return true;
+		const matrix = this.svg.getScreenCTM();
+		if (matrix === null) return true;
+
+		// The matrix maps drawing units to screen pixels, so the rim's radius
+		// on screen is its own radius through the same scale — zoom, viewBox
+		// and the pane's shape all included, without measuring any of them.
+		const scale = Math.abs(matrix.a);
+		return Math.hypot(x - matrix.e, y - matrix.f) <= this.rim * scale;
+	}
+
+	/**
 	 * Close in on the reading wedge, or pull back out.
 	 *
 	 * One attribute. The drawing does not change, the window onto it does — so
@@ -694,7 +736,10 @@ export class WheelRenderer {
 				cls: "task-wheel-budget",
 				attr: { d: arcPath(this.rim, budget.startAngle, budget.endAngle) },
 			});
-			band.style.setProperty("--tw-colour", branchColour(budget.index));
+			band.style.setProperty(
+				"--tw-colour",
+				branchColour(budget.index, this.palette),
+			);
 
 			const inner = pointAt(HUB_RADIUS, budget.startAngle);
 			const outer = pointAt(this.rim, budget.startAngle);
@@ -717,7 +762,10 @@ export class WheelRenderer {
 		const branches = this.rotor.createSvg("g", { cls: "task-wheel-branches" });
 		for (const link of layout.links) {
 			const path = branches.createSvg("path", { attr: { d: link.path } });
-			path.style.setProperty("--tw-colour", branchColour(link.domainIndex));
+			path.style.setProperty(
+				"--tw-colour",
+				branchColour(link.domainIndex, this.palette),
+			);
 			path.style.setProperty("--tw-presence", String(round(link.presence)));
 
 			// Kept, because a branch is the one thing that has to be redrawn when
@@ -755,8 +803,8 @@ export class WheelRenderer {
 			group.style.setProperty(
 				"--tw-colour",
 				laid.depth === 1
-					? domainColour(laid.domainIndex)
-					: nodeColour(laid.domainIndex, laid.priority),
+					? domainColour(laid.domainIndex, this.palette)
+					: nodeColour(laid.domainIndex, laid.priority, this.palette),
 			);
 
 			// The far side of the wheel recedes to a silhouette rather than

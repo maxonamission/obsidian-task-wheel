@@ -42,8 +42,36 @@ const TAP_TIME = 600;
 /** Two taps closer together than this, on the same item, are one gesture. */
 const DOUBLE_TAP = 400;
 
+/**
+ * Take this gesture for the wheel — and take it from everyone else too.
+ *
+ * `preventDefault` tells the *browser* not to scroll. It says nothing to
+ * another listener further up the tree, and on a phone that other listener is
+ * Obsidian's own: a drag that starts near the left or right edge slides a
+ * sidebar in, and a drag downwards pulls the command panel down — both while
+ * the wheel is turning underneath them (eigenaar, 28 aug 2026).
+ *
+ * Zoomed in is where it bites hardest, and for a reason worth writing down:
+ * the drawing then fills the pane, so every drag starts near an edge, and
+ * left and right are the only directions that still turn the wheel. The
+ * habit the reader had built up while zoomed out — drag upwards, away from
+ * the panels — is not available there. A workaround that only works in one
+ * of the two states is not a workaround.
+ *
+ * So the wheel stops the event travelling as well. Only once it has actually
+ * taken the gesture: a touch the wheel does not use still reaches whatever
+ * else wants it.
+ */
+function own(event: Event): void {
+	event.preventDefault();
+	event.stopPropagation();
+}
+
 /** How many samples of pointer travel a velocity estimate looks back over. */
 const SAMPLE_WINDOW = 5;
+
+/** How long a gesture's opening counts as its opening, in milliseconds. */
+const EARLY_WINDOW = 100;
 
 /** Obsidian's `registerDomEvent`, narrowed to what this module needs. */
 export type DomRegistrar = <K extends keyof HTMLElementEventMap>(
@@ -95,6 +123,34 @@ export interface WheelControllerOptions {
 	 * does nothing at all, which is right — there is no outline to reorder.
 	 */
 	onMove?: (direction: "up" | "down") => void;
+	/**
+	 * Whether Obsidian's own side panels stand open, in a word.
+	 *
+	 * The one thing the trace could not say: *did the panel open while we had
+	 * the gesture?* The reader had to remember and correlate by hand, and two
+	 * rounds of traces came back showing turns that had gone fine. Read once
+	 * when a drag begins and again when it ends, the answer arrives in the same
+	 * trace as the gesture that caused it (BC_E3_S76).
+	 */
+	panels?: () => string;
+	/**
+	 * Put the side panels back the way `panels()` said they were.
+	 *
+	 * Measured first, then built (BC_E3_S76). A quick turn is read by
+	 * Obsidian's own recogniser as a swipe and opens a side panel, and the
+	 * trace showed exactly why nothing we do to the event can stop it: we
+	 * receive the whole gesture — a hundred moves, no cancel — so its
+	 * listener is not downstream of ours but alongside it, seeing the same
+	 * touches before our `stopPropagation` can reach it. From below there is
+	 * no winning that.
+	 *
+	 * So the wheel stops fighting for the event and repairs the effect
+	 * instead. The boundary is what makes that honest: only for a gesture
+	 * the wheel is *holding* — a finger that is turning the wheel is not
+	 * asking for a panel — and only back to the state that finger found. A
+	 * swipe that starts anywhere else still opens whatever it opens.
+	 */
+	restorePanels?: (was: string) => void;
 }
 
 interface Tween {
@@ -140,6 +196,36 @@ interface Drag {
 	travel: number;
 	samples: TravelSample[];
 	moved: boolean;
+	/**
+	 * What the gesture looked like as it arrived, for the diagnostics.
+	 *
+	 * The owner can turn the wheel by pressing, pausing and then dragging, but
+	 * a *quick* turn is read as a swipe and pulls Obsidian's panels out
+	 * instead (28 aug 2026). Speed being the variable means the competing
+	 * recogniser decides on speed, and it sits above us — so before guessing
+	 * at which one, the wheel says what it actually received: when the first
+	 * move arrived, how far it had already gone by then, how many moves came
+	 * in, and whether the gesture was taken away mid-turn.
+	 */
+	began: number;
+	from: { x: number; y: number };
+	moves: number;
+	firstMove: number | null;
+	/** How the side panels stood when the finger went down. */
+	panels: string;
+	/** How often they had to be put back during this one gesture. */
+	restored: number;
+	/**
+	 * Whether the finger went down on the drawing, rather than beside it.
+	 *
+	 * Turning works from anywhere on the canvas and stays that way — the whole
+	 * of it is the handle. This is only about what the wheel takes away from
+	 * Obsidian: outside the rim, a swipe is as likely to be someone reaching
+	 * for a side panel, and the wheel has no business putting that back.
+	 */
+	onWheel: boolean;
+	/** How far the finger got in the first tenth of a second. */
+	early: number;
 }
 
 export class WheelController {
@@ -316,7 +402,14 @@ export class WheelController {
 		register(surface, "pointerdown", (event) => this.onPointerDown(event));
 		register(surface, "pointermove", (event) => this.onPointerMove(event));
 		register(surface, "pointerup", (event) => this.onPointerUp(event));
-		register(surface, "pointercancel", (event) => this.onPointerUp(event));
+		register(surface, "pointercancel", (event) => {
+			// A cancel is not an ordinary end: it is the platform saying it has
+			// given the gesture to someone else. If a quick turn ends here, the
+			// wheel never lost the gesture — it had it taken away, and that
+			// names the layer to go and look at.
+			this.trace("pointercancel — the gesture was taken away");
+			this.onPointerUp(event);
+		});
 
 		// Not passive: without preventDefault the pane behind the wheel takes
 		// the gesture as a scroll.
@@ -327,7 +420,10 @@ export class WheelController {
 			passive: false,
 		});
 		register(surface, "touchend", (event) => this.onTouchEnd(event));
-		register(surface, "touchcancel", (event) => this.onTouchEnd(event));
+		register(surface, "touchcancel", (event) => {
+			this.trace("touchcancel — the gesture was taken away");
+			this.onTouchEnd(event);
+		});
 
 		register(surface, "keydown", (event) => this.onKeyDown(event));
 		register(surface, "wheel", (event) => this.onWheel(event), {
@@ -341,11 +437,13 @@ export class WheelController {
 		this.mark("pointer", event.pointerId, event, event.timeStamp);
 		if (this.begin("pointer", event.pointerId, event, event.timeStamp)) {
 			this.capture(event.pointerId, event.pointerType);
+			this.holdFinger(event);
 		}
 	}
 
 	private onPointerMove(event: PointerEvent): void {
 		if (this.drag?.source !== "pointer") return;
+		this.holdFinger(event);
 		this.extend(event.pointerId, event, event.timeStamp);
 	}
 
@@ -355,8 +453,26 @@ export class WheelController {
 		if (!mine) return;
 
 		this.trace(`pointerup id=${event.pointerId}`);
+		this.holdFinger(event);
 		this.release(event.pointerId);
 		this.finish(event.pointerId, event, event.timeStamp);
+	}
+
+	/**
+	 * A finger's pointer event stops here too, for the same reason a touch does.
+	 *
+	 * Both doors are open at once (see `listen`), and which one a device sends
+	 * a gesture through is not ours to know — the phone that could not be made
+	 * to work with `touch-action` alone is why the second door exists. So a
+	 * pointer that *is* a finger gets held back exactly like the touch event
+	 * would have been.
+	 *
+	 * Only a finger. A mouse or a pen has no sidebar gesture to trigger, and
+	 * quietly swallowing those on the desktop would take events from Obsidian
+	 * that it is entitled to.
+	 */
+	private holdFinger(event: PointerEvent): void {
+		if (event.pointerType === "touch") event.stopPropagation();
 	}
 
 	private onTouchStart(event: TouchEvent): void {
@@ -373,13 +489,13 @@ export class WheelController {
 				this.drag = null;
 				this.pinch = { distance, zoom: this.zoomLevel };
 				this.trace(`pinch begins at ${distance.toFixed(0)}px`);
-				event.preventDefault();
+				own(event);
 			}
 			return;
 		}
 		this.mark("touch", touch.identifier, touch, event.timeStamp);
 		if (this.begin("touch", touch.identifier, touch, event.timeStamp)) {
-			event.preventDefault();
+			own(event);
 		}
 	}
 
@@ -388,7 +504,7 @@ export class WheelController {
 		if (pinch !== null) {
 			const distance = spread(event.touches);
 			if (distance === null || pinch.distance <= 0) return;
-			event.preventDefault();
+			own(event);
 			this.setZoom((pinch.zoom * distance) / pinch.distance);
 			return;
 		}
@@ -398,7 +514,7 @@ export class WheelController {
 		const touch = this.find(event.changedTouches, this.drag.pointerId);
 		if (touch === undefined) return;
 
-		event.preventDefault();
+		own(event);
 		this.extend(touch.identifier, touch, event.timeStamp);
 	}
 
@@ -419,6 +535,7 @@ export class WheelController {
 		if (touch === undefined) return;
 
 		this.trace("touchend");
+		event.stopPropagation();
 		this.finish(touch.identifier, touch, event.timeStamp);
 	}
 
@@ -478,10 +595,22 @@ export class WheelController {
 		this.tween = null;
 		this.cancelFrame();
 
+		if (this.renderer?.withinRim(at.clientX, at.clientY) === false) {
+			this.trace("begin: beside the drawing — panels left alone");
+		}
+
 		this.drag = {
 			source,
 			pointerId: id,
 			centre,
+			began: time,
+			from: { x: at.clientX, y: at.clientY },
+			moves: 0,
+			firstMove: null,
+			panels: this.options.panels?.() ?? "",
+			restored: 0,
+			onWheel: this.renderer?.withinRim(at.clientX, at.clientY) ?? true,
+			early: 0,
 			last: angle,
 			rotation: this.rotation,
 			travel: 0,
@@ -507,6 +636,30 @@ export class WheelController {
 		drag.travel += unwrap(drag.last, angle);
 		drag.last = angle;
 
+		drag.moves += 1;
+		this.keepPanels(drag);
+
+		// How far the finger got in the first tenth of a second — the number
+		// that says "this was a flick" rather than "this was a drag", and so
+		// the one to line up against whether a panel opened.
+		if (time - drag.began <= EARLY_WINDOW) {
+			drag.early = Math.max(
+				drag.early,
+				Math.hypot(at.clientX - drag.from.x, at.clientY - drag.from.y),
+			);
+		}
+
+		if (drag.firstMove === null) {
+			drag.firstMove = time - drag.began;
+			const away = Math.hypot(at.clientX - drag.from.x, at.clientY - drag.from.y);
+			// The gap between touching down and the first move is what tells a
+			// press-then-drag from a flick, and the distance says how much of
+			// the gesture happened before we heard about any of it.
+			this.trace(
+				`first move after ${Math.round(drag.firstMove)}ms, ${Math.round(away)}px`,
+			);
+		}
+
 		drag.samples.push({ time, angle: drag.travel });
 		if (drag.samples.length > SAMPLE_WINDOW) drag.samples.shift();
 		if (Math.abs(drag.travel) > 0.5) drag.moved = true;
@@ -525,7 +678,13 @@ export class WheelController {
 
 		this.drag = null;
 		this.contact = null;
-		if (drag !== null) this.trace(`end after ${drag.travel.toFixed(0)}°`);
+		if (drag !== null) {
+			// Once more on release: a recogniser is free to make up its mind
+			// when the finger leaves, and by then there are no more moves to
+			// catch it on.
+			this.keepPanels(drag);
+			this.traceGesture(drag, "end");
+		}
 
 		if (at !== undefined && contact !== null && this.tapped(contact, at, time)) {
 			return;
@@ -629,6 +788,43 @@ export class WheelController {
 	}
 
 	/** End of a gesture: land on the nearest stop to where it was heading. */
+	/**
+	 * Put back a side panel that opened under a finger that was turning.
+	 *
+	 * Asked on every move rather than at the end: reading two booleans costs
+	 * nothing, and the difference between the two moments is the difference
+	 * between a flicker and a panel standing open across the whole turn —
+	 * with the wheel's own middle pushed sideways under it.
+	 */
+	private keepPanels(drag: Drag): void {
+		if (!drag.onWheel) return;
+
+		const restore = this.options.restorePanels;
+		const read = this.options.panels;
+		if (restore === undefined || read === undefined) return;
+		if (read() === drag.panels) return;
+
+		restore(drag.panels);
+		drag.restored += 1;
+	}
+
+	/** How the gesture that just ended looked, for the diagnostics. */
+	private traceGesture(drag: Drag, how: string): void {
+		const now = this.options.panels?.() ?? "";
+		// Only when it changed. A line that says the panels are as they were,
+		// every single gesture, is a line nobody reads.
+		const panels =
+			now !== drag.panels ? `, panels ${drag.panels} → ${now}` : "";
+
+		this.trace(
+			`${how}: ${drag.moves} moves, first after ` +
+				`${drag.firstMove === null ? "—" : `${Math.round(drag.firstMove)}ms`}, ` +
+				`${Math.round(drag.early)}px in ${EARLY_WINDOW}ms, ` +
+				`${drag.travel.toFixed(0)}° turned${panels}` +
+				(drag.restored > 0 ? `, put back ${drag.restored}×` : ""),
+		);
+	}
+
 	private settle(coast: number): void {
 		if (this.detents.length === 0) return;
 		this.snapTo(this.nearestIndex(this.rotation + coast));

@@ -168,3 +168,6 @@ export type ViewStateResult = unknown;
 export type FuzzyMatch<T> = { item: T };
 export type SearchResult = { score: number; matches: Array<[number, number]> };
 export type Menu = unknown;
+
+/** Obsidian tells a plugin which API it is running against. */
+export const apiVersion = "0.0.0-test";

@@ -1,8 +1,10 @@
 import {
+	apiVersion,
 	ItemView,
 	MarkdownView,
 	Menu,
 	Notice,
+	Platform,
 	TFile,
 	type ViewStateResult,
 	type WorkspaceLeaf,
@@ -37,7 +39,11 @@ import {
 	writePriority,
 	type WriteOutcome,
 } from "../vault/writeback";
-import { PRIORITY_LADDER } from "../layout/colour";
+import {
+	type Palette,
+	paletteOf,
+	PRIORITY_LADDER,
+} from "../layout/colour";
 import { domainWeights, type WedgeDivision } from "../layout/budgets";
 import { type LaidOutNode, layoutWheel, type WheelLayout } from "../layout/radial";
 import { buildDetents, type Detent } from "../layout/detents";
@@ -105,7 +111,34 @@ import type TaskWheelPlugin from "../main";
 export const VIEW_TYPE_TASK_WHEEL = "task-wheel-view";
 
 /** How many lines the diagnostics panel keeps. */
-const TRACE_LINES = 14;
+/**
+ * How many lines the trace keeps.
+ *
+ * Fourteen, back when the panel was there to be photographed and a screen
+ * only held so much. One gesture costs about eleven of them — down, canvas,
+ * begin, start, first move, up, end, place, rim, frame, draw — so a second
+ * gesture pushed the first one out, and the reader kept losing exactly the
+ * one that had gone wrong (eigenaar, 28 aug 2026: *"bij de eerste ging het
+ * paneel open"*, and its lines were already gone).
+ *
+ * Now that the panel is bounded, scrolls on its own and is copied by a
+ * button rather than by hand, keeping more costs nothing anyone can feel:
+ * two hundred lines is some twenty gestures, which is a session of trying to
+ * reproduce something rather than a single lucky attempt.
+ */
+const TRACE_LINES = 200;
+
+/**
+ * When this bundle was built, stamped in by esbuild.
+ *
+ * The version cannot tell two test builds apart — a dozen of them carry the
+ * same one between releases — and a round was spent reading a trace for a fix
+ * that build did not contain (28 aug 2026). Declared with a fallback so the
+ * tests, which never go through esbuild, do not have to know about it.
+ */
+declare const __TASK_WHEEL_BUILD__: string | undefined;
+const BUILD =
+	typeof __TASK_WHEEL_BUILD__ === "string" ? __TASK_WHEEL_BUILD__ : "dev";
 
 /**
  * One review action, and everything it needs.
@@ -178,6 +211,8 @@ export class TaskWheelView extends ItemView {
 	private outEl: HTMLElement | null = null;
 	private scopeEl: HTMLElement | null = null;
 	private traceEl: HTMLElement | null = null;
+	/** The lines themselves, inside the panel — the toolbar above them stays. */
+	private traceTextEl: HTMLElement | null = null;
 	private errorEl: HTMLElement | null = null;
 
 	/** Rolling log of what the device sent, newest last. */
@@ -307,6 +342,7 @@ export class TaskWheelView extends ItemView {
 		this.legendEl = container.createDiv({ cls: "task-wheel-legend" });
 		this.errorEl = container.createDiv({ cls: "task-wheel-error" });
 		this.traceEl = container.createDiv({ cls: "task-wheel-trace" });
+		this.drawTracePanel();
 
 		this.controller = new WheelController({
 			surface: this.canvasEl,
@@ -318,6 +354,8 @@ export class TaskWheelView extends ItemView {
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
 			onMove: (direction) => this.moveFocused(direction),
+			panels: () => this.panelState(),
+			restorePanels: (was) => this.restorePanels(was),
 		});
 
 		this.watchVault();
@@ -341,6 +379,7 @@ export class TaskWheelView extends ItemView {
 		this.legendEl = null;
 		this.errorEl = null;
 		this.traceEl = null;
+		this.traceTextEl = null;
 	}
 
 	/**
@@ -570,10 +609,80 @@ export class TaskWheelView extends ItemView {
 		while (this.trace.length > TRACE_LINES) this.trace.shift();
 		if (!this.plugin.settings.diagnostics) return;
 
+		const el = this.traceTextEl;
+		if (el === null) return;
+		el.setText(this.trace.join("\n"));
+
+		// The newest line is the one being read, and the panel is short enough
+		// now that the rest scrolls out of sight above it.
+		const panel = this.traceEl;
+		if (panel !== null) panel.scrollTop = panel.scrollHeight;
+	}
+
+	/**
+	 * The diagnostics panel: a way to take the lines with you, then the lines.
+	 *
+	 * The panel was built to be *photographed* — a `Notice` is gone in eight
+	 * seconds, which is the wrong property for something you are trying to
+	 * capture. Photographing turned out to be the wrong verb: what the reader
+	 * actually wants is the text, and on a phone selecting it out of a scrolling
+	 * pane is a fight (eigenaar, 28 aug 2026: *"ik kan de diagnostics niet copy
+	 * pasten"*).
+	 *
+	 * So there is a button. What it copies carries a short header — plugin
+	 * version, Obsidian's API version, desktop or mobile — because a trace
+	 * without those needs a second round of questions before it can be read.
+	 */
+	private drawTracePanel(): void {
 		const el = this.traceEl;
 		if (el === null) return;
+
 		el.empty();
-		el.createEl("pre", { text: this.trace.join("\n") });
+		const bar = el.createDiv({ cls: "task-wheel-trace-bar" });
+		bar.createSpan({
+			cls: "task-wheel-trace-title",
+			text: "Diagnostics",
+		});
+
+		const copy = bar.createEl("button", {
+			cls: "task-wheel-trace-copy",
+			attr: { type: "button", "aria-label": "Copy the diagnostics" },
+		});
+		putIcon(copy, "copy", "task-wheel-trace-icon");
+		copy.createSpan({ text: "Copy" });
+		copy.addEventListener("click", () => void this.copyTrace());
+
+		const clear = bar.createEl("button", {
+			cls: "task-wheel-trace-copy",
+			attr: { type: "button", "aria-label": "Clear the diagnostics" },
+		});
+		putIcon(clear, "eraser", "task-wheel-trace-icon");
+		clear.createSpan({ text: "Clear" });
+		clear.addEventListener("click", () => {
+			this.trace.length = 0;
+			this.traceTextEl?.setText("");
+		});
+
+		this.traceTextEl = el.createEl("pre", { text: this.trace.join("\n") });
+	}
+
+	/** Put the trace on the clipboard, header and all. */
+	private async copyTrace(): Promise<void> {
+		const header = [
+			`Task Wheel ${this.plugin.manifest.version} (build ${BUILD})`,
+			`Obsidian API ${apiVersion}`,
+			Platform.isMobile ? "mobile" : "desktop",
+			scopeLabel(this.wheelScope),
+		].join(" · ");
+
+		try {
+			await navigator.clipboard.writeText(`${header}\n${this.trace.join("\n")}`);
+			new Notice("Task wheel: diagnostics copied.");
+		} catch {
+			// Some surfaces refuse the clipboard outright. Saying so beats a
+			// button that looks like it worked.
+			new Notice("Task wheel: this device would not let the plugin copy.");
+		}
 	}
 
 	/**
@@ -804,7 +913,7 @@ export class TaskWheelView extends ItemView {
 			return;
 		}
 
-		void this.plugin.openScoped(scope);
+		void this.plugin.openScoped(scope, this.leaf);
 	}
 
 	/** The folder, note or section an item stands for, if it stands for one. */
@@ -909,7 +1018,7 @@ export class TaskWheelView extends ItemView {
 			new Notice("Task wheel: this wheel is already about the whole vault.");
 			return;
 		}
-		void this.plugin.openScoped(wider);
+		void this.plugin.openScoped(wider, this.leaf);
 	}
 
 	/**
@@ -1005,6 +1114,17 @@ export class TaskWheelView extends ItemView {
 		return [...(this.layout?.budgets ?? [])]
 			.sort((a, b) => a.index - b.index)
 			.map((budget) => budget.domain);
+	}
+
+	/**
+	 * The hues this wheel is handing out, for a key that explains it.
+	 *
+	 * Asked of the drawing rather than read from the settings a second time:
+	 * a key showing colours the wheel is not using would be worse than no key
+	 * (BC_E3_S72).
+	 */
+	palette(): Palette {
+		return this.layout?.palette ?? paletteOf(this.plugin.settings.wedgePalette);
 	}
 
 	/**
@@ -1112,6 +1232,33 @@ export class TaskWheelView extends ItemView {
 		void leaf.openFile(file, line === null ? undefined : { eState: { line } });
 	}
 
+	/**
+	 * How Obsidian's own side panels stand, in a word.
+	 *
+	 * Handed to the controller so a gesture and what it opened land in the
+	 * same trace line. `collapsed` is on the public sidedock; nothing here
+	 * touches them, it only looks.
+	 */
+	private panelState(): string {
+		const { leftSplit, rightSplit } = this.app.workspace;
+		const side = (open: boolean): string => (open ? "open" : "shut");
+		return `${side(!leftSplit.collapsed)}/${side(!rightSplit.collapsed)}`;
+	}
+
+	/**
+	 * Close a side panel that opened under a finger that was turning the wheel.
+	 *
+	 * Only shut ones are re-shut, and only the side that changed: this puts
+	 * back what the gesture knocked over, it does not impose a state. A panel
+	 * the reader had open before they started turning stays open.
+	 */
+	private restorePanels(was: string): void {
+		const [left, right] = was.split("/");
+		const { leftSplit, rightSplit } = this.app.workspace;
+		if (left === "shut" && !leftSplit.collapsed) leftSplit.collapse();
+		if (right === "shut" && !rightSplit.collapsed) rightSplit.collapse();
+	}
+
 	/** Redraw from the settings as they now stand, without touching the vault. */
 	redraw(): void {
 		this.relayout();
@@ -1153,6 +1300,10 @@ export class TaskWheelView extends ItemView {
 			division,
 			collapsed: new Set(state.collapsed),
 			visibleBudget: visibleBudgetOf(this.plugin.settings),
+			// Plugin-wide, unlike the filter and the round: a palette is about
+			// how things look, not about what you are reviewing right now
+			// (BC_E3_S72).
+			palette: paletteOf(this.plugin.settings.wedgePalette),
 		};
 
 		// Which item the fisheye opens around. On a first draw there is nothing
@@ -1199,7 +1350,12 @@ export class TaskWheelView extends ItemView {
 		const trace = this.traceEl;
 		if (trace !== null) {
 			trace.toggleClass("is-on", this.plugin.settings.diagnostics);
-			if (!this.plugin.settings.diagnostics) trace.empty();
+			// The lines go when the switch goes; the toolbar stays, so turning
+			// diagnostics back on does not rebuild the panel.
+			if (!this.plugin.settings.diagnostics) {
+				this.trace.length = 0;
+				this.traceTextEl?.setText("");
+			}
 		}
 
 		const detents = buildDetents(layout);
@@ -1936,7 +2092,13 @@ function labelAfter(text: string): string {
 	return label.length > 0 ? label : text.trim();
 }
 
-function readScope(state: unknown): WheelScope | null {
+/**
+ * The scope inside a leaf's persisted state, if it holds one.
+ *
+ * Exported because the plugin has to ask this of a leaf whose view is not
+ * loaded — see `wheelLeafFor` in `main.ts`.
+ */
+export function readScope(state: unknown): WheelScope | null {
 	if (typeof state !== "object" || state === null) return null;
 
 	const raw = (state as { scope?: unknown }).scope;

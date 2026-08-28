@@ -1,6 +1,6 @@
 import { Menu } from "obsidian";
 import { putIcon } from "./icon";
-import { nodeColour } from "../layout/colour";
+import { nodeColour, type Palette } from "../layout/colour";
 import { ancestorsOf, type LaidOutNode, type WheelLayout } from "../layout/radial";
 import { plainText, splitLinks } from "../parse/links";
 import { textEnd } from "../parse/outline-edit";
@@ -185,7 +185,7 @@ export function renderReadingCard(
 	renderTitle(body, focus, actions);
 
 	const fields = focus.node.fields;
-	if (fields !== undefined) renderChips(body, focus, fields);
+	if (fields !== undefined) renderChips(body, focus, fields, layout.palette);
 	else renderBranchCount(body, focus, layout.showsFinished);
 
 	// One detail line, not two. The frame is fixed, so a second line does not
@@ -428,7 +428,7 @@ function renderTrail(
 	const swatch = trail.createSpan({ cls: "task-wheel-card-swatch" });
 	swatch.style.setProperty(
 		"--tw-colour",
-		nodeColour(focus.domainIndex, focus.priority),
+		nodeColour(focus.domainIndex, focus.priority, layout.palette),
 	);
 
 	// The trail is plain text, so a link in a parent task's words is written out
@@ -475,6 +475,7 @@ function renderChips(
 	parent: HTMLElement,
 	focus: LaidOutNode,
 	fields: TaskFields,
+	palette: Palette,
 ): void {
 	const chips = parent.createDiv({ cls: "task-wheel-card-chips" });
 
@@ -500,7 +501,7 @@ function renderChips(
 		});
 		chip.style.setProperty(
 			"--tw-colour",
-			nodeColour(focus.domainIndex, fields.priority),
+			nodeColour(focus.domainIndex, fields.priority, palette),
 		);
 	}
 

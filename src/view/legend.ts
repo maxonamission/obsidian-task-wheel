@@ -44,7 +44,10 @@ export function renderLegend(
 		});
 		// The ramp is drawn in the first domain's hue: it is the lightness that
 		// carries the meaning, not the colour it happens to be shown in.
-		step.style.setProperty("--tw-colour", nodeColour(0, priority));
+		step.style.setProperty(
+			"--tw-colour",
+			nodeColour(0, priority, layout.palette),
+		);
 	}
 
 	ramp.createSpan({

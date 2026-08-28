@@ -34,7 +34,11 @@ import {
 import { readNotes, ScanCache } from "./vault/scan";
 import { DuplicateReportModal } from "./view/duplicate-report-modal";
 import { SkipReportModal } from "./view/skip-report-modal";
-import { TaskWheelView, VIEW_TYPE_TASK_WHEEL } from "./view/wheel-view";
+import {
+	readScope,
+	TaskWheelView,
+	VIEW_TYPE_TASK_WHEEL,
+} from "./view/wheel-view";
 import {
 	TaskWheelHelpModal,
 	TaskWheelHelpView,
@@ -380,18 +384,31 @@ export default class TaskWheelPlugin extends Plugin {
 	 * local wheel is opened deliberately, for a round of reviewing, and the
 	 * sidebar is for the one wheel that is always there.
 	 */
-	async openScoped(scope: WheelScope): Promise<void> {
+	async openScoped(scope: WheelScope, from?: WorkspaceLeaf): Promise<void> {
 		const { workspace } = this.app;
-		const key = scopeKey(scope);
 
-		const existing = workspace
-			.getLeavesOfType(VIEW_TYPE_TASK_WHEEL)
-			.find(
-				(leaf) =>
-					leaf.view instanceof TaskWheelView && leaf.view.scopeKey() === key,
-			);
+		const existing = this.wheelLeafFor(scopeKey(scope));
 		if (existing !== undefined) {
 			await workspace.revealLeaf(existing);
+			return;
+		}
+
+		// Stepping *within* a wheel reuses the tab you stepped from, unless the
+		// reader asked otherwise. `from` is what makes that distinction: a wheel
+		// opened from the file list or the ribbon hands in nothing and still
+		// gets a tab of its own, because that is a wheel you asked for rather
+		// than one you walked into (BC_E3_S75).
+		if (
+			from !== undefined &&
+			this.settings.stepInto === "same-tab" &&
+			from.view instanceof TaskWheelView
+		) {
+			await from.setViewState({
+				type: VIEW_TYPE_TASK_WHEEL,
+				active: true,
+				state: { scope },
+			});
+			await workspace.revealLeaf(from);
 			return;
 		}
 
@@ -405,6 +422,32 @@ export default class TaskWheelPlugin extends Plugin {
 	}
 
 	/**
+	 * The open wheel for this blikveld, if there is one.
+	 *
+	 * Asked of the leaf's **stored state**, not of its view. Since Obsidian
+	 * 1.7 a tab you have not touched is *deferred*: the leaf is there, its
+	 * state is there, and `leaf.view` is a placeholder that is not a
+	 * `TaskWheelView`. An `instanceof` test therefore missed exactly the tabs
+	 * that had been sitting untouched — most of them, after a restart — and
+	 * every miss opened a duplicate. That is the half of "it does not always
+	 * reuse" that was a bug rather than a design (eigenaar, 28 aug 2026).
+	 *
+	 * A wheel over the whole vault is opened without state at all, so a leaf
+	 * with no scope in it is that one.
+	 */
+	private wheelLeafFor(key: string): WorkspaceLeaf | undefined {
+		return this.app.workspace
+			.getLeavesOfType(VIEW_TYPE_TASK_WHEEL)
+			.find((leaf) => {
+				if (leaf.view instanceof TaskWheelView) {
+					return leaf.view.scopeKey() === key;
+				}
+				const scope = readScope(leaf.getViewState().state) ?? VAULT_SCOPE;
+				return scopeKey(scope) === key;
+			});
+	}
+
+	/**
 	 * Reveal the wheel, opening one where the reader asked for it.
 	 *
 	 * A wheel that is already open in the right place is reused. One open
@@ -414,13 +457,7 @@ export default class TaskWheelPlugin extends Plugin {
 	async activateView(): Promise<void> {
 		const { workspace } = this.app;
 
-		const existing = workspace
-			.getLeavesOfType(VIEW_TYPE_TASK_WHEEL)
-			.find(
-				(leaf) =>
-					leaf.view instanceof TaskWheelView &&
-					leaf.view.scopeKey() === scopeKey(VAULT_SCOPE),
-			);
+		const existing = this.wheelLeafFor(scopeKey(VAULT_SCOPE));
 		if (existing !== undefined) {
 			await workspace.revealLeaf(existing);
 			return;
