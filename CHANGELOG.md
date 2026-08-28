@@ -4,6 +4,18 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.1.9]
+
+The released plugin can be rebuilt from its own source again.
+
+- **Fixed**: 0.1.8 shipped a `main.js` that nobody could reproduce. It carried
+  a stamp saying which build it was, and that stamp was the clock — so every
+  build differed from every other, and rebuilding the released source could
+  never produce the released bytes. The stamp now comes from the source
+  itself, which identifies a build just as well and leaves it reproducible:
+  the same source builds the same file, byte for byte. Nothing about the
+  plugin's behaviour changes; what changes is that the release can be checked.
+
 ## [0.1.8]
 
 Turning on a phone stops opening things you did not ask for, and the wedges
