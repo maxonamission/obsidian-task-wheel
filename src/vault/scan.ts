@@ -63,6 +63,7 @@ export async function readNotes(
 			content: await app.vault.cachedRead(file),
 			frontmatterTags: frontmatterTagsOf(app, file),
 			frontmatterType: frontmatterTypeOf(app, file),
+			frontmatter: frontmatterOf(app, file),
 		});
 	}
 
@@ -146,6 +147,7 @@ export class ScanCache {
 				content: await app.vault.cachedRead(file),
 				frontmatterTags: frontmatterTagsOf(app, file),
 				frontmatterType: frontmatterTypeOf(app, file),
+				frontmatter: frontmatterOf(app, file),
 			};
 			const entry: Entry = {
 				mtime: file.stat.mtime,
@@ -205,6 +207,21 @@ function frontmatterTypeOf(app: App, file: TFile): string | undefined {
 	const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
 	const type: unknown = frontmatter?.["type"];
 	return typeof type === "string" ? type : undefined;
+}
+
+/**
+ * The note's front matter as Obsidian already has it.
+ *
+ * A reference, not a copy: `metadataCache` holds this object anyway, so five
+ * thousand notes cost five thousand pointers. Handed over whole because the
+ * setting decides which key is the domain, and applying a setting here would
+ * survive in the outline cache after the setting changed (BC_E3_S81).
+ */
+function frontmatterOf(
+	app: App,
+	file: TFile,
+): Readonly<Record<string, unknown>> | undefined {
+	return app.metadataCache.getFileCache(file)?.frontmatter;
 }
 
 function frontmatterTagsOf(app: App, file: TFile): string[] {

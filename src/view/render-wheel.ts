@@ -3,11 +3,13 @@ import {
 	domainColour,
 	nodeColour,
 	type Palette,
+	readingBandColour,
 } from "../layout/colour";
 import {
 	angleDelta,
 	arcPath,
 	branchPath,
+	containsAngle,
 	normaliseAngle,
 	pointAt,
 } from "../layout/geometry";
@@ -22,6 +24,7 @@ import {
 } from "../layout/labels";
 import { pinnedAngle } from "../layout/pin";
 import { warpAngle, type WarpOptions } from "../layout/warp";
+import { type DomainBudget } from "../layout/budgets";
 import {
 	type LaidOutNode,
 	type WheelLayout,
@@ -217,6 +220,15 @@ export class WheelRenderer {
 
 		this.drawRings(layout);
 
+		// The reading wedge is drawn *before* the disc, so the disc paints over
+		// it rather than the other way round. It sits just outside the rim, which
+		// is exactly where the title of the wedge you are reading sits — and an
+		// arrow across that title is the one place on the wheel where the drawing
+		// covers the word it is pointing at (eigenaar, 30 aug 2026). Every label
+		// carries a halo in the page colour, so the arrow now shows around the
+		// letters instead of through them.
+		this.drawIndex();
+
 		// The rotor is everything that belongs to the disc: the wedges, the
 		// branches and the nodes all turn together. The rings and the reading
 		// wedge stay outside it — the disc turns past the reading position, not
@@ -236,7 +248,6 @@ export class WheelRenderer {
 		// a count that turns upside down as you work is unreadable exactly when
 		// you are working.
 		this.drawHub(layout);
-		this.drawIndex();
 		this.measureLabels();
 		this.setRotation(0);
 	}
@@ -431,6 +442,15 @@ export class WheelRenderer {
 		// The wedge bands are arcs on the rim, so only their two ends move — but
 		// they have to, or a band would slide off the branches it stands for.
 		for (const band of this.bands) {
+			// The wedge the reading wedge is standing in wears its own hue instead
+			// of the faded one (eigenaar, 30 aug 2026). Decided on the *unwarped*
+			// angles: which wedge you are in is a fact about the wheel, not about
+			// how the magnifier happens to be stretching it.
+			band.el.toggleClass(
+				"is-reading",
+				containsAngle(band.startAngle, band.endAngle, reading),
+			);
+
 			const from = warpAngle(band.startAngle, reading, this.warp);
 			const to = warpAngle(band.endAngle, reading, this.warp);
 			const width = normaliseAngle(to - from) || 360;
@@ -740,6 +760,13 @@ export class WheelRenderer {
 				"--tw-colour",
 				branchColour(budget.index, this.palette),
 			);
+			// And a stronger mix beside it, for the one band the reading wedge is
+			// standing in. Both values are set here and the stylesheet picks —
+			// this module says *which colour*, never *how it is painted*.
+			band.style.setProperty(
+				"--tw-strong",
+				readingBandColour(budget.index, this.palette),
+			);
 
 			const inner = pointAt(HUB_RADIUS, budget.startAngle);
 			const outer = pointAt(this.rim, budget.startAngle);
@@ -756,6 +783,58 @@ export class WheelRenderer {
 				endAngle: budget.endAngle,
 			});
 		}
+
+		for (const quiet of layout.quietWedges) this.drawQuietTitle(wedges, quiet);
+	}
+
+	/**
+	 * The name of a wedge that is holding a place with nothing on it.
+	 *
+	 * Its title cannot come from a node the way every other wedge's does — there
+	 * is no node, that is what makes it quiet. So it is drawn beside the band it
+	 * belongs to, and then handed to the same placement pass as every other
+	 * label, at the same rank: a quiet wedge queues for its name like the rest,
+	 * and steps aside for the item being read like the rest (BC_E3_S83).
+	 *
+	 * It never gets the written-out form. A wedge with work on it earns that
+	 * under the reading wedge; a wedge with nothing on it has nothing to be read
+	 * about, and taking that room from a neighbour that does would be the wrong
+	 * way round.
+	 */
+	private drawQuietTitle(group: SVGGElement, budget: DomainBudget): void {
+		const angle = (budget.startAngle + budget.endAngle) / 2;
+		const anchor = pointAt(this.titleRadius, angle);
+
+		const el = group.createSvg("text", {
+			cls: ["task-wheel-label", "is-quiet"],
+			attr: { x: anchor.x, y: anchor.y },
+		});
+		const words = truncate(budget.domain, LABEL_CHARS.domain);
+		el.textContent = words;
+		// The same faded hue its band is drawn in, so the name reads as belonging
+		// to that slice rather than floating above it — and quieter than a wedge
+		// with work on it, because that is the honest difference between them.
+		el.style.setProperty("--tw-colour", branchColour(budget.index, this.palette));
+
+		this.labels.push({
+			el,
+			x: anchor.x,
+			y: anchor.y,
+			angle,
+			// A whole wedge's worth: it is the widest thing in its own slice,
+			// because it is the only thing in it.
+			span: budget.degrees,
+			radius: this.titleRadius,
+			onRim: true,
+			width: estimate(el, true),
+			height: RIM_HEIGHT,
+			measured: false,
+			focus: false,
+			near: false,
+			centred: false,
+			long: words,
+			short: words,
+		});
 	}
 
 	private drawBranches(layout: WheelLayout): void {
@@ -1022,6 +1101,13 @@ function truncate(text: string, limit: number): string {
 
 function classesFor(laid: LaidOutNode): string[] {
 	const classes = ["task-wheel-node", `is-${laid.node.kind}`, `is-${laid.render}`];
+	// Ring one, whatever the thing on it happens to be. A wedge is a folder on
+	// one wheel, a loose note on another (kind `project`), a tag or a property
+	// value on a third, and a heading on a note wheel — and the *kind* is what
+	// the styling keyed on, so only some of them were coloured like wedges
+	// (eigenaar, 30 aug 2026: "de letterkleuring inconsistent tussen een wiel op
+	// een notitie of op een folder"). What matters here is the ring.
+	if (laid.depth === 1) classes.push("is-wedge");
 	if (laid.hiddenCount > 0) classes.push("is-stump");
 	if (laid.collapsed) classes.push("is-collapsed");
 

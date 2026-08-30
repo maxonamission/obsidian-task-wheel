@@ -69,6 +69,18 @@ export interface WheelState {
 	 */
 	roundWeights?: Record<string, number> | null;
 	/**
+	 * The wedge order this round was dealt with.
+	 *
+	 * Holds hue and place for every domain the round began with — including one
+	 * whose last task has been ticked off, because an empty wedge is what makes
+	 * the place mean something. A domain that turns up mid-round is appended
+	 * rather than sorted in, so it can take a width but never somebody else's
+	 * colour (BC_E3_S82). Cleared on the same round boundaries as
+	 * `roundWeights`, plus whenever the domain *source* changes — a different
+	 * source is a different set of wedges, not a re-deal of the same ones.
+	 */
+	roundDomains?: string[] | null;
+	/**
 	 * What this wheel's round is about.
 	 *
 	 * Per blikveld, beside the round it defines. It used to be plugin-wide, so
@@ -242,6 +254,7 @@ export const DEFAULT_STATE: WheelState = {
 	zoom: 1,
 	reading: null,
 	roundWeights: null,
+	roundDomains: null,
 };
 
 export const DEFAULT_SETTINGS: TaskWheelSettings = {
@@ -310,6 +323,7 @@ export function parseOptionsOf(
 		today: today(),
 		domainSource: settings.domainSource,
 		domainTagPrefix: settings.domainTagPrefix,
+		domainProperty: settings.domainProperty,
 		fallbackDomain: settings.fallbackDomain,
 		useHeadingsAsGroups: settings.useHeadingsAsGroups,
 		includeCompleted: settings.includeCompleted,
@@ -391,6 +405,7 @@ export function setFilter(
 	// when they divide by open tasks — the frozen weights belonged to the old
 	// selection's population.
 	state.roundWeights = null;
+	state.roundDomains = null;
 	return { restarted };
 }
 
@@ -469,6 +484,7 @@ const LANGUAGE_CHOICES: Record<string, string> = {
 const DOMAIN_SOURCE_LABELS: Record<DomainSource, string> = {
 	folder: "Top-level folder",
 	tag: "Tag namespace",
+	property: "Front-matter property",
 };
 
 const HOW_LABELS: Record<CarryPreset["how"], string> = {
@@ -590,6 +606,17 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 			}
 		}
 
+		// And a changed domain *source* is a round boundary for the wedges
+		// themselves: it does not re-deal the same domains, it replaces them.
+		// Holding the old order would keep dealt wedges of a set that no longer
+		// exists, and append every real one behind them (BC_E3_S82).
+		if (key === "domainSource" || key === "domainTagPrefix" || key === "domainProperty") {
+			for (const state of everyState(this.plugin.settings)) {
+				state.roundWeights = null;
+				state.roundDomains = null;
+			}
+		}
+
 		await this.plugin.saveSettings();
 		if (key === "wedgeDivision" || key === "wedgeMinimum") {
 			this.plugin.redrawViews();
@@ -606,7 +633,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Domain comes from",
-						desc: "The domain is the wheel's angle, so this decides where a task sits. Folders are per note; a tag namespace lets one note feed several domains.",
+						desc: "The domain is the wheel's angle, so this decides where a task sits. Folders and properties are per note; a tag namespace lets one note feed several domains.",
 						control: {
 							type: "dropdown",
 							key: "domainSource",
@@ -624,8 +651,18 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
+						name: "Domain property",
+						desc: "The front-matter property read as the domain. With 'area', a note with 'area: Work' lands in the domain 'Work'. A list gives its first entry; a note without the property falls back.",
+						visible: () => settings.domainSource === "property",
+						control: {
+							type: "text",
+							key: "domainProperty",
+							placeholder: DEFAULT_PARSE_OPTIONS.domainProperty,
+						},
+					},
+					{
 						name: "Fallback domain",
-						desc: "Where tasks land when neither folder nor tag gives a domain. They are never dropped.",
+						desc: "Where tasks land when the chosen source gives no domain. They are never dropped.",
 						control: {
 							type: "text",
 							key: "fallbackDomain",

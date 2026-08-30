@@ -50,10 +50,52 @@ export interface WedgeDivision {
 }
 
 /**
+ * The wedge order for a round, given the order it was dealt with.
+ *
+ * `assignBudgets` hands out hue and angle by *position*, so the order is not a
+ * presentation detail — it is the identity of every wedge on the wheel. And the
+ * parser sorts `WheelTree.domains` structurally, which means a domain that
+ * turns up mid-round sorts into the **middle**: measured 28 aug 2026 on five
+ * domains, adding `Health` moved `Home` from hue 2 to hue 3 and from 180°–270°
+ * to 216°–288°, and `Work` likewise. A wedge you had learned as "yellow, at
+ * four o'clock" became a different colour somewhere else, halfway through a
+ * round (BC_E3_S82).
+ *
+ * With folders that is a rare event; a top-level folder is not something you
+ * make halfway through a review. With the domain in a front-matter property
+ * (BC_E3_S81) it is ordinary: typing one property moves a note into a domain
+ * that did not exist a second ago.
+ *
+ * So the round deals the order once and holds it:
+ *
+ *  - a domain the round was dealt **keeps its place**, and therefore its hue,
+ *    even after its last task is ticked off — an empty wedge is not a mistake,
+ *    it is what makes the place mean something (harde eis 1);
+ *  - a domain that turns up mid-round is **appended**, so it can take a width
+ *    but never a position that belonged to something else.
+ *
+ * What this does not do, because the circle cannot: keep the widths. A new
+ * wedge has to come from somewhere, so everything narrows a little and the
+ * angles after it shift. Nothing swaps places and nothing changes colour, which
+ * is what the reader was actually navigating by. The full re-deal happens at
+ * the round boundary, the one moment re-division is allowed to move the drawing.
+ */
+export function roundOrder(
+	dealt: readonly string[] | null | undefined,
+	current: readonly string[],
+): string[] {
+	if (dealt === null || dealt === undefined) return [...current];
+
+	const held = new Set(dealt);
+	return [...dealt, ...current.filter((domain) => !held.has(domain))];
+}
+
+/**
  * Hand out a wedge to every domain, in the order given.
  *
- * The order is the caller's — `WheelTree.domains`, which the parser sorts
- * structurally — so the same vault always produces the same wedges.
+ * The order is the caller's — `WheelTree.domains` put through `roundOrder`, so
+ * the same vault always produces the same wedges and a round holds the order it
+ * was dealt.
  */
 export function assignBudgets(
 	domains: readonly string[],

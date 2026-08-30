@@ -238,12 +238,40 @@ export function hasHeadingPath(
 	heading: readonly string[],
 ): boolean {
 	if (heading.length === 0) return false;
+	return headingsAt(path, content, heading).length > 0;
+}
+
+/**
+ * The headings of a note that sit at exactly this path, as the wheel reads it.
+ *
+ * The same question `hasHeadingPath` asks, answered with the headings
+ * themselves — because writing into a section needs the line, not a yes.
+ * Sharing one walk is deliberate: the two were written out separately once and
+ * the path-stripping drifted apart within a week (audit M2, 23 aug 2026).
+ *
+ * "As the wheel reads it" is the whole subtlety. A heading that merely repeats
+ * the note's name gets no ring (BC_E3_S70), so it is not part of any path the
+ * wheel shows — and a caller that asked the raw file would look for its section
+ * one level too deep, and write into the wrong place or refuse to write at all.
+ *
+ * More than one answer is possible and is not an error: two identical headings
+ * in one note are already **one wedge** on the wheel, because the wedge is
+ * keyed on the text (`headingWedge`). This returns both, in document order, and
+ * leaves the choosing to the caller — which for a write means the first, the
+ * same one the reader has been looking at.
+ */
+export function headingsAt(
+	path: string,
+	content: string,
+	heading: readonly string[],
+): NoteHeading[] {
+	if (heading.length === 0) return [];
 
 	// Against the paths as the **wheel** reads them, not as the file writes
 	// them: a title heading that gets no ring is not part of any anchor, so
 	// asking the raw file would call every section of such a note missing.
 	const title = titleHeadingOf(path, content);
-	return headingsOf(linesOf(content)).some((found) => {
+	return headingsOf(linesOf(content)).filter((found) => {
 		const steps =
 			title !== null && found.path[0] === title ? found.path.slice(1) : found.path;
 		return (

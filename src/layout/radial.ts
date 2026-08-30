@@ -19,6 +19,7 @@ import type { Priority, WheelNode, WheelTree } from "../model/types";
 import {
 	assignBudgets,
 	budgetsByDomain,
+	roundOrder,
 	type DomainBudget,
 	type WedgeDivision,
 } from "./budgets";
@@ -102,6 +103,14 @@ export interface LayoutOptions {
 	/** Pinned wedge widths in degrees, per domain. */
 	budgets: Readonly<Record<string, number>>;
 	/**
+	 * The wedge order this round was dealt with, or null on a wheel that has not
+	 * dealt one yet.
+	 *
+	 * Holding the order is what stops a domain appearing mid-round from taking
+	 * another wedge's hue and place (BC_E3_S82). See `roundOrder`.
+	 */
+	roundDomains: readonly string[] | null;
+	/**
 	 * Proportional wedge division, frozen for the round — or undefined for the
 	 * default equal split. Pins in `budgets` win either way (kaderdocument §3.1,
 	 * herzien 26 aug 2026).
@@ -139,6 +148,7 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
 	itemPitch: 12,
 	labelSteps: 1,
 	budgets: {},
+	roundDomains: null,
 	division: undefined,
 	focusId: null,
 	collapsed: new Set<string>(),
@@ -225,6 +235,22 @@ export interface WheelLayout {
 	nodes: LaidOutNode[];
 	links: LaidOutLink[];
 	budgets: DomainBudget[];
+	/**
+	 * Wedges that hold a place but have nothing on them right now.
+	 *
+	 * A round holds the wedges it was dealt (BC_E3_S82), so ticking off the last
+	 * task in a domain leaves its slice standing — which is the point, because
+	 * an empty slice is what makes the place mean something. But a wedge title
+	 * is drawn from a node on ring one, and an emptied domain has none, so the
+	 * slice stood there as a coloured band with no name on it.
+	 *
+	 * That reads as a drawing error rather than as a statement, and it throws
+	 * away what the emptiness is actually telling you: not "nothing here" but
+	 * "nothing here **under this filter**" — the work in that domain is done, or
+	 * parked, or filtered out (eigenaar, 28 aug 2026). So the view names them,
+	 * and this is the list it names (BC_E3_S83).
+	 */
+	quietWedges: DomainBudget[];
 	byId: ReadonlyMap<string, LaidOutNode>;
 	/** Ring radii in use, innermost first. */
 	rings: number[];
@@ -316,7 +342,11 @@ export function layoutWheel(
 	options: Partial<LayoutOptions> = {},
 ): WheelLayout {
 	const config = { ...DEFAULT_LAYOUT_OPTIONS, ...options };
-	const budgets = assignBudgets(tree.domains, config.budgets, config.division);
+	const budgets = assignBudgets(
+		roundOrder(config.roundDomains, tree.domains),
+		config.budgets,
+		config.division,
+	);
 	const wedges = budgetsByDomain(budgets);
 
 	const field = doiField(tree.root, config.focusId, config.doi);
@@ -379,10 +409,16 @@ export function layoutWheel(
 	const deepest = reachableDepth(tree, config);
 	const radius = ringRadius(deepest, config.rings);
 
+	// Which wedges ended up with nothing drawn in them. Worked out from the
+	// tree's own children rather than from `nodes`, so a domain whose every task
+	// was crowded down to a tick still counts as having something on it.
+	const filled = new Set(orderedChildren(tree.root).map((child) => child.label));
+
 	return {
 		nodes,
 		links,
 		budgets,
+		quietWedges: budgets.filter((budget) => !filled.has(budget.domain)),
 		byId,
 		rings: ringsUsed(nodes, config),
 		radius,

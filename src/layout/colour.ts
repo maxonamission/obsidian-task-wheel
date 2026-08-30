@@ -193,6 +193,24 @@ export function branchColour(domainIndex: number, palette?: Palette): string {
 	return mixed(domainColour(domainIndex, palette), 34);
 }
 
+/**
+ * The band of the wedge the reading wedge is standing in.
+ *
+ * Between the two strengths that already exist: clearly more than a band at
+ * rest (34%), clearly less than a wedge title or a highest-priority dot (100%).
+ * Undiluted was tried first and read as shouting — the rim is a map and a map
+ * does not compete with what is drawn inside it (eigenaar, 30 aug 2026).
+ *
+ * Same rule as every other colour here, so it needs no light and no dark
+ * variant: the hue, mixed towards the page.
+ */
+export function readingBandColour(
+	domainIndex: number,
+	palette?: Palette,
+): string {
+	return mixed(domainColour(domainIndex, palette), 66);
+}
+
 function mixed(colour: string, strength: number): string {
 	if (strength >= 100) return colour;
 	return `color-mix(in oklab, ${colour} ${strength}%, var(--background-primary))`;

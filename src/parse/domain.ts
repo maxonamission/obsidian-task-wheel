@@ -17,20 +17,28 @@ export interface DomainCandidates {
 	frontmatterTags: string[];
 	/** Tags on the task line itself. */
 	taskTags: string[];
+	/** The note's front matter, for the property source to read from. */
+	frontmatter?: Readonly<Record<string, unknown>>;
 }
 
 /**
  * Resolve the domain for one task.
  *
  * Tag mode looks at the task's own tags first and falls back to the note's
- * front matter, so a single note can feed more than one wedge. Folder mode is
- * strictly per note. Either way an unresolvable task lands in the configured
- * fallback domain rather than disappearing — nothing may vanish (§2.3).
+ * front matter, so a single note can feed more than one wedge. Folder mode and
+ * property mode are strictly per note. Whichever is chosen, an unresolvable
+ * task lands in the configured fallback domain rather than disappearing —
+ * nothing may vanish (§2.3).
  */
 export function resolveDomain(
 	candidates: DomainCandidates,
 	options: ParseOptions,
 ): string {
+	if (options.domainSource === "property") {
+		return domainFromProperty(candidates.frontmatter, options.domainProperty)
+			?? options.fallbackDomain;
+	}
+
 	if (options.domainSource === "tag") {
 		const fromTask = domainFromTags(candidates.taskTags, options.domainTagPrefix);
 		if (fromTask !== null) return fromTask;
@@ -97,6 +105,62 @@ export function resolveWedge(
 
 	const label = resolveDomain(candidates, options);
 	return { label, key: `d:${label}`, note: false };
+}
+
+/**
+ * The domain named by one front-matter property.
+ *
+ * The vaults this is for keep their structure in properties rather than in
+ * folders — `area: Work`, `project: Launch` — and asking the note what it is
+ * about is closer to the truth than asking where it happens to be filed
+ * (eigenaarsvraag 28 aug 2026).
+ *
+ * What a property may hold is up to the reader, so this reads three shapes and
+ * refuses the rest:
+ *
+ *  - **Text** is the ordinary case, trimmed.
+ *  - **A number or a boolean** is written out. A property that reads `2026`
+ *    names a domain called "2026" — odd, but it is what the note says, and
+ *    dropping it would be the wheel deciding it knows better.
+ *  - **A list** yields its first usable entry. A note can only sit in one
+ *    wedge — the domain is where the note *is*, not everything it touches —
+ *    and the first entry is the one the reader wrote first. Tag mode remains
+ *    the way to let one note feed several wedges.
+ *
+ * Anything else, and anything empty, yields null and so lands in the fallback
+ * domain. A link or a nested object may well name something, but guessing
+ * which part of it is the name is how a wheel starts moving tasks around for
+ * reasons its reader cannot see.
+ */
+export function domainFromProperty(
+	frontmatter: Readonly<Record<string, unknown>> | undefined,
+	property: string,
+): string | null {
+	const key = property.trim();
+	if (frontmatter === undefined || key.length === 0) return null;
+
+	const value: unknown = frontmatter[key];
+	if (Array.isArray(value)) {
+		for (const entry of value) {
+			const one = asLabel(entry);
+			if (one !== null) return one;
+		}
+		return null;
+	}
+
+	return asLabel(value);
+}
+
+function asLabel(value: unknown): string | null {
+	if (typeof value === "string") {
+		const trimmed = value.trim();
+		return trimmed.length === 0 ? null : trimmed;
+	}
+	// `Number.isFinite` and not `typeof`: NaN and Infinity are numbers that name
+	// nothing, and a wedge called "NaN" is worse than the fallback.
+	if (typeof value === "number") return Number.isFinite(value) ? String(value) : null;
+	if (typeof value === "boolean") return String(value);
+	return null;
 }
 
 /**

@@ -818,7 +818,7 @@
 	}
 }
 
-.task-wheel-node.is-domain .task-wheel-label {
+.task-wheel-node.is-wedge .task-wheel-label {
 	font-size: 11.5px;
 	font-weight: var(--font-semibold);
 	fill: var(--tw-colour, var(--text-normal));
@@ -831,6 +831,19 @@
 .task-wheel-node.is-focus .task-wheel-label {
 	fill: var(--text-normal);
 	font-weight: var(--font-semibold);
+}
+
+/* Except a wedge title, which keeps its own hue when it is what you are reading.
+
+   The rule above lifts the focused item out of the drawing by making it the
+   plain text colour, and for a task that is right — a task's hue says which
+   domain it belongs to, and under the reading wedge that is already obvious.
+   A wedge title *is* the domain, so whitening it takes away the one thing it
+   was saying, and the same name read a moment later in a different colour makes
+   the wheel look like it moved (eigenaar, 30 aug 2026). It keeps the weight it
+   gets for being read; only the colour stays its own. */
+.task-wheel-node.is-wedge.is-focus .task-wheel-label {
+	fill: var(--tw-colour, var(--text-normal));
 }
 
 .task-wheel-hub circle {
@@ -1503,4 +1516,37 @@
 
 .task-wheel-help-modal .task-wheel-help-keys {
 	margin-right: var(--size-2-2);
+}
+
+/* The name of a wedge that is holding its place with nothing on it.
+
+   It is not drawn inside a node group like every other wedge title, because
+   there is no node — that is what makes it quiet (BC_E3_S83). So it repeats the
+   title's size and weight here, in the faded hue of its own band: the same
+   shape as a wedge with work on it, visibly at rest. What it says is not
+   "nothing here" but "nothing here under this filter" — the work in this domain
+   is done, parked, or filtered out, and its place is still yours. */
+.task-wheel-label.is-quiet {
+	font-size: 11.5px;
+	font-weight: var(--font-semibold);
+	fill: var(--tw-colour, var(--text-faint));
+	opacity: 0.65;
+}
+
+/* The band of the wedge the reading wedge is standing in.
+
+   Every band is drawn in a faded version of its hue, so that the rim reads as a
+   map rather than as a row of colours competing with the work inside it. The
+   one you are reading wears the hue undiluted instead — the same colour its own
+   title carries, so the band and its name say the same thing (eigenaar,
+   30 aug 2026). It is not a third colour channel: hue still means the domain
+   and lightness still means the priority; this only says which wedge you are
+   in, which the reading wedge itself already said. */
+.task-wheel-budget.is-reading {
+	/* The stroke, not the custom property. `--tw-colour` is set *inline* on the
+	   band, and an inline custom property beats a stylesheet one — so redefining
+	   it here lost the cascade silently and the band never changed (30 aug 2026).
+	   `stroke` is only ever set in this file, so it is the one that can win. */
+	stroke: var(--tw-strong, var(--tw-colour));
+	stroke-width: 4.5;
 }

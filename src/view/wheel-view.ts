@@ -1283,6 +1283,16 @@ export class TaskWheelView extends ItemView {
 		// and only when the round has none yet. Ticking work off rescans the
 		// vault, but it cannot reach these numbers — the drawing must not move
 		// under the reader's hands mid-round (kaderdocument §3.1).
+		// The wedge order is dealt once per round and then held, whatever the
+		// division: a domain that turns up mid-round — one property away, since
+		// BC_E3_S81 — must not take the hue and the place of a wedge the reader
+		// has been navigating by (BC_E3_S82). Unlike the weights this is dealt in
+		// both divisions, because order is not a property of the division.
+		if (state.roundDomains === null || state.roundDomains === undefined) {
+			state.roundDomains = [...tree.domains];
+			this.plugin.persist();
+		}
+
 		let division: WedgeDivision | undefined;
 		if (this.plugin.settings.wedgeDivision === "tasks") {
 			if (state.roundWeights === null || state.roundWeights === undefined) {
@@ -1297,6 +1307,7 @@ export class TaskWheelView extends ItemView {
 
 		const options = {
 			budgets: state.domainBudgets,
+			roundDomains: state.roundDomains,
 			division,
 			collapsed: new Set(state.collapsed),
 			visibleBudget: visibleBudgetOf(this.plugin.settings),

@@ -19,10 +19,13 @@
 
 import {
 	hasHeadingPath,
+	headingsOf,
+	type NoteHeading,
 	outlineNote,
 	titleHeadingOf,
 	type OutlinedTask,
 } from "./outline";
+import { linesOf } from "./lines";
 import {
 	isExcluded,
 	isExcludedHeading,
@@ -98,6 +101,14 @@ export function buildTreeFrom(
 
 	for (const { note, tasks: outlined } of ordered) {
 		if (isExcluded(note, options)) continue;
+
+		// The document's own outline, on the wheels where the wheel *is* that
+		// outline (BC_E3_S85). Before everything else, including the early exit
+		// below: a note whose every heading is empty is exactly the case this is
+		// for, and it must still draw its frame.
+		for (const group of outlineGroups(note, options)) {
+			ensureContainers(root, byId, note, group, options);
+		}
 
 		if (outlined.length === 0) {
 			emptyNotes.push(note.path);
@@ -334,6 +345,111 @@ interface TaskGroup {
 }
 
 /**
+ * The note's own headings, as groups with no tasks in them (BC_E3_S85).
+ *
+ * On a wheel over one note or one section the wheel does not *show* an outline,
+ * it **is** the outline — "kopjes zijn de wiggen, inspringing is de diepte"
+ * (kaderdocument §4.2). But the wheel only ever met a heading as the ancestor
+ * of a task, so a heading with no open work under it did not exist at all: the
+ * owner's CRM note has seven phases and drew four wedges, and phases 3, 4 and 5
+ * were not empty on the drawing — they were absent (29 aug 2026).
+ *
+ * For a pipeline that is a misreading. "Fase 3 is empty" is the finding, and a
+ * review instrument that cannot tell *empty* from *absent* cannot make it. So
+ * the frame comes from the document, and the work is drawn into it.
+ *
+ * Two things this deliberately does not do:
+ *
+ *  - **Nothing outside a note or section wheel.** A wedge there is a folder, a
+ *    tag or a property value, and none of those is a written frame — the empty
+ *    folders of a whole vault would be noise, not a finding.
+ *  - **Nothing a skip rule has taken out.** The reader has already said that
+ *    heading is not work (`accepta*` and the like); giving it a wedge anyway
+ *    would make one rule mean two things on two wheels (eigenaarsbesluit
+ *    29 aug 2026).
+ *
+ * The groups are empty by construction, so the round is untouched: no task, no
+ * stop, and the hub still counts what it always counted.
+ */
+function outlineGroups(note: NoteInput, options: ParseOptions): TaskGroup[] {
+	const scope = options.scope;
+	if (scope.kind !== "note" && scope.kind !== "section") return [];
+	if (note.path !== scope.path) return [];
+
+	const base = sectionDepth(options);
+	const title = titleHeadingOf(note.path, note.content);
+	const lines = linesOf(note.content);
+	const groups: TaskGroup[] = [];
+
+	for (const found of headingsOf(lines)) {
+		// The wheel's own reading of the path: a heading that merely repeats the
+		// note's name gets no ring, so it is no step (BC_E3_S70).
+		const path = title !== null && found.path[0] === title
+			? found.path.slice(1)
+			: found.path;
+		if (path.length <= base) continue;
+
+		// A section wheel is about one subtree: everything else in the note is a
+		// boundary, exactly as it is for the tasks (BC_E3_S64).
+		if (scope.kind === "section") {
+			const within = scope.heading.every((step, at) => path[at] === step);
+			if (!within) continue;
+		}
+
+		if (isExcludedHeading(path, options)) continue;
+
+		const wedge = headingWedge(path[base]);
+		groups.push({
+			wedge,
+			domain: wedge.label,
+			headingPath: path,
+			// The line each step of this path sits on. `headingsOf` gives the
+			// path but not its lines, so they are read back off the heading's own
+			// ancestors — which is what `ensureContainers` needs to make a
+			// heading editable.
+			headingLines: linesFor(lines, found, path.length),
+			headingRaws: path.map((_, at) =>
+				at === path.length - 1 ? lines[found.line] ?? "" : "",
+			),
+			firstLine: found.line,
+			tasks: [],
+		});
+	}
+
+	return groups;
+}
+
+/**
+ * Where each step of a heading's path sits, innermost step last.
+ *
+ * Walked back from the heading itself: its own line is known, and each ancestor
+ * is the nearest heading above it at a shallower level. Steps that cannot be
+ * placed read -1, which is what `ensureContainers` already treats as "no line
+ * to edit".
+ */
+function linesFor(
+	lines: readonly string[],
+	found: NoteHeading,
+	steps: number,
+): number[] {
+	const at = new Array<number>(steps).fill(-1);
+	if (steps > 0) at[steps - 1] = found.line;
+
+	let level = found.level;
+	let step = steps - 2;
+	for (let index = found.line - 1; index >= 0 && step >= 0; index--) {
+		const match = /^(#{1,6})[ \t]+\S/.exec(lines[index]);
+		if (match === null) continue;
+		if (match[1].length >= level) continue;
+		level = match[1].length;
+		at[step] = index;
+		step -= 1;
+	}
+
+	return at;
+}
+
+/**
  * Split a note's tasks into groups that share a domain and a heading path.
  *
  * Grouping by heading before nesting by indentation keeps the two signals from
@@ -362,6 +478,7 @@ function groupTasks(
 							notePath: note.path,
 							frontmatterTags: note.frontmatterTags ?? [],
 							taskTags: task.fields.tags,
+							frontmatter: note.frontmatter,
 						},
 						options,
 					);

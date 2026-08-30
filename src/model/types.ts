@@ -267,10 +267,33 @@ export interface NoteInput {
 	frontmatterTags?: string[];
 	/** The note's front-matter `type`, when it has one. */
 	frontmatterType?: string;
+	/**
+	 * The note's front matter as it stands, for the settings to pick from.
+	 *
+	 * Handed over whole rather than as one more narrow field, because **which**
+	 * key matters is a setting and the scan is cached (BC_E3_S81). The outline
+	 * cache is keyed on the file's mtime, so a note that has not changed is
+	 * served from it — and changing *Domain property* in the settings changes no
+	 * note. A value picked out at scan time would go on being the old key's
+	 * value until something else invalidated the cache. Picking it out in
+	 * `parse/`, where the options live and which runs on every build, cannot go
+	 * stale.
+	 *
+	 * The two fields above stay: tags need Obsidian's own normaliser, which
+	 * belongs in `vault/`, and the type is what the skip rules already read.
+	 */
+	frontmatter?: Readonly<Record<string, unknown>>;
 }
 
-/** Where the domain of a task comes from. */
-export type DomainSource = "folder" | "tag";
+/**
+ * Where the domain of a task comes from.
+ *
+ * `property` is a third source rather than a replacement (BC_E3_S81,
+ * eigenaarsbesluit 28 aug 2026): picking it is how you turn it on, picking
+ * another is how you turn it off, and `folder` remains the default — so a
+ * reader who never opens the setting sees no change at all.
+ */
+export type DomainSource = "folder" | "tag" | "property";
 
 /** Everything the parser needs to know about user preferences. */
 /**
@@ -408,7 +431,9 @@ export interface ParseOptions {
 	domainSource: DomainSource;
 	/** Tag namespace scanned for the domain, e.g. `domein` for `#domein/werk`. */
 	domainTagPrefix: string;
-	/** Domain used when neither folder nor tag yields one. */
+	/** Front-matter property read as the domain, when the source is `property`. */
+	domainProperty: string;
+	/** Domain used when the chosen source yields none. */
 	fallbackDomain: string;
 	/** Treat headings as an extra grouping ring between project and tasks. */
 	useHeadingsAsGroups: boolean;
@@ -457,6 +482,7 @@ export interface ParseOptions {
 export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
 	domainSource: "folder",
 	domainTagPrefix: "domein",
+	domainProperty: "domain",
 	fallbackDomain: "Overig",
 	useHeadingsAsGroups: true,
 	includeCompleted: false,

@@ -101,6 +101,8 @@ export function startRound(host: RoundHost): void {
 	// boundary is the one moment re-division is allowed to move the drawing
 	// (kaderdocument §3.1, herzien 26 aug 2026).
 	state.roundWeights = null;
+	// The wedges too: the order a round holds belongs to that round (BC_E3_S82).
+	state.roundDomains = null;
 	host.persist();
 	drawSweep(host);
 }
