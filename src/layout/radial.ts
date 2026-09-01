@@ -738,6 +738,30 @@ function place(
  * enough to see past it.
  */
 function isStump(node: WheelNode, plan: Plan): boolean {
+	// The way down to what the reader is looking at is drawn open, whatever
+	// else would have closed it (BC_E3_S95).
+	//
+	// `selectVisible` already says the path to the focus "opens whatever it
+	// costs". The two rules below said otherwise and they get the last word, so
+	// an ancestor of the focus could be a stump — and a stump draws no children,
+	// which means the wheel could not draw **the item it was focused on**. Every
+	// way of putting the reader somewhere deep then failed without a sound: the
+	// layout came back without them and the controller fell back to the nearest
+	// stop it did have, leaving them near where they started. Measured: a task
+	// at ring seven, its parent at exactly `maxDepth`, never drawn.
+	//
+	// It covers the reader's own folds too, and that is the answer to *"de
+	// beweging klapte een ingevouwen tak dus niet uit — wat wel de verwachting
+	// zou zijn"* (eigenaar, 1 sep 2026). Nothing is unfolded permanently: the
+	// fold is still set, so leaving closes it again. You are looking inside it,
+	// not undoing it.
+	//
+	// Only the *ancestors*. Standing on a stump keeps it a stump — that is the
+	// whole of what a fold means, and Space is how you open it.
+	if (node.id !== plan.field.focusId && plan.field.path.has(node.id)) {
+		return false;
+	}
+
 	return stumpBy(node, plan, plan.visible);
 }
 

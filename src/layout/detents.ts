@@ -163,11 +163,19 @@ export function stepIndex(
 }
 
 /**
- * The next stop sideways on the same ring, wrapping round the circle.
+ * The next stop sideways on the same ring of the **drawing**, wrapping round.
  *
- * "Ring" is taken literally: the whole circle at that depth, not just the
- * siblings under one parent. That makes left and right on the first ring a walk
- * of the domains, which is the move a reader reaches for most.
+ * The fallback, and only that. What sideways actually means is a question about
+ * the *tree* — `layout/order.ts`'s `sidewaysFrom` — because the ring the reader
+ * is on is only partly drawn: the fisheye gives the branch under the reading
+ * wedge extra rings, so on those rings this sees a ring of one and rightly
+ * refuses to move. The view answers the arrows from the tree and falls back to
+ * here when it has no tree to answer from (BC_E3_S93).
+ *
+ * A crossing rule lived here for a day (BC_E3_S88) and was wrong: it read the
+ * neighbour off the drawing, where the neighbour is drawn shallower, so the
+ * step changed the reader's ring — and a step that changes ring has no way
+ * back, because the way back is computed from a different drawing.
  */
 export function alongRing(
 	detents: readonly Detent[],

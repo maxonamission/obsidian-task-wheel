@@ -40,6 +40,24 @@
 	min-height: 14em;
 }
 
+/* Text for a screen reader and for nothing else.
+   Not `display: none` and not `visibility: hidden` — both take the element out
+   of the accessibility tree as well, which would throw away the very thing
+   this is for. The one-pixel clipped box is the standard way to be read but
+   not seen. It exists because the wheel's description used to be an
+   `aria-label`, and Obsidian renders those as hover tooltips (BC_E3_S89). */
+.task-wheel-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+	border: 0;
+}
+
 .task-wheel-canvas {
 	position: absolute;
 	inset: 0;
@@ -242,6 +260,7 @@
 
 /* The text may run out of room; the button below it may not. */
 .task-wheel-card-body {
+	position: relative;
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow: hidden;
@@ -370,6 +389,67 @@
 /* Only in a wheel over one note: the title is a thing you can change. It has
    to take a tap of its own, since the rest of the card is see-through to the
    hand and a drag that starts here still turns the wheel. */
+/* The whole task, on demand (BC_E3_S90).
+
+   An overlay over the card's reading matter rather than a taller card: the
+   card holds one size at every stop so the drawing underneath never jumps, and
+   growing it would break exactly that. It covers the trail, the chips and the
+   source line — which are all about *this* task, so nothing is lost that the
+   reader is not looking at — and stops short of the action row, which stays
+   where it was. Long enough to need more than this and it scrolls. */
+.task-wheel-card-title.is-open {
+	position: absolute;
+	inset: 0;
+	z-index: 2;
+	margin: 0;
+	padding: var(--size-2-2) var(--size-4-2) 1.7em;
+	overflow-y: auto;
+	background: var(--background-primary);
+	border-radius: var(--radius-m);
+	pointer-events: auto;
+
+	/* Undo the clamp — every line, however many there are. */
+	display: block;
+	-webkit-line-clamp: none;
+}
+
+/* The way in and out of that. Quiet, and pinned rather than in the flow: it is
+   a way to read more, not an action on the task, and a control that moved when
+   the text under it moved would be one more thing jumping about. */
+.task-wheel-card-more {
+	position: absolute;
+	right: 2.6em;
+	bottom: 0;
+	z-index: 3;
+	margin: 0;
+	/* Obsidian gives a button a 44 px tap target and a filled pill on mobile,
+	   which is right for a button standing on its own and wrong for a line of
+	   text inside a fixed frame — it came out as a grey slab across the middle
+	   of the card (eigenaar, 1 sep 2026, schermafbeelding). The same trap the
+	   action row had to be talked out of; the cure is the same. This is a word,
+	   not a control: the whole card is already the tap target for reading. */
+	min-height: 0;
+	height: auto;
+	padding: 0;
+	background: none;
+	box-shadow: none;
+	border: none;
+	border-radius: 0;
+	-webkit-appearance: none;
+	appearance: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.4;
+	white-space: nowrap;
+	text-decoration: underline;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.task-wheel-card-more:hover {
+	color: var(--text-normal);
+}
+
 .task-wheel-card-title.is-editable {
 	pointer-events: auto;
 	cursor: text;
@@ -380,13 +460,24 @@
 	background: var(--background-modifier-hover);
 }
 
-/* Exactly the room the title had, so opening the editor does not move the
-   drawing underneath — the card's whole promise is that it sits still. */
+/* The rename box takes the card's whole reading area, as an overlay.
+
+   It used to take exactly the room the title had — two lines — so that opening
+   it could not move the drawing underneath. That reasoning still holds and the
+   overlay keeps it: the card does not change size, so nothing moves. What it
+   drops is the *reason* for staying at two lines, which was never the drawing
+   but a copy of the title's clamp. Typing is the one moment on this card where
+   more room is worth more than a tidy layout, and on a phone the keyboard has
+   already taken half the screen (eigenaar, 1 sep 2026). Same trick as the
+   unfolded title, one layer higher. */
 .task-wheel-card-rename {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
 	pointer-events: auto;
 	width: 100%;
-	margin: var(--size-2-1) 0 0;
-	padding: 0;
+	margin: 0;
+	padding: var(--size-2-2) var(--size-4-2);
 	resize: none;
 	font-family: inherit;
 	font-size: var(--font-ui-medium);
@@ -394,8 +485,13 @@
 	color: var(--text-normal);
 	background: var(--background-primary);
 	border: 1px solid var(--background-modifier-border-focus);
-	border-radius: var(--radius-s);
-	min-height: calc(2 * var(--line-height-tight) * 1em);
+	border-radius: var(--radius-m);
+}
+
+/* While it is open, the way to unfold the title is noise: the box already
+   shows every word, and it would sit on top of what is being typed. */
+.task-wheel-card-body.is-renaming .task-wheel-card-more {
+	display: none;
 }
 
 /* A link inside a task's words. It takes the tap it is given — the card under

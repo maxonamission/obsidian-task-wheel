@@ -56,16 +56,16 @@ export interface CardActions {
 	/** Fold the branch away, or unfold it. */
 	fold?: (id: string) => void;
 	/**
-	 * One item along this ring, forwards or back.
+	 * One item sideways, forwards or back.
 	 *
-	 * The same move the left and right arrow keys make: sideways within the ring
-	 * you are already reading. A phone has no arrow keys, and turning is a coarse
-	 * instrument for moving by one (owner, 18 aug 2026).
+	 * The same move the left and right arrow keys make. A phone has no arrow
+	 * keys, and turning is a coarse instrument for moving by one (owner,
+	 * 18 aug 2026).
 	 *
-	 * Deliberately *not* the flat order, though that is the walk that skips
-	 * nothing. Tried it first, and as a button it reads as chaos — every press
-	 * jumps a ring in or out and the eye loses its place (owner, 18 aug 2026).
-	 * The round's guarantee lives in turning; these two are for reading.
+	 * *What* one step sideways walks is a setting — every task, or the reader's
+	 * own ring (BC_E3_S94). These two follow it on a desktop and always walk
+	 * every task on a phone: there the coarse movement is a finger on the disc,
+	 * and there is no Shift to borrow the other with.
 	 */
 	alongRing?: (delta: number) => void;
 	/**
@@ -233,8 +233,10 @@ function renderSteps(parent: HTMLElement, actions: CardActions): void {
 		});
 	};
 
-	make(-1, "chevron-left", "Previous on this ring");
-	make(1, "chevron-right", "Next on this ring");
+	// Named for what they do rather than for how they do it: what one step
+	// sideways walks is the reader's to choose (BC_E3_S94).
+	make(-1, "chevron-left", "Previous item");
+	make(1, "chevron-right", "Next item");
 }
 
 /**
@@ -267,6 +269,7 @@ function renderTitle(
 	});
 
 	renderLabel(title, focus, actions);
+	offerToUnfold(parent, title);
 
 	if (!editable || outline === undefined) return;
 
@@ -280,6 +283,7 @@ function renderTitle(
 		});
 		input.value = textOf(focus);
 		title.replaceWith(input);
+		parent.addClass("is-renaming");
 
 		// Before the handlers below, deliberately: while the note list is up, the
 		// arrows and Enter belong to it, and listeners on one element run in the
@@ -297,6 +301,7 @@ function renderTitle(
 			suggest?.detach();
 			const value = input.value;
 			input.replaceWith(title);
+			parent.removeClass("is-renaming");
 			if (keep) outline.rename(value);
 		};
 
@@ -372,6 +377,71 @@ function renderLabel(
 		// press must not reach the title underneath and open the rename box.
 		link.addEventListener("mousedown", (event) => event.stopPropagation());
 	}
+}
+
+/**
+ * A way to read the rest of a title the card has had to cut off (BC_E3_S90).
+ *
+ * The title is clamped to two lines on purpose: the card keeps one size at
+ * every stop, so the drawing underneath never jumps while you turn. That holds
+ * for almost every task and fails for the long ones — *"I tend to have fairly
+ * long tasks. […] I often found myself editing the task or opening the file to
+ * search for it"* (gebruiker, 31 aug 2026). Opening the **rename** box to
+ * *read* is the tell: the reader was using a writing tool because the reading
+ * tool was missing.
+ *
+ * Three things this deliberately is:
+ *
+ *  - **Offered only when there is something to see.** Whether two lines were
+ *    enough is a question about the box the browser laid out, not about the
+ *    number of characters, so it is asked of the element itself once it has
+ *    been measured.
+ *  - **An overlay, not a taller card.** The unfolded title lifts off the card
+ *    and covers what is under it. Growing the card would move the drawing —
+ *    the one thing the card promises not to do.
+ *  - **A button of its own.** Clicking the title renames it where renaming is
+ *    possible, and one gesture may not mean two things.
+ *
+ * It leaves with the item: the card is built afresh at every stop, so turning
+ * on folds the title back without anything having to remember that it was open.
+ */
+function offerToUnfold(parent: HTMLElement, title: HTMLElement): void {
+	// Measured after the browser has laid the card out. Before that every box
+	// is zero high and every title looks as though it fits.
+	//
+	// Asked of the card's *own* window: Obsidian lets a tab be torn off into a
+	// window of its own, and there the plugin's bare `window` is still the main
+	// one — the same trap the controller documents for hit-testing.
+	const view = title.ownerDocument.defaultView;
+	if (view === null) return;
+
+	view.requestAnimationFrame(() => {
+		if (!title.isConnected) return;
+		if (title.scrollHeight - title.clientHeight <= 1) return;
+
+		const more = parent.createEl("button", {
+			cls: "task-wheel-card-more",
+			text: "Show the whole task",
+			attr: { "aria-expanded": "false" },
+		});
+
+		more.addEventListener("click", (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+
+			const open = title.hasClass("is-open");
+			title.toggleClass("is-open", !open);
+			more.setText(open ? "Show the whole task" : "Show less");
+			more.setAttr("aria-expanded", String(!open));
+		});
+
+		// The card floats over the drawing; a press here is not a drag of the
+		// wheel underneath it.
+		more.addEventListener("pointerdown", (event) => event.stopPropagation());
+		more.addEventListener("touchstart", (event) => event.stopPropagation(), {
+			passive: true,
+		});
+	});
 }
 
 /**

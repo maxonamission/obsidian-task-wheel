@@ -187,6 +187,9 @@ export function renderFilterPanel(
 	}
 }
 
+/** Counts the search boxes built, to keep their description ids apart. */
+let searches = 0;
+
 function row(parent: HTMLElement, label: string): HTMLElement {
 	const line = parent.createDiv({ cls: "task-wheel-controls-row" });
 	line.createSpan({ cls: "task-wheel-controls-label", text: label });
@@ -235,13 +238,28 @@ function search(
 	value: string,
 	onSet: (value: string) => void,
 ): void {
-	const input = row(parent, label).createEl("input", {
+	const line = row(parent, label);
+
+	// The syntax, for someone who cannot see the panel — and only for them.
+	// It used to be the input's `aria-label`, which Obsidian renders as a hover
+	// tooltip: five clauses about search syntax, every time the mouse passed the
+	// box. The same mistake as the one on the canvas, found in the same sweep
+	// (BC_E3_S89). The label stays a name; the explanation moves behind
+	// `aria-describedby`, which no tooltip is made from.
+	searches += 1;
+	const described = line.createSpan({
+		cls: "task-wheel-sr-only",
+		text: "Words are combined; OR offers an alternative; quotes hold a phrase together; a star stands for any run of characters; file: searches the name of the note instead.",
+		attr: { id: `task-wheel-search-syntax-${searches}` },
+	});
+
+	const input = line.createEl("input", {
 		attr: {
 			type: "search",
 			placeholder: "knsb OR nocnsf, file:jaarplan",
 			value,
-			"aria-label":
-				"Words in the task and its tags. Words are combined; OR offers an alternative; quotes hold a phrase together; a star stands for any run of characters; file: searches the name of the note instead.",
+			"aria-label": "Words in the task and its tags",
+			"aria-describedby": described.id,
 		},
 	});
 

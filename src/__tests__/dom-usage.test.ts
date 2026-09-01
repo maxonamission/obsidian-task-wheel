@@ -156,3 +156,107 @@ describe("icons on controls", () => {
 		);
 	});
 });
+
+/**
+ * A third way, found by a user rather than by us (31 aug 2026).
+ *
+ * Obsidian renders **every** `aria-label` as a hover tooltip. That is fine for
+ * a button, whose label is a name of two or three words. It is not fine for a
+ * description: the wheel's canvas carried forty-five words explaining how to
+ * turn it, so a mouse resting anywhere on the drawing got a paragraph, over and
+ * over. *"The help-mouse-over popped up again and again. After reading it twice
+ * I don't feel like it offers anything anymore."*
+ *
+ * The rule that separates the two is length. A label is a **name**; anything
+ * long enough to be prose is a description, and a description belongs in a
+ * hidden element the label points at with `aria-labelledby`, where a screen
+ * reader still reads it and a mouse never sees it.
+ *
+ * The ceiling is generous on purpose — it is not a style rule about wording,
+ * it is a guard against writing a paragraph into a tooltip.
+ */
+describe("accessible names", () => {
+	/** An `aria-label` given a string literal, and that literal's text. */
+	const ARIA_LABEL = /"aria-label":\s*(["'])((?:\\.|[^\\])*?)\1/g;
+
+	const CEILING = 120;
+
+	it("are names, not paragraphs", () => {
+		const offenders: string[] = [];
+
+		for (const file of sourceFiles(SRC)) {
+			const text = readFileSync(file, "utf8");
+			for (const match of text.matchAll(ARIA_LABEL)) {
+				if (match[2].length <= CEILING) continue;
+				offenders.push(
+					`${file.slice(SRC.length + 1)}: ${match[2].slice(0, 40)}… (${match[2].length})`,
+				);
+			}
+		}
+
+		expect(offenders).toEqual([]);
+	});
+
+	it("would notice a description written into one", () => {
+		const short = '{ "aria-label": "Rename this task" }';
+		const long = `{ "aria-label": "${"word ".repeat(40)}" }`;
+
+		expect([...short.matchAll(ARIA_LABEL)][0]?.[2].length).toBeLessThan(CEILING);
+		expect([...long.matchAll(ARIA_LABEL)][0]?.[2].length).toBeGreaterThan(CEILING);
+	});
+});
+
+/**
+ * The card keeps one size at every stop, and the unfolded title may not change
+ * that (BC_E3_S90).
+ *
+ * The whole reason the card can float over the drawing is that it never
+ * resizes: turning past a long task would otherwise push the wheel about under
+ * the reader's eye. So the way to show a clipped title is an overlay, and the
+ * obvious "fix" — letting the title grow the card — is the one thing that must
+ * not happen. Neither the height nor the overlay is visible to a headless test,
+ * so the shape of the rule is what gets guarded.
+ */
+describe("the reading card's fixed frame", () => {
+	const css = readFileSync(STYLES, "utf8");
+
+	function block(selector: string): string {
+		const at = css.indexOf(selector);
+		expect(at, `${selector} is missing`).toBeGreaterThanOrEqual(0);
+		return css.slice(at, css.indexOf("}", at));
+	}
+
+	it("gives the card a height of its own", () => {
+		expect(block(".task-wheel-card {")).toMatch(/\n\theight:/);
+	});
+
+	it("lifts the unfolded title out of the flow rather than growing the card", () => {
+		const open = block(".task-wheel-card-title.is-open {");
+
+		expect(open).toMatch(/position:\s*absolute/);
+		expect(open).toMatch(/overflow-y:\s*auto/);
+		// The clamp is what it undoes; anything else would leave it clipped.
+		expect(open).toMatch(/-webkit-line-clamp:\s*none/);
+	});
+
+	it("keeps the unfolding control a word rather than a mobile button", () => {
+		// Obsidian gives every button a 44px tap target and a filled pill on
+		// mobile. Inside this fixed frame that is a grey slab across the card —
+		// it happened to the action row once and to this once (1 sep 2026).
+		const more = block(".task-wheel-card-more {");
+
+		expect(more).toMatch(/min-height:\s*0/);
+		expect(more).toMatch(/background:\s*none/);
+	});
+
+	it("keeps the way back out above the overlay", () => {
+		const more = block(".task-wheel-card-more {");
+		const open = block(".task-wheel-card-title.is-open {");
+
+		const layer = (rule: string): number =>
+			Number(/z-index:\s*(\d+)/.exec(rule)?.[1] ?? 0);
+
+		expect(layer(more)).toBeGreaterThan(layer(open));
+		expect(more).toMatch(/pointer-events:\s*auto/);
+	});
+});

@@ -47,7 +47,7 @@ import {
 import { domainWeights, type WedgeDivision } from "../layout/budgets";
 import { type LaidOutNode, layoutWheel, type WheelLayout } from "../layout/radial";
 import { buildDetents, type Detent } from "../layout/detents";
-import { taskAfter } from "../layout/order";
+import { type SidewaysAlong, sidewaysFrom, taskAfter } from "../layout/order";
 import { prune } from "../layout/sweep";
 import {
 	type AfterWrite,
@@ -56,6 +56,7 @@ import {
 	landAfter,
 } from "../model/carry";
 import { aWeekOut, today } from "../model/dates";
+import { isRefused, type NoScope, scopeFor } from "../model/scope";
 import { paneChange } from "../model/detour";
 import { openAround } from "../model/resume";
 import { inScope } from "../parse/domain";
@@ -184,6 +185,9 @@ type Act =
  *  - **A turn** is a transform on the rotor and a redrawn card. Every frame.
  */
 export class TaskWheelView extends ItemView {
+	/** Counts the wheels opened this session, to keep their ids apart. */
+	private static descriptions = 0;
+
 	/**
 	 * How much of the vault this wheel is about.
 	 *
@@ -311,13 +315,33 @@ export class TaskWheelView extends ItemView {
 		// impression).
 		const stage = container.createDiv({ cls: "task-wheel-stage" });
 
+		// How the wheel works, for someone who cannot see it — and *only* for
+		// them. This used to be an `aria-label` on the canvas, which Obsidian
+		// turns into a hover tooltip: a paragraph of forty-five words, over the
+		// whole playing field, every time a mouse came to rest. "The
+		// help-mouse-over popped up again and again. After reading it twice I
+		// don't feel like it offers anything anymore" (gebruiker, 31 aug 2026).
+		//
+		// It was never a tooltip. A hidden element plus `aria-labelledby` gives a
+		// screen reader exactly the same sentence and gives a mouse nothing,
+		// which is why this needs no setting to turn off: there is nothing left
+		// to turn off (BC_E3_S89).
+		// The id has to be unique in the document, and two wheels can be open at
+		// once — a vault in one tab and a project in the next is the ordinary
+		// case here, not an edge one.
+		TaskWheelView.descriptions += 1;
+		const described = stage.createDiv({
+			cls: "task-wheel-sr-only",
+			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Space folds the branch you are in away.",
+			attr: { id: `task-wheel-canvas-description-${TaskWheelView.descriptions}` },
+		});
+
 		this.canvasEl = stage.createDiv({
 			cls: "task-wheel-canvas",
 			attr: {
 				tabindex: "0",
 				role: "group",
-				"aria-label":
-					"Task wheel. Drag or scroll to turn through every item in order. Left and right move along the current ring, up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Space folds the branch you are in away.",
+				"aria-labelledby": described.id,
 			},
 		});
 
@@ -350,6 +374,7 @@ export class TaskWheelView extends ItemView {
 			onFocus: (detent) => this.onFocus(detent),
 			onSettle: (detent) => this.onSettle(detent),
 			onToggle: () => this.toggleFold(),
+			onSideways: (delta, other) => this.stepSideways(delta, other),
 			onActivate: (id) => this.openScopeFor(id),
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
@@ -889,22 +914,29 @@ export class TaskWheelView extends ItemView {
 	 * this", and it is the same move as right-clicking the folder or note in
 	 * the file list — reached from where the reader is already looking.
 	 *
-	 * Which blikveld an item stands for depends on what it is: a domain is a
-	 * folder, everything else belongs to a note. A domain that came from a tag
-	 * stands for no place on disk, and then the honest answer is to say so
-	 * rather than to open something arbitrary.
+	 * Which blikveld an item stands for is decided in `model/scope.ts`, where a
+	 * test can reach it; the view's share is the sentence it says when there is
+	 * nothing to open. A wedge that came from a tag or from a front-matter
+	 * property stands for no place on disk, and then the honest answer is to say
+	 * so rather than to go looking for a folder of that name.
 	 */
 	private openScopeFor(id: string): void {
 		const laid = this.layout?.byId.get(id);
 		if (laid === undefined) return;
 
-		const scope = this.scopeOf(laid);
-		if (scope === null) {
-			new Notice(
-				this.wheelScope.kind === "note" || this.wheelScope.kind === "section"
-					? "Task wheel: these tasks sit above the first heading — there is no section to open for them."
-					: "Task wheel: a tag domain is not a folder, so there is no wheel to open for it.",
-			);
+		const scope = scopeFor(
+			{
+				kind: laid.node.kind,
+				depth: laid.depth,
+				label: laid.node.label,
+				source: laid.node.source,
+			},
+			this.wheelScope,
+			this.plugin.settings.domainSource,
+		);
+
+		if (isRefused(scope)) {
+			new Notice(`Task wheel: ${refusalText(scope)}`);
 			return;
 		}
 
@@ -914,47 +946,6 @@ export class TaskWheelView extends ItemView {
 		}
 
 		void this.plugin.openScoped(scope, this.leaf);
-	}
-
-	/** The folder, note or section an item stands for, if it stands for one. */
-	private scopeOf(laid: LaidOutNode): WheelScope | null {
-		const here = this.wheelScope.kind;
-
-		// In a wheel over one note or one section, the wedges and rings *are*
-		// headings, so "a wheel over it" means the section — the fourth rung of
-		// the blikveld ladder (kaderdocument §4.1, BC_E3_S64). The source's
-		// heading path is absolute, so the anchor is complete whatever depth
-		// this wheel already sits at.
-		if (
-			(here === "note" || here === "section") &&
-			(laid.node.kind === "group" ||
-				(laid.depth === 1 && laid.node.kind === "domain"))
-		) {
-			const source = laid.node.source;
-			// A wedge without a heading line is the bucket for tasks above the
-			// first heading — there is no section to open for that.
-			if (source === undefined || source.raw === null) return null;
-			return {
-				kind: "section",
-				path: source.path,
-				heading: [...source.headingPath, laid.node.label],
-			};
-		}
-
-		// A wedge that is a note is handled below, by its source, like any other
-		// note: in a folder wheel the outermost ring holds both (BC_E3_S35).
-		if (laid.depth === 1 && laid.node.kind === "domain") {
-			if (this.plugin.settings.domainSource === "tag") return null;
-
-			// A domain's label is a folder name; under a folder wheel it is a
-			// name inside that folder, so the path grows with the scope.
-			const base =
-				this.wheelScope.kind === "folder" ? `${this.wheelScope.path}/` : "";
-			return { kind: "folder", path: `${base}${laid.node.label}` };
-		}
-
-		const source = laid.node.source;
-		return source === undefined ? null : { kind: "note", path: source.path };
 	}
 
 	/** Open the note this item came from, at its own line. */
@@ -1609,7 +1600,7 @@ export class TaskWheelView extends ItemView {
 			fold: (id) => this.toggleFold(id),
 			// The same move the arrow keys make: sideways on this ring. A phone
 			// has no arrow keys, and turning is a coarse instrument for one step.
-			alongRing: (delta) => this.controller?.walkRing(delta),
+			alongRing: (delta) => this.stepFromCard(delta),
 			// On every wheel since 26 aug 2026 (kaderdocument §4.2, herzien):
 			// each of these writes only into the task's own note — `ref.path`
 			// is the boundary, not the wheel's scope — so hanging a task that
@@ -1985,6 +1976,83 @@ export class TaskWheelView extends ItemView {
 	 * item is no longer on the disc; landing on the stump keeps the reader
 	 * somewhere real, and puts the way back under the wedge straight away.
 	 */
+	/**
+	 * One step sideways: the next item on the reader's own ring (BC_E3_S93).
+	 *
+	 * Answered from the **tree**, because that is where a ring is complete. The
+	 * drawing holds only part of it — the fisheye gives the branch under the
+	 * reading wedge two rings the rest of the wheel does not get, so on those
+	 * rings the drawing knows of no neighbour at all. Reading the step off the
+	 * drawing therefore produced a step that changed the reader's ring, and a
+	 * step that changes ring cannot be undone by the opposite key: the way back
+	 * is computed from a different picture (eigenaar, 1 sep 2026).
+	 *
+	 * From the tree the rule is one sentence — *the next node on this ring* —
+	 * and it is its own inverse. Whether that node happens to be drawn decides
+	 * only **how** the wheel gets there: a stop it already has is a turn, and
+	 * one it has not is a redraw around it, which is the same move the wheel
+	 * makes when the cursor lands somewhere in the note.
+	 *
+	 * Answers whether it handled the step; `false` hands the arrows back to the
+	 * drawing-only rule, which is right when there is no tree yet.
+	 */
+	/**
+	 * The two buttons beside the card, which are the whole of sideways on a
+	 * phone (BC_E3_S94, eigenaarsbesluit 1 sep 2026).
+	 *
+	 * On mobile they always walk **every task**, whatever the setting says. The
+	 * reasoning is about which movement is which there: the coarse one is a
+	 * finger on the disc, and turning already walks everything. So the fine one
+	 * beside the card should be the one that cannot trap you either — and there
+	 * is no Shift to borrow the other with, so a phone that had the ring
+	 * selected would have only the ring.
+	 *
+	 * On a desktop they follow the setting, exactly like the arrow keys they are
+	 * the twin of.
+	 */
+	private stepFromCard(delta: number): void {
+		if (this.stepSideways(delta, false, Platform.isMobile ? "tasks" : undefined)) {
+			return;
+		}
+		this.controller?.walkRing(delta);
+	}
+
+	private stepSideways(
+		delta: number,
+		other = false,
+		forced?: SidewaysAlong,
+	): boolean {
+		const tree = this.tree;
+		const layout = this.layout;
+		const from = this.focusId;
+		if (tree === null || layout === null || from === null) return false;
+
+		// Shift asks for the ring the reader did not choose. Both are the same
+		// order through a different filter, so neither can reach anything the
+		// other cannot — this only changes which items the step stops on
+		// (BC_E3_S94).
+		const chosen = this.plugin.settings.arrowStep;
+		const along: SidewaysAlong =
+			forced ??
+			(other ? (chosen === "tasks" ? "ring" : "tasks") : chosen);
+
+		const to = sidewaysFrom(
+			tree.root,
+			layout.budgets.map((budget) => budget.domain),
+			from,
+			delta,
+			along,
+		);
+		if (to === null || to === from) return false;
+
+		if (this.controller?.goTo(to) === true) return true;
+
+		this.focusId = to;
+		this.laidOutFor = null;
+		this.relayout();
+		return true;
+	}
+
 	private toggleFold(target?: string): void {
 		const id = target ?? this.resolveFoldTarget();
 		if (id === null) return;
@@ -2189,4 +2257,25 @@ function shift(from: Priority, step: number): Priority {
 	const at = order.indexOf(from);
 	const next = Math.min(Math.max(at - step, 0), order.length - 1);
 	return order[next];
+}
+
+/**
+ * What to say when a second tap has nothing to open.
+ *
+ * The decision is `model/scope.ts`'s; the wording is the view's, because it is
+ * the view that has a notice to put it in. Each refusal says what the item is
+ * rather than what the wheel would not do — "there is no folder called that" is
+ * a fact the reader can act on; "cannot open" is not.
+ */
+function refusalText(refusal: NoScope): string {
+	switch (refusal.refused) {
+		case "no-section":
+			return "these tasks sit above the first heading — there is no section to open for them.";
+		case "not-a-folder":
+			return refusal.source === "tag"
+				? "a tag domain is not a folder, so there is no wheel to open for it."
+				: "this wedge comes from a note property, not from a folder, so there is no folder to open for it.";
+		case "no-source":
+			return "nothing on this item says which note it came from.";
+	}
 }

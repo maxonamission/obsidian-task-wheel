@@ -66,7 +66,8 @@ it.
 | | |
 |---|---|
 | **Turn** | Drag, scroll, or ← → |
-| **One item along this ring** | The ‹ › buttons beside the card, or ← → |
+| **One item sideways** | The ‹ › buttons beside the card, or ← → |
+| **…the other way of stepping sideways** | Shift + ← → |
 | **In or out a ring** | ↑ ↓ |
 | **Go to an item** | Tap or click it |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
@@ -82,9 +83,33 @@ Español, Italiano, Português, Русский, 日本語, 한국어, 中文, ا
 follows Obsidian's own language setting; a setting overrides it.
 
 Turning is the big movement; the two chevrons beside the card are the small
-one. They do what ← → do — sideways within the ring you are reading — so the
+one. They do what ← → do — sideways along the ring you are reading — so the
 place your eye is on stays put. Turning is where the guarantee lives: it walks
 the flat order, and that is the walk that cannot skip anything.
+
+**What sideways steps through is yours to choose**, under *What the arrows step
+through*:
+
+- **Every task** (the default) — the next task, wherever it hangs. No branch is
+  a dead end.
+- **Along the ring** — the next item at the same depth, across branches. Keeps
+  the eye at one radius, which is the move for comparing the same level of two
+  projects. Be aware that a depth only one branch reaches is a ring of that
+  branch alone: a long branch ending in three tasks walks round those three.
+
+On a keyboard the other one is always on **Shift + ← →**, so you never have to
+visit the settings to borrow it. The two buttons beside the card follow the
+setting on a desktop; **on a phone they always walk every task**, because there
+the coarse movement is a finger on the disc and there is no Shift to borrow the
+other with.
+
+Either way the step is taken from the **whole** wheel, not from the part of it
+that happens to be drawn — deep in a tree the wheel draws your own branch
+further out than the rest, and the next item is often one that has yet to be
+drawn. It gets drawn, and so does the way to it: a branch you had folded away
+opens while you are inside it and closes again when you leave, so looking is
+never undoing. So the step never leaves you stuck, it never changes which ring
+you are on, and the opposite key always brings you back where you came from.
 
 The wheel always comes to rest on a stop — momentum is allowed, free spinning
 is not. That is what makes "I have been all the way round" a fact rather than
@@ -357,8 +382,10 @@ in the note — which is what *open the note* is for.
 
 ## Settings worth knowing
 
-- **Domain comes from** — the top folder, or a tag namespace. This decides the
-  angle, so it is the setting with the most visible consequence.
+- **Domain comes from** — the top folder, a tag namespace, or a front-matter
+  property such as `area:`. This decides the angle, so it is the setting with
+  the most visible consequence. Only the tag namespace works per *task*, so it
+  is the one that lets a single note feed several wedges.
 - **Detail** — how many items may be drawn at once (compact 120, balanced 240,
   dense 400).
 - **Folders to read / Excluded folders** — in a large vault, naming the four
@@ -367,8 +394,8 @@ in the note — which is what *open the note* is for.
 
 ## Install
 
-**From the community list** (once accepted): Settings → Community plugins →
-Browse → search for *Task Wheel* → Install, then Enable.
+**From the community list**: Settings → Community plugins → Browse → search for
+*Task Wheel* → Install, then Enable.
 
 **Manually, today**: download `main.js`, `manifest.json` and `styles.css` from
 the [latest release](https://github.com/maxonamission/obsidian-task-wheel/releases/latest),

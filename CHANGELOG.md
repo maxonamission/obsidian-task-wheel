@@ -6,6 +6,60 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.12]
+
+Navigating a big vault, rewritten around one sentence: **a step sideways never
+traps you and always has a way back.** Most of this comes from the first
+detailed user report the plugin has had — a vault of about 2300 open tasks,
+reviewed for two hours (31 aug 2026). Thank you.
+
+- **Fixed**: left and right no longer trap you deep in a branch. They walked
+  the ring as *drawn*, and the wheel draws the branch under the reading wedge
+  deeper than the rest — so on those rings there was no neighbour on screen to
+  step to, and the key quietly did nothing. The only way to the file beside you
+  was back in to the middle and out again, which is how you lose your place.
+  Sideways now walks the **whole** ring: the next item on it, drawn or not, and
+  the wheel opens around it if it was not. Two things follow, and they are the
+  point — a sideways step never changes which ring you are on, and the opposite
+  key always brings you back to where you came from.
+- **Fixed**: the wheel now draws what it is looking at, however deep that is.
+  Two things could quietly stand in the way: the rings ran out on a branch
+  before reaching the item, or you had folded that branch away — and either way
+  the drawing came back without the item, so anything that sent you there
+  landed you somewhere near where you started instead. The way down to whatever
+  you are reading is now drawn open regardless. A fold you look inside stays a
+  fold: it closes again when you leave, and standing *on* a folded branch still
+  keeps it folded, since that is what Space is for.
+- **Added**: you choose what one step sideways walks, under *What the arrows
+  step through*. **Every task** — the default — steps to the next task wherever
+  it hangs, so no branch is a dead end. **Along the ring** steps to the next
+  item at the same depth, across branches, which is the move for comparing the
+  same level of two projects; the trade is that a depth only one branch reaches
+  is a ring of that branch alone, so a long branch ending in three tasks walks
+  round those three. On a keyboard the other one is always on **Shift + ← →**;
+  the two buttons beside the card follow the setting on a desktop, and on a
+  phone always walk every task — there the coarse movement is a finger on the
+  disc, and there is no Shift to borrow the other with.
+- **Added**: a task too long for the card can be read in full. The card clamps
+  a title to two lines because it holds one size at every stop — that is what
+  keeps the drawing underneath from jumping while you turn — so a long task was
+  cut off with no way to see the rest short of opening the note. A clipped title
+  now offers *Show the whole task*, which lays the full text over the card's
+  reading matter and leaves the card, the action row and the wheel exactly where
+  they were. Turning on folds it back. **Renaming got the same room**: the box
+  you type in takes the card's whole reading area rather than the two lines the
+  title had, which is what it needed on a phone with the keyboard up.
+- **Fixed**: a wedge that gets its domain from a front-matter property no longer
+  tries to open a folder of that name. Double-tapping a wedge opens a wheel over
+  what it stands for, and a folder domain names a folder — but a property value
+  does not, any more than a tag does. It now says so instead of going looking.
+- **Fixed**: the wheel no longer shows a paragraph of help every time the mouse
+  comes to rest on it. That text is the description a screen reader reads out,
+  and Obsidian renders any such description as a hover tooltip — over the whole
+  drawing, again and again. It is now invisible to a mouse and unchanged for a
+  screen reader, so there is nothing left to switch off. The same mistake in the
+  filter panel's search box went with it.
+
 ## [0.1.11]
 
 A wedge no longer disappears when its work does: an empty domain keeps its name

@@ -99,6 +99,19 @@ export interface WheelControllerOptions {
 	/** Space or Enter on the focused item: fold its branch away, or unfold it. */
 	onToggle?: () => void;
 	/**
+	 * One step sideways, answered from the tree rather than from the drawing.
+	 *
+	 * The controller knows the stops, which are the items that happen to be
+	 * drawn; sideways is a move along a **ring**, and a ring is a fact about the
+	 * tree. Where the two disagree — on the extra rings the fisheye gives the
+	 * branch being read — only the tree can answer, and the answer may be an
+	 * item that has to be drawn first. So the view takes the question when it
+	 * can, and this falls back to the drawing when it cannot (BC_E3_S93).
+	 *
+	 * Answers whether it handled the step.
+	 */
+	onSideways?: (delta: number, other: boolean) => boolean;
+	/**
 	 * A second tap on the item already under the wedge.
 	 *
 	 * One tap goes there; a second says "and now show me *this*". Both a
@@ -354,9 +367,19 @@ export class WheelController {
 	 * is the movement the drawing suggests, and the round's guarantee lives in
 	 * turning, not here.
 	 */
-	walkRing(delta: number): void {
+	walkRing(delta: number, other = false): void {
+		if (this.options.onSideways?.(delta, other) === true) return;
 		if (this.detents.length === 0) return;
 		this.snapTo(alongRing(this.detents, this.index, delta));
+	}
+
+	/** Come to rest on a named stop, if it is one of the ones drawn. */
+	goTo(id: string): boolean {
+		const at = indexOfId(this.detents, id);
+		if (at < 0) return false;
+
+		this.snapTo(at);
+		return true;
 	}
 
 	/** Go to a stop by its position in the turn order. */
@@ -871,11 +894,15 @@ export class WheelController {
 		}
 
 		switch (event.key) {
+			// Shift walks the other of the two rings the reader chose between
+			// (BC_E3_S94), so both are always to hand without visiting the
+			// settings — the one a phone cannot offer, which is why the card's
+			// buttons follow the setting instead.
 			case "ArrowRight":
-				this.snapTo(alongRing(this.detents, this.index, 1));
+				this.walkRing(1, event.shiftKey);
 				break;
 			case "ArrowLeft":
-				this.snapTo(alongRing(this.detents, this.index, -1));
+				this.walkRing(-1, event.shiftKey);
 				break;
 			case "ArrowUp":
 				this.snapTo(acrossRings(this.detents, this.index, true));

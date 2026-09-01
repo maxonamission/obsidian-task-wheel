@@ -220,6 +220,30 @@ export interface TaskWheelSettings
 	 */
 	stepInto: "same-tab" | "new-tab";
 	/**
+	 * What one step sideways walks: every task, or the reader's own ring.
+	 *
+	 * Both are the same order seen through a different filter, so neither can
+	 * skip anything the other reaches; the difference is only which items the
+	 * step stops on. It shows up deep in a tree (BC_E3_S94):
+	 *
+	 *  - **`"tasks"`** — the next task, wherever it hangs. No branch is a dead
+	 *    end. The default, because that is what a reader walking their work
+	 *    wants, and because the alternative traps you: a depth that exists in
+	 *    one branch only is a ring of that branch alone, and a long branch
+	 *    ending in three tasks then walks round those three for ever (eigenaar,
+	 *    1 sep 2026).
+	 *  - **`"ring"`** — the next item at the reader's own depth, across
+	 *    branches. Keeps the eye at one radius, which is the move for comparing
+	 *    the same level of two projects.
+	 *
+	 * Whichever is not chosen is on **Shift** with the arrows, so both are
+	 * always to hand on a keyboard. The two buttons beside the card follow the
+	 * setting on a desktop; **on a phone they always walk every task**, because
+	 * there the coarse movement is a finger on the disc and there is no Shift to
+	 * borrow the other with (eigenaar, 1 sep 2026).
+	 */
+	arrowStep: "tasks" | "ring";
+	/**
 	 * Show what the wheel receives from the device.
 	 *
 	 * Off by default and not a feature: it exists because the wheel has to work
@@ -276,6 +300,7 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	wedgeDivision: "equal",
 	wedgePalette: DEFAULT_PALETTE,
 	stepInto: "same-tab",
+	arrowStep: "tasks",
 	wedgeMinimum: 15,
 	diagnostics: false,
 	language: "auto",
@@ -516,6 +541,11 @@ const STEP_INTO_LABELS: Record<TaskWheelSettings["stepInto"], string> = {
 	"new-tab": "Open a new tab for each step",
 };
 
+const ARROW_STEP_LABELS: Record<TaskWheelSettings["arrowStep"], string> = {
+	tasks: "Every task — the next one, wherever it hangs",
+	ring: "Along the ring — the next item at the same depth",
+};
+
 const WEDGE_DIVISION_LABELS: Record<TaskWheelSettings["wedgeDivision"], string> =
 	{
 		equal: "Equal — every domain the same slice",
@@ -713,6 +743,15 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							type: "dropdown",
 							key: "wedgeDivision",
 							options: WEDGE_DIVISION_LABELS,
+						},
+					},
+					{
+						name: "What the arrows step through",
+						desc: "Left and right, and the two buttons beside the card. Every task walks your work: the next task, wherever it hangs, so no branch is a dead end. Along the ring keeps the eye at one radius — the next item at the same depth, across branches — which is the move for comparing the same level of two projects, but a depth that exists in one branch only is a ring of that branch alone. On a keyboard the other one is always on Shift with the arrows. The two buttons beside the card follow this setting on a desktop; on a phone they always walk every task, because the coarse movement there is a finger on the disc and there is no Shift to borrow the other with.",
+						control: {
+							type: "dropdown",
+							key: "arrowStep",
+							options: ARROW_STEP_LABELS,
 						},
 					},
 					{
