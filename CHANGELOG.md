@@ -6,6 +6,17 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.13]
+
+Housekeeping only — nothing about the wheel behaves differently.
+
+- **Fixed**: the stylesheet no longer uses `clip-path`, which Obsidian's plugin
+  linter flags as only partly supported at the app version it checks against.
+  It sat on the text that describes the wheel to a screen reader, where the
+  usual recipe adds it as a second lock and where it was not needed: a
+  one-pixel box that clips what does not fit already leaves nothing to see.
+  That text stays exactly as hidden, and exactly as readable, as it was.
+
 ## [0.1.12]
 
 Navigating a big vault, rewritten around one sentence: **a step sideways never
