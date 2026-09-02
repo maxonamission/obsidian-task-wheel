@@ -153,12 +153,12 @@ describe("roundBlock — where this round stands", () => {
 			keyGroups(touch, EN).flatMap((g) => g.rows.flatMap((r) => r.keys));
 
 		const onDesktop = pressed(false);
-		for (const key of ["PgUp", "Home", "space", "enter", "backspace", "alt", "↑"]) {
+		for (const key of ["PgUp", "Home", "space", "enter", "backspace", "ctrl", "alt", "↑"]) {
 			expect(onDesktop).toContain(key);
 		}
 
 		const onPhone = pressed(true);
-		for (const key of ["PgUp", "Home", "space", "enter", "backspace", "alt", "↑", "scroll"]) {
+		for (const key of ["PgUp", "Home", "space", "enter", "backspace", "ctrl", "alt", "↑", "scroll"]) {
 			expect(onPhone).not.toContain(key);
 		}
 		for (const gesture of ["swipe", "tap", "pinch", "‹"]) {

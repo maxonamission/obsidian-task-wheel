@@ -96,26 +96,32 @@ const DETENTS: Detent[] = Array.from({ length: 8 }, (_, at) => ({
 	turnStop: true,
 })) as unknown as Detent[];
 
-function press(key: string): Record<string, unknown> {
+function press(key: string, mod = false): Record<string, unknown> {
 	return {
 		key,
 		shiftKey: false,
 		altKey: false,
+		ctrlKey: mod,
+		metaKey: false,
 		preventDefault: vi.fn(),
 	};
 }
 
-function wheel(options: { onOut?: () => boolean } = {}): {
+function wheel(
+	options: { onOut?: () => boolean; onOpenNote?: () => boolean } = {},
+): {
 	host: Host;
 	controller: WheelController;
 	focused: string[];
 	settled: string[];
 	order: string[];
+	opened: string[];
 } {
 	const host = surface();
 	const focused: string[] = [];
 	const settled: string[] = [];
 	const order: string[] = [];
+	const opened: string[] = [];
 
 	const controller = new WheelController({
 		surface: host.el,
@@ -128,6 +134,7 @@ function wheel(options: { onOut?: () => boolean } = {}): {
 			settled.push(detent?.id ?? "none");
 			order.push(`settle:${detent?.id ?? "none"}`);
 		},
+		onActivate: (id) => opened.push(id),
 		...options,
 	});
 	controller.adopt(renderer(), DETENTS, null);
@@ -137,7 +144,7 @@ function wheel(options: { onOut?: () => boolean } = {}): {
 	focused.length = 0;
 	order.length = 0;
 
-	return { host, controller, focused, settled, order };
+	return { host, controller, focused, settled, order, opened };
 }
 
 describe("a step to a named stop", () => {
@@ -219,5 +226,88 @@ describe("backspace", () => {
 		w.host.fire("keydown", event);
 
 		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("still works on a wheel with nothing on it", () => {
+		// The trap: a heading with no tasks under it is the easiest wheel to
+		// open by accident, and a wheel with nothing to draw clears its stops.
+		// Every other key rightly gives up at that point — this one must not,
+		// because it is the way off (eigenaar, 2 sep 2026).
+		const out = vi.fn(() => true);
+		const host = surface();
+		const controller = new WheelController({
+			surface: host.el,
+			register: host.register,
+			onFocus: () => undefined,
+			onOut: out,
+		});
+		controller.adopt(renderer(), [], null);
+
+		const event = press("Backspace");
+		host.fire("keydown", event);
+
+		expect(out).toHaveBeenCalled();
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+
+	it("leaves every other key alone on an empty wheel", () => {
+		// The guard is still right for everything that needs a stop to act on.
+		const opened: string[] = [];
+		const host = surface();
+		const controller = new WheelController({
+			surface: host.el,
+			register: host.register,
+			onFocus: () => undefined,
+			onActivate: (id) => opened.push(id),
+			onToggle: () => opened.push("fold"),
+		});
+		controller.adopt(renderer(), [], null);
+
+		for (const key of ["Enter", " ", "ArrowLeft", "ArrowRight", "Home", "End"]) {
+			const event = press(key);
+			host.fire("keydown", event);
+			expect(event.preventDefault, key).not.toHaveBeenCalled();
+		}
+		expect(opened).toEqual([]);
+	});
+});
+
+describe("control with enter", () => {
+	it("opens the note the item lives in, and takes the key", () => {
+		// The pair: plain Enter opens what the item *is*, the modifier opens
+		// where it *lives*. Both were reachable by mouse; only one had a key.
+		const note = vi.fn(() => true);
+		const w = wheel({ onOpenNote: note });
+
+		const event = press("Enter", true);
+		w.host.fire("keydown", event);
+
+		expect(note).toHaveBeenCalled();
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+
+	it("does not also activate the item", () => {
+		const w = wheel({ onOpenNote: () => true });
+		w.host.fire("keydown", press("Enter", true));
+
+		expect(w.opened).toEqual([]);
+	});
+
+	it("leaves the key alone on an item that lives nowhere", () => {
+		// A folder wedge is not written down in any note. A key that swallows
+		// itself to do nothing is worse than one that never took the press.
+		const w = wheel({ onOpenNote: () => false });
+
+		const event = press("Enter", true);
+		w.host.fire("keydown", event);
+
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("still activates on plain enter", () => {
+		const w = wheel({ onOpenNote: () => true });
+		w.host.fire("keydown", press("Enter"));
+
+		expect(w.opened).toEqual(["a"]);
 	});
 });

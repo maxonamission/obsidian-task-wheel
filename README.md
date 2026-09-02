@@ -85,6 +85,7 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **Go to an item** | Tap or click it |
 | **Open what you are on** | Double-click or double-tap it, or Enter |
 | **Back out to the wider wheel** | Backspace, or the button in the corner — you land back on what you stepped out of |
+| **Open the note it lives in** | Ctrl/Cmd + Enter — add Shift if something else on your setup already claims that combination — or the note button on the card |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
 | **Fold a branch away** | Space, or the button on the card |
 | **One stop in the flat order** | PageUp / PageDown |

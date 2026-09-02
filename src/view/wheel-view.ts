@@ -385,7 +385,7 @@ export class TaskWheelView extends ItemView {
 		TaskWheelView.descriptions += 1;
 		const described = stage.createDiv({
 			cls: "task-wheel-sr-only",
-			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Enter opens what you are on: a wheel over a folder, note or heading, or the task itself for editing. Backspace comes back out. Space folds the branch you are in away.",
+			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Enter opens what you are on: a wheel over a folder, note or heading, or the task itself for editing. Backspace comes back out, and control with enter opens the note the item is written in. Space folds the branch you are in away.",
 			attr: { id: `task-wheel-canvas-description-${TaskWheelView.descriptions}` },
 		});
 
@@ -430,6 +430,7 @@ export class TaskWheelView extends ItemView {
 			onSideways: (delta, other) => this.stepSideways(delta, other),
 			onActivate: (id) => this.activate(id),
 			onOut: () => this.stepOut(),
+			onOpenNote: () => this.openFocusedNote(),
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
 			onMove: (direction) => this.moveFocused(direction),
@@ -1050,6 +1051,21 @@ export class TaskWheelView extends ItemView {
 		}
 
 		void this.plugin.openScoped(scope, this.leaf);
+	}
+
+	/**
+	 * Open the note the wheel is standing on — Ctrl/Cmd with Enter.
+	 *
+	 * Answers whether there was one, so the key stays unclaimed on an item that
+	 * lives nowhere: a folder wedge is not written down anywhere, and a key that
+	 * swallows itself to do nothing is worse than one that never took the press.
+	 */
+	private openFocusedNote(): boolean {
+		const laid = this.focusId === null ? undefined : this.layout?.byId.get(this.focusId);
+		if (laid === undefined || laid.node.source === undefined) return false;
+
+		this.openNote(laid);
+		return true;
 	}
 
 	/** Open the note this item came from, at its own line. */

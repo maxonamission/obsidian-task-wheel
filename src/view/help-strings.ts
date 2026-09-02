@@ -63,6 +63,8 @@ export interface HelpStrings {
 	keyTap: string;
 	/** Backspace: the way back out of a wheel you stepped into. */
 	keyBack: string;
+	/** Ctrl/Cmd + Enter: open the note the item lives in. */
+	keyNote: string;
 	/** Enter: the keyboard's double-click. */
 	keyOpen: string;
 	keyFold: string;
@@ -204,6 +206,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Opens what you are on: a wheel over a folder, note or heading — or the task itself, to edit. The same move as a double-click.",
 		keyBack: "Back out to the wider wheel — vault, folder, note, section.",
+		keyNote: "Opens the note this task is written in, at its own line.",
 		keyFold: "Folds this branch away, or opens it again.",
 		keyZoom: "Zoom, or pinch on a touchscreen.",
 		keyZoomTouch: "Zoom.",
@@ -294,6 +297,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Opent waar je op staat: een wiel over een map, notitie of kop — of de taak zelf, om te bewerken. Dezelfde beweging als een dubbelklik.",
 		keyBack: "Terug naar het wijdere wiel — vault, map, notitie, sectie.",
+		keyNote: "Opent de notitie waar deze taak in staat, op zijn eigen regel.",
 		keyFold: "Klapt deze tak in, of weer uit.",
 		keyZoom: "Zoomen, of knijpen op een touchscreen.",
 		keyZoomTouch: "Zoomen.",
@@ -384,6 +388,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"يفتح ما تقف عنده: عجلة على مجلد أو ملاحظة أو عنوان — أو المهمة نفسها للتحرير. مثل النقر المزدوج تمامًا.",
 		keyBack: "يعود إلى العجلة الأوسع — الخزنة، المجلد، الملاحظة، القسم.",
+		keyNote: "يفتح الملاحظة التي كُتبت فيها هذه المهمة، عند سطرها.",
 		keyFold: "يطوي هذا الفرع أو يفتحه من جديد.",
 		keyZoom: "تكبير، أو القرص على شاشة اللمس.",
 		keyZoomTouch: "تكبير.",
@@ -470,6 +475,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Öffnet, worauf du stehst: ein Rad über Ordner, Notiz oder Überschrift — oder die Aufgabe selbst, zum Bearbeiten. Wie ein Doppelklick.",
 		keyBack: "Zurück zum weiteren Rad — Vault, Ordner, Notiz, Abschnitt.",
+		keyNote:
+			"Öffnet die Notiz, in der diese Aufgabe steht, bei ihrer eigenen Zeile.",
 		keyFold: "Klappt diesen Ast ein oder wieder auf.",
 		keyZoom: "Zoomen, oder Kneifen auf einem Touchscreen.",
 		keyZoomTouch: "Zoomen.",
@@ -561,6 +568,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Abre aquello en lo que estás: una rueda sobre una carpeta, nota o encabezado — o la tarea misma, para editarla. Igual que un doble clic.",
 		keyBack: "Vuelve a la rueda más amplia — bóveda, carpeta, nota, sección.",
+		keyNote: "Abre la nota donde está escrita esta tarea, en su propia línea.",
 		keyFold: "Pliega esta rama, o la abre de nuevo.",
 		keyZoom: "Zoom, o pellizcar en una pantalla táctil.",
 		keyZoomTouch: "Zoom.",
@@ -653,6 +661,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Ouvre ce sur quoi vous êtes : une roue sur un dossier, une note ou un titre — ou la tâche elle-même, pour la modifier. Comme un double-clic.",
 		keyBack: "Retour à la roue plus large — coffre, dossier, note, section.",
+		keyNote: "Ouvre la note où cette tâche est écrite, à sa propre ligne.",
 		keyFold: "Replie cette branche, ou la rouvre.",
 		keyZoom: "Zoomer, ou pincer sur un écran tactile.",
 		keyZoomTouch: "Zoomer.",
@@ -744,6 +753,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"आप जिस पर हैं उसे खोलता है: फ़ोल्डर, नोट या शीर्षक पर एक पहिया — या स्वयं कार्य, संपादन के लिए। डबल-क्लिक जैसा ही।",
 		keyBack: "व्यापक पहिये पर वापस — वॉल्ट, फ़ोल्डर, नोट, अनुभाग।",
+		keyNote: "जिस नोट में यह कार्य लिखा है उसे उसी पंक्ति पर खोलता है।",
 		keyFold: "इस शाखा को मोड़ता है, या फिर खोलता है।",
 		keyZoom: "ज़ूम, या टचस्क्रीन पर पिंच।",
 		keyZoomTouch: "ज़ूम।",
@@ -834,6 +844,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Apre ciò su cui ti trovi: una ruota su una cartella, una nota o un titolo — oppure l'attività stessa, per modificarla. Come un doppio clic.",
 		keyBack: "Torna alla ruota più ampia — vault, cartella, nota, sezione.",
+		keyNote: "Apre la nota in cui è scritta questa attività, alla sua riga.",
 		keyFold: "Ripiega questo ramo, o lo riapre.",
 		keyZoom: "Zoom, o pizzicare su uno schermo tattile.",
 		keyZoomTouch: "Zoom.",
@@ -923,6 +934,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyTap: "読み取り位置の下へ持ってきます。もう一度タップすると開きます — 見出しやノートならそのホイール、タスクなら編集。",
 		keyOpen: "今いるものを開きます。フォルダ・ノート・見出しならそのホイール、タスクなら編集。ダブルクリックと同じ動きです。",
 		keyBack: "より広いホイールへ戻ります（保管庫・フォルダ・ノート・セクション）。",
+		keyNote: "このタスクが書かれているノートを、その行で開きます。",
 		keyFold: "この枝を折りたたむ、または再び開く。",
 		keyZoom: "ズーム。タッチ画面ではピンチ。",
 		keyZoomTouch: "ズーム。",
@@ -1010,6 +1022,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyTap: "읽기 위치 아래로 가져옵니다. 두 번째 탭이 그것을 엽니다 — 제목이나 노트면 휠을, 작업이면 편집을.",
 		keyOpen: "지금 있는 것을 엽니다. 폴더·노트·제목이면 그 휠을, 작업이면 편집을. 더블 클릭과 같은 동작입니다.",
 		keyBack: "더 넓은 휠로 돌아갑니다 — 보관함, 폴더, 노트, 섹션.",
+		keyNote: "이 작업이 적힌 노트를 해당 줄에서 엽니다.",
 		keyFold: "이 가지를 접거나 다시 폅니다.",
 		keyZoom: "확대·축소, 터치 화면에서는 핀치.",
 		keyZoomTouch: "확대·축소.",
@@ -1100,6 +1113,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Abre aquilo em que você está: uma roda sobre uma pasta, nota ou título — ou a própria tarefa, para editar. O mesmo que um duplo clique.",
 		keyBack: "Volta para a roda mais ampla — cofre, pasta, nota, seção.",
+		keyNote: "Abre a nota em que esta tarefa está escrita, na sua própria linha.",
 		keyFold: "Recolhe este ramo, ou o abre de novo.",
 		keyZoom: "Zoom, ou pinçar numa tela sensível ao toque.",
 		keyZoomTouch: "Zoom.",
@@ -1192,6 +1206,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOpen:
 			"Открывает то, на чём вы стоите: колесо над папкой, заметкой или заголовком — либо саму задачу, для правки. То же, что двойной щелчок.",
 		keyBack: "Возврат к более широкому колесу — хранилище, папка, заметка, раздел.",
+		keyNote: "Открывает заметку, в которой записана эта задача, на её строке.",
 		keyFold: "Сворачивает эту ветку или снова раскрывает.",
 		keyZoom: "Масштаб, или щипок на сенсорном экране.",
 		keyZoomTouch: "Масштаб.",
@@ -1280,6 +1295,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyTap: "把它带到阅读位置下。再点一次就打开它——标题或笔记是它的转盘，任务则打开编辑。",
 		keyOpen: "打开你当前所在的东西：文件夹、笔记或标题就是它的转盘，任务则打开编辑。与双击相同。",
 		keyBack: "回到更宽的转盘——库、文件夹、笔记、章节。",
+		keyNote: "打开写着这条任务的笔记，并定位到那一行。",
 		keyFold: "折叠此分支，或再次展开。",
 		keyZoom: "缩放，或在触屏上捏合。",
 		keyZoomTouch: "缩放。",

@@ -6,6 +6,21 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.19]
+
+Two more keys, and one of them was missing exactly where you needed it.
+
+- **Added**: **Ctrl/Cmd + Enter** opens the note the item is written in, at its
+  own line. Enter opens what the item *is*; the modifier opens where it *lives*
+  — the same pairing Obsidian uses elsewhere. It was already a button on the
+  card and a command; what it did not have was a key beside the one it belongs
+  next to.
+- **Fixed**: **backspace** works on a wheel with nothing on it. A heading with no
+  tasks under it is the easiest wheel to open by accident, and it was the one
+  place the key gave up — the wheel clears its stops when there is nothing to
+  draw, and every key was giving up along with them. The button in the corner
+  worked all along, which is why it took a while to notice.
+
 ## [0.1.18]
 
 Two places where the wheel threw away something you had just told it.

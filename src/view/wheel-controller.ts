@@ -123,10 +123,26 @@ export interface WheelControllerOptions {
 	/**
 	 * Step out to the wider wheel — the way back from `onActivate`.
 	 *
+	 * Stepping in had a key and stepping out had only the button in the corner,
+	 * which meant reaching for the mouse halfway through a keyboard round
+	 * (eigenaar, 2 sep 2026). Deliberately not a setting: a pair you can
+	 * configure apart is not a pair any more, and the way out is already a
+	 * command, so Obsidian's own key bindings are the place to move it.
+	 *
 	 * Answers whether there *was* anywhere wider. A wheel over the whole vault
 	 * has nowhere to go, and then the key is not ours to take.
 	 */
 	onOut?: () => boolean;
+	/**
+	 * Open the note the focused item is written in, at its own line.
+	 *
+	 * The modifier on `onActivate`: plain Enter opens what the item *is*,
+	 * Ctrl/Cmd with it opens where it *lives*. The pair follows the same idiom
+	 * Obsidian uses everywhere else — the modifier means "and take me there".
+	 *
+	 * Answers whether there was a note to open; a wedge has none.
+	 */
+	onOpenNote?: () => boolean;
 	/** The reader closed in on the wheel, or pulled back out. */
 	onZoom?: (zoom: number) => void;
 	/**
@@ -895,6 +911,19 @@ export class WheelController {
 	}
 
 	private onKeyDown(event: KeyboardEvent): void {
+		// Before the empty check, deliberately. The way out is the one move that
+		// needs no stop to act on, and an empty wheel is exactly where a reader
+		// wants it — a heading with no tasks under it is the easiest wheel to
+		// open by accident. A wheel with nothing to draw calls `stop()`, which
+		// clears the detents, so guarding on them first left the keyboard with
+		// no way off while the button in the corner still worked (eigenaar,
+		// 2 sep 2026).
+		if (event.key === "Backspace") {
+			if (this.options.onOut?.() !== true) return;
+			event.preventDefault();
+			return;
+		}
+
 		if (this.detents.length === 0) return;
 
 		// The arrows walk the tree, not the flat turn order (kaderdocument §5):
@@ -960,23 +989,19 @@ export class WheelController {
 			// where the pointer path takes it from what was under the finger:
 			// same move, two ways of saying which item.
 			case "Enter": {
+				// Ctrl or Cmd turns "open this" into "open where this lives". The
+				// action already existed as a button and a command; what it did
+				// not have was a key next to the one it belongs beside.
+				if (event.ctrlKey || event.metaKey) {
+					if (this.options.onOpenNote?.() !== true) return;
+					break;
+				}
+
 				const here = this.detents[this.index];
 				if (here === undefined) return;
 				this.options.onActivate?.(here.id);
 				break;
 			}
-			// The other half of Enter. Stepping in had a key and stepping out had
-			// only the button in the corner, which means reaching for the mouse
-			// halfway through a keyboard round (eigenaar, 2 sep 2026). Deliberately
-			// not a setting: a pair you can configure apart is not a pair any more,
-			// and the way out is already a command, so Obsidian's own key bindings
-			// are the place to move it.
-			case "Backspace":
-				// Only ours if there is somewhere wider to go. On the vault wheel
-				// there is not, and a key that swallows itself to do nothing is
-				// worse than one that never claimed the press.
-				if (this.options.onOut?.() !== true) return;
-				break;
 			case "+":
 			case "=":
 				this.setZoom(this.zoomLevel * ZOOM_STEP);
