@@ -204,6 +204,9 @@ export class TaskWheelView extends ItemView {
 
 	/** Id under the reading wedge right now, kept across a rescan. */
 	private focusId: string | null = null;
+
+	/** The last viewport reading, so an unchanged one is not repeated. */
+	private lastViewport = "";
 	/** Id the current drawing was laid out around. */
 	private laidOutFor: string | null = null;
 
@@ -384,6 +387,7 @@ export class TaskWheelView extends ItemView {
 		});
 
 		this.watchVault();
+		this.watchViewport();
 		this.controller.setZoom(stateFor(this.plugin.settings, this.wheelScope).zoom);
 		await this.refresh();
 	}
@@ -686,6 +690,9 @@ export class TaskWheelView extends ItemView {
 		clear.addEventListener("click", () => {
 			this.trace.length = 0;
 			this.traceTextEl?.setText("");
+			// So the next reading is printed rather than dropped as a repeat of
+			// one the reader just wiped (BC_E3_S96).
+			this.lastViewport = "";
 		});
 
 		this.traceTextEl = el.createEl("pre", { text: this.trace.join("\n") });
@@ -1365,6 +1372,9 @@ export class TaskWheelView extends ItemView {
 			`draw: ${layout.nodes.length} items, ${detents.length} stops, ` +
 				`${tree.root.shownTaskCount} open, window ${layout.window}`,
 		);
+		// A reading beside every draw, so the trace holds one even on a device
+		// where nothing this watches ever fires (BC_E3_S96).
+		this.reportViewport("draw");
 
 		this.safely("drawing the wheel", () => {
 			this.renderer = new WheelRenderer(canvasEl, layout);
@@ -2144,6 +2154,143 @@ export class TaskWheelView extends ItemView {
 	 * `registerDomEvent` unhooks on view close, so the controller never has to
 	 * own a teardown path of its own.
 	 */
+	/**
+	 * What the pane measures while the keyboard comes and goes (BC_E3_S96).
+	 *
+	 * The owner reports a band of empty space between the wheel and the
+	 * keyboard, appearing a moment *after* the keyboard does. Two things fit
+	 * that, and they want opposite repairs: the pane scrolls the focused box
+	 * into view and we are looking at the bottom of a scrolled column, or the
+	 * room this view holds back for Obsidian's own mobile bar
+	 * (`--safe-area-inset-bottom` plus `--tw-bottom-bar`) grows to the height of
+	 * the keyboard because Android counts the keyboard as an inset.
+	 *
+	 * `scrollTop` tells the first from the second, the padding says how big the
+	 * second would be, and a visual viewport much shorter than the pane would
+	 * mean a third thing: nothing resized at all and the drawing is simply
+	 * behind the keyboard. None of it can be read from here — the wheel has to
+	 * work on devices this code never runs on, which is the whole reason the
+	 * diagnostics panel exists (BC_E3_S76).
+	 *
+	 * **Four moments, because the first attempt caught none.** A keyboard on
+	 * Obsidian mobile need not resize the visual viewport at all, so a reading
+	 * is taken when the pane is drawn, when anything inside it takes focus —
+	 * that is the keyboard arriving — again half a second later, once it has
+	 * finished animating, and on any viewport or window resize. Repeats are
+	 * dropped, so the four never bury the rest of the trace.
+	 *
+	 * Measured off the *view's own* window: a torn-off tab has a window of its
+	 * own, and the main one would report a viewport nobody is looking at.
+	 */
+	private watchViewport(): void {
+		const view = this.containerEl.ownerDocument.defaultView;
+		if (view === null) return;
+
+		const visual = view.visualViewport;
+		if (visual !== null) {
+			const onResize = (): void => this.reportViewport("visual", true);
+			visual.addEventListener("resize", onResize);
+			this.register(() => visual.removeEventListener("resize", onResize));
+		}
+
+		this.registerDomEvent(view, "resize", () => this.reportViewport("window", true));
+
+		// Focus moving into the pane is the keyboard arriving, on a device that
+		// has one. The second reading is the one that matters: the owner's gap
+		// appears *after* what looks like a first step, which is the keyboard
+		// finishing its animation.
+		this.registerDomEvent(this.contentEl, "focusin", () => {
+			this.markTyping();
+			this.reportViewport("focus");
+			view.setTimeout(() => this.reportViewport("focus+500"), 500);
+		});
+
+		// After the move, not during it: `focusout` fires before the next
+		// element has focus, so asking then would say "nothing" on every step
+		// from one field to the next.
+		this.registerDomEvent(this.contentEl, "focusout", () => {
+			view.setTimeout(() => {
+				this.markTyping();
+				this.reportViewport("blur");
+			}, 0);
+		});
+	}
+
+	/**
+	 * Whether a text field in this pane has the keyboard (BC_E3_S96).
+	 *
+	 * The room the pane holds back at the bottom is for Obsidian's own mobile
+	 * bar. While you are typing there is no bar to duck — the keyboard is
+	 * standing where it would be — so the reservation is not merely too big
+	 * then, it is unwanted. Which field it is does not matter: the rename box
+	 * and the filter's search box both bring the same keyboard.
+	 */
+	private markTyping(): void {
+		const active = this.contentEl.ownerDocument.activeElement;
+		const typing =
+			active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement;
+
+		this.contentEl.toggleClass("is-typing", typing && this.contentEl.contains(active));
+	}
+
+	/**
+	 * One reading of the pane, into the trace.
+	 *
+	 * **Recorded whether or not diagnostics are on**, like every other line: the
+	 * buffer keeps them and the panel merely shows them. The first version
+	 * checked the setting before recording, so switching diagnostics on *after*
+	 * the thing you were trying to catch left you with a trace that had
+	 * everything except the measurement — which is what the owner got back on
+	 * the first try (1 sep 2026). An instrument that is only running when you
+	 * remembered to arm it is not an instrument.
+	 *
+	 * `quiet` drops a reading identical to the last one, and is for the resize
+	 * events, which can fire in bursts. The deliberate moments — a draw, a focus
+	 * — always print. They did not, in the second attempt, and the result was an
+	 * instrument that says nothing precisely when the answer is *"nothing
+	 * changed"*: the owner cleared the panel, worked the keyboard, and got back
+	 * a trace with no reading in it at all. A measurement of "the same as
+	 * before" is a measurement.
+	 */
+	private reportViewport(why: string, quiet = false): void {
+		const view = this.containerEl.ownerDocument.defaultView;
+		if (view === null) return;
+
+		const pane = this.contentEl;
+		const style = view.getComputedStyle(pane);
+		const box = pane.getBoundingClientRect();
+		const visual = view.visualViewport;
+		const safe = style.getPropertyValue("--safe-area-inset-bottom").trim();
+
+		// What has the keyboard, if anything. The first capture came back with
+		// `focus` lines that turned out to be the canvas taking focus on a tap —
+		// no keyboard involved — which looked like a reading of the moment we
+		// were after and was not (BC_E3_S96).
+		const active = pane.ownerDocument.activeElement;
+		const focused =
+			active === null
+				? "none"
+				: `${active.tagName.toLowerCase()}${
+						active.className.length > 0 ? `.${active.className.split(" ")[0]}` : ""
+					}`;
+
+		const line =
+			`window ${view.innerHeight}` +
+			(visual === null
+				? ""
+				: ` · visual ${Math.round(visual.height)}@${Math.round(visual.offsetTop)}`) +
+			` · pane ${Math.round(box.top)}+${Math.round(box.height)}` +
+			` · scroll ${Math.round(pane.scrollTop)}/${Math.round(pane.scrollHeight)}` +
+			` · pad-bottom ${style.paddingBottom}` +
+			` · safe-area ${safe.length > 0 ? safe : "unset"}` +
+			` · bottom-bar ${style.getPropertyValue("--tw-bottom-bar").trim() || "unset"}` +
+			` · focus ${focused}`;
+
+		if (quiet && line === this.lastViewport) return;
+		this.lastViewport = line;
+		this.onTrace(`viewport ${why}: ${line}`);
+	}
+
 	private registrar(): DomRegistrar {
 		return (el, type, handler, options) => {
 			this.registerDomEvent(el, type, handler, options);

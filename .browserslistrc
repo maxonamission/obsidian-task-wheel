@@ -1,0 +1,18 @@
+# What the stylesheet has to work in.
+#
+# Obsidian's desktop installer for 1.11 ships Electron 39.2, and browserslist
+# resolves that to its Chromium (142 at the time of writing) — so the number to
+# maintain here is an Electron version, which is the one Obsidian publishes,
+# rather than a Chromium version nobody states directly.
+#
+# Two things this deliberately does not claim:
+#
+#  - **It is not the mobile floor.** Obsidian on a phone runs in the system
+#    WebView, which can be older than the desktop's Chromium and is not one
+#    version to pin. Passing here is therefore necessary and not sufficient.
+#  - **It is not Obsidian's own baseline.** Their check names an app version
+#    ("Obsidian 1.11.4"); this one names the browser underneath it. For the
+#    finding that prompted all this — `clip-path`, BC_E3_S89 — both flag it, at
+#    every Chromium there is, so the difference did not matter. Where it does
+#    matter, theirs is the one that decides.
+electron 39.2

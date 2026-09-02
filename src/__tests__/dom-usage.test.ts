@@ -217,38 +217,6 @@ describe("accessible names", () => {
  * not happen. Neither the height nor the overlay is visible to a headless test,
  * so the shape of the rule is what gets guarded.
  */
-/**
- * CSS the app we ship into cannot be trusted to have (1 sep 2026).
- *
- * Obsidian's plugin linter checks the stylesheet against the browser features
- * the app version supports, and it caught `clip-path` in the screen-reader
- * helper — a property that recipe adds as a second lock and does not need. A
- * warning found at submission time is a warning found late; the baseline is
- * cheap to keep here instead.
- *
- * This is not a ban on the property for ever. When Obsidian's floor moves,
- * move this — but move it deliberately, with the linter's word for it.
- */
-describe("browser features Obsidian may not have", () => {
-	// Declarations only. The comment above the screen-reader helper names the
-	// property it is not using, and a guard that cannot tell prose from code
-	// would fail on its own explanation — which is how this one first failed.
-	const css = readFileSync(STYLES, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-
-	it("leaves clip-path alone", () => {
-		expect(css).not.toMatch(/clip-path\s*:/);
-	});
-
-	it("would notice it coming back", () => {
-		const withOne = "a { clip-path: inset(50%); }".replace(
-			/\/\*[\s\S]*?\*\//g,
-			"",
-		);
-
-		expect(withOne).toMatch(/clip-path\s*:/);
-	});
-});
-
 describe("the reading card's fixed frame", () => {
 	const css = readFileSync(STYLES, "utf8");
 

@@ -6,6 +6,24 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.14]
+
+Room on a phone: with the keyboard up, the wheel gets the screen back.
+
+- **Fixed**: a band of empty space between the wheel and the keyboard on
+  Android. The keyboard was being counted twice — the app reports it as a
+  bottom inset *and* shrinks the pane by the same amount, so the room held back
+  for a bar that is not there ate most of what was left. Measured on the
+  owner's phone: of 424 pixels remaining, about 45 were the wheel. The
+  reservation is now capped, and while a text field has focus it is dropped
+  altogether: the bar it protects is not on screen while you are typing,
+  because the keyboard is standing where it would be.
+- **Changed**: with diagnostics on, the wheel reports what it measures of its
+  own pane — window and viewport height, where the pane sits and how tall it
+  is, what it holds back at the bottom, and which element has the keyboard.
+  That is how the fix above was found, and it is there for the next thing that
+  only happens on a device.
+
 ## [0.1.13]
 
 Housekeeping only — nothing about the wheel behaves differently.

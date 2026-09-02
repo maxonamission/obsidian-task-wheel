@@ -20,9 +20,45 @@
 }
 
 /* Obsidian's own mobile navigation bar sits inside the pane, so leave room for
-   it on top of the safe area. */
+   it on top of the safe area — but never more room than a bar can be.
+
+   Android reports the keyboard as a bottom inset, and the pane has *already*
+   shrunk by that much. Measured on the owner's phone (1 sep 2026), the moment
+   the rename box took focus:
+
+     pane 89+803 · pad-bottom 32px    · safe-area 14.86px    ← no keyboard
+     pane 89+424 · pad-bottom 378.7px · safe-area 378.67px   ← keyboard up
+
+   The pane lost 379px to the keyboard and then held back another 379 inside
+   it, which left about forty-five pixels for the wheel and put the rest of the
+   band on screen as empty space. The keyboard was counted twice.
+
+   So the reservation is capped. Four and a half ems covers Obsidian's own bar
+   plus any gesture bar underneath it; an inset larger than that is not a bar,
+   it is a keyboard, and the pane has dealt with it already. Note the
+   specificity: the measurement says something with two class selectors is
+   setting this padding on mobile, so a rule of ours with one would never have
+   been asked. */
 .is-mobile .task-wheel-view {
 	--tw-bottom-bar: 3em;
+	padding-bottom: min(
+		calc(
+			var(--size-4-3) + var(--safe-area-inset-bottom, 0px) +
+				var(--tw-bottom-bar, 0px)
+		),
+		4.5em
+	);
+}
+
+/* And while you are typing, none of it.
+
+   The cap above left a band of its own — four and a half ems of room held back
+   for a bar that is not on screen, because the keyboard is standing where it
+   would be (eigenaar, 2 sep 2026: *"beter maar nog niet echt weg"*). The
+   reservation exists so Obsidian's bottom bar does not cover the last line;
+   with a text field in focus there is no bottom bar to duck. */
+.is-mobile .task-wheel-view.is-typing {
+	padding-bottom: var(--size-4-3);
 }
 
 /* Nothing in this column may be squeezed. A flex item shrinks below its own
