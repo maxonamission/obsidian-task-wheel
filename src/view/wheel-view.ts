@@ -61,6 +61,7 @@ import {
 import { aWeekOut, today } from "../model/dates";
 import { activates, isRefused, type NoScope, scopeFor } from "../model/scope";
 import { paneChange } from "../model/detour";
+import { type Landing, landingId, readLanding } from "../model/landing";
 import { openAround } from "../model/resume";
 import { inScope } from "../parse/domain";
 import { headingsOf } from "../parse/outline";
@@ -227,6 +228,13 @@ export class TaskWheelView extends ItemView {
 	 * spring open the next time that item happens to come round.
 	 */
 	private editWhenShown: string | null = null;
+	/**
+	 * Where this wheel was told to come to rest, before it had a tree to look in.
+	 *
+	 * One-shot: used by the first layout that can resolve it and then dropped,
+	 * because it describes the act that opened the wheel and not a preference.
+	 */
+	private landing: Landing | null = null;
 
 	private cardEl: HTMLElement | null = null;
 	private canvasEl: HTMLElement | null = null;
@@ -290,6 +298,8 @@ export class TaskWheelView extends ItemView {
 		// turn later — which is how a wheel over one note ended up with "Task
 		// wheel" over it instead of the note's name (owner, 19 aug 2026).
 		const scope = readScope(state);
+		const asked = readLanding(state);
+		if (asked !== null) this.landing = asked;
 		const changed = scope !== null && scopeKey(scope) !== scopeKey(this.wheelScope);
 		if (changed && scope !== null) {
 			this.wheelScope = scope;
@@ -305,6 +315,28 @@ export class TaskWheelView extends ItemView {
 
 	getIcon(): string {
 		return "disc-3";
+	}
+
+	/**
+	 * Go and stand on what this landing names — for a wheel already open.
+	 *
+	 * Revealing an existing leaf does not re-read its state, so the plugin
+	 * hands the landing over directly. If the wheel is already drawn we can go
+	 * there now; if it is still opening, the first layout will pick it up.
+	 */
+	landOn(landing: Landing): void {
+		this.landing = landing;
+
+		const tree = this.tree;
+		if (tree === null) return;
+
+		const id = landingId(tree, landing);
+		this.landing = null;
+		if (id === null || !tree.byId.has(id)) return;
+
+		this.focusId = id;
+		this.laidOutFor = null;
+		this.relayout();
 	}
 
 	/** Which wheel this is, for finding an already-open one. */
@@ -790,13 +822,21 @@ export class TaskWheelView extends ItemView {
 		// by the very scan that was too early to see it.
 		this.stale = false;
 
+		// How long the read takes is the one number nobody here can guess: it
+		// depends on the vault in front of the reader, not on this code. Asked
+		// for because opening a wheel somewhere else "duurt wel even" and the
+		// wheel cannot land on an item before it has a tree to find it in
+		// (eigenaar, 2 sep 2026) — and the wrong half to optimise is the one
+		// you assumed.
+		const began = Date.now();
 		this.tree = await scanVault(
 			this.app,
 			parseOptionsOf(this.plugin.settings, this.wheelScope),
 			this.plugin.scanCache,
 		);
 		this.onTrace(
-			`scan: ${this.tree.root.shownTaskCount} in the round, ${this.plugin.scanCache.reused} notes reused`,
+			`scan: ${this.tree.root.shownTaskCount} in the round, ` +
+				`${this.plugin.scanCache.reused} notes reused, ${Date.now() - began}ms`,
 		);
 
 		// A section wheel's anchor is a path of titles, and a rename quietly
@@ -1073,7 +1113,31 @@ export class TaskWheelView extends ItemView {
 			new Notice("Task wheel: this wheel is already about the whole vault.");
 			return;
 		}
-		void this.plugin.openScoped(wider, this.leaf);
+		void this.plugin.openScoped(wider, this.leaf, this.leaving());
+	}
+
+	/**
+	 * What a step out should land on: what you were reading, seen from further out.
+	 *
+	 * The wider wheel holds everything the narrower one did, so the plainest
+	 * answer is also the right one — stay on the item. Landing on the blikveld
+	 * you left instead puts you on the branch that item hangs from: close enough
+	 * to look deliberate, wrong enough to confuse (eigenaar, 2 sep 2026).
+	 *
+	 * The item is named by its **line**, not by its id: an id is built from the
+	 * path down the tree, and that path is a different one in a wider wheel. The
+	 * line in the note is the same either way.
+	 *
+	 * Standing on something without a line of its own — a folder wedge — leaves
+	 * only the blikveld itself to name, and that is what it falls back to.
+	 */
+	private leaving(): Landing {
+		const laid = this.focusId === null ? undefined : this.layout?.byId.get(this.focusId);
+		const source = laid?.node.source;
+
+		return source === undefined
+			? { kind: "scope", scope: this.wheelScope }
+			: { kind: "line", path: source.path, line: source.line };
 	}
 
 	/**
@@ -1089,7 +1153,7 @@ export class TaskWheelView extends ItemView {
 		const wider = outward(this.wheelScope);
 		if (wider === null) return false;
 
-		void this.plugin.openScoped(wider, this.leaf);
+		void this.plugin.openScoped(wider, this.leaf, this.leaving());
 		return true;
 	}
 
@@ -1397,7 +1461,15 @@ export class TaskWheelView extends ItemView {
 		if (this.laidOutFor === null || !tree.byId.has(this.laidOutFor)) {
 			// Where the reader was: still in focus, else where this blikveld was
 			// left, else nowhere — see `openAround` for why in that order.
-			const kept = openAround(this.focusId, state.reading, (id) =>
+			// What opened this wheel, if it said anything, before what the wheel
+			// remembered. A step out names the blikveld you left; the editor
+			// names the task your cursor was on. Both are a sentence the reader
+			// just spoke; the memory is a sentence from last time (BC_E3_S107,
+			// S108). One-shot, so a later rescan resumes normally.
+			const asked = this.landing === null ? null : landingId(tree, this.landing);
+			this.landing = null;
+
+			const kept = openAround(asked ?? this.focusId, state.reading, (id) =>
 				tree.byId.has(id),
 			);
 

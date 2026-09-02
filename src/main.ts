@@ -1,4 +1,5 @@
 import {
+	MarkdownView,
 	type Menu,
 	moment,
 	Notice,
@@ -9,6 +10,7 @@ import {
 	type TAbstractFile,
 	type WorkspaceLeaf,
 } from "obsidian";
+import { type Landing } from "./model/landing";
 import {
 	type DateRule,
 	scopeKey,
@@ -117,14 +119,14 @@ export default class TaskWheelPlugin extends Plugin {
 		);
 
 		this.addRibbonIcon("disc-3", "Open task wheel", () => {
-			void this.activateView();
+			void this.activateView(this.cursorLanding());
 		});
 
 		this.addCommand({
 			id: "open-wheel",
 			name: "Open the wheel",
 			callback: () => {
-				void this.activateView();
+				void this.activateView(this.cursorLanding());
 			},
 		});
 
@@ -384,11 +386,23 @@ export default class TaskWheelPlugin extends Plugin {
 	 * local wheel is opened deliberately, for a round of reviewing, and the
 	 * sidebar is for the one wheel that is always there.
 	 */
-	async openScoped(scope: WheelScope, from?: WorkspaceLeaf): Promise<void> {
+	async openScoped(
+		scope: WheelScope,
+		from?: WorkspaceLeaf,
+		/** Where to come to rest, when the act of opening already said so. */
+		landing?: Landing,
+	): Promise<void> {
 		const { workspace } = this.app;
 
 		const existing = this.wheelLeafFor(scopeKey(scope));
 		if (existing !== undefined) {
+			// Already open somewhere. Revealing it does not re-read the state, so
+			// a landing has to be handed over directly — and it should be: the
+			// reader asked to go there, and "that wheel was already open" is not
+			// a reason to answer a different question.
+			if (landing !== undefined && existing.view instanceof TaskWheelView) {
+				existing.view.landOn(landing);
+			}
 			await workspace.revealLeaf(existing);
 			return;
 		}
@@ -406,7 +420,7 @@ export default class TaskWheelPlugin extends Plugin {
 			await from.setViewState({
 				type: VIEW_TYPE_TASK_WHEEL,
 				active: true,
-				state: { scope },
+				state: { scope, landing },
 			});
 			await workspace.revealLeaf(from);
 			return;
@@ -416,7 +430,7 @@ export default class TaskWheelPlugin extends Plugin {
 		await leaf.setViewState({
 			type: VIEW_TYPE_TASK_WHEEL,
 			active: true,
-			state: { scope },
+			state: { scope, landing },
 		});
 		await workspace.revealLeaf(leaf);
 	}
@@ -454,18 +468,41 @@ export default class TaskWheelPlugin extends Plugin {
 	 * somewhere else is left alone rather than moved: two wheels is a thing
 	 * someone might want, and dragging a view out from under a reader is not.
 	 */
-	async activateView(): Promise<void> {
+	async activateView(landing?: Landing): Promise<void> {
 		const { workspace } = this.app;
 
 		const existing = this.wheelLeafFor(scopeKey(VAULT_SCOPE));
 		if (existing !== undefined) {
+			if (landing !== undefined && existing.view instanceof TaskWheelView) {
+				existing.view.landOn(landing);
+			}
 			await workspace.revealLeaf(existing);
 			return;
 		}
 
 		const leaf = workspace.getLeaf("tab");
-		await leaf.setViewState({ type: VIEW_TYPE_TASK_WHEEL, active: true });
+		await leaf.setViewState({
+			type: VIEW_TYPE_TASK_WHEEL,
+			active: true,
+			state: { landing },
+		});
 		await workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * The task the cursor is sitting on, when a note is open in front.
+	 *
+	 * Asked before the wheel opens, because opening it takes the focus away
+	 * from the editor that knows the answer. Null whenever there is nothing to
+	 * point at — no editor, no file, nothing but prose under the cursor — and
+	 * then the wheel does what it always did.
+	 */
+	private cursorLanding(): Landing | undefined {
+		const editor = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const path = editor?.file?.path;
+		if (editor === null || path === undefined) return undefined;
+
+		return { kind: "line", path, line: editor.editor.getCursor().line };
 	}
 
 	/**

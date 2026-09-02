@@ -72,6 +72,8 @@ by default, or that window instead. Without Tasks the entry is simply not there
 and the setting has nothing to switch to, so the wheel keeps to what it has:
 rewrite the words, change the priority, push a week out, or open the note.
 
+![The Tasks plugin's own edit window, open over the wheel on the task under the reading wedge](docs/screenshots/tasks-modal.png)
+
 ## Working the wheel
 
 | | |
@@ -82,7 +84,7 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **In or out a ring** | ↑ ↓ |
 | **Go to an item** | Tap or click it |
 | **Open what you are on** | Double-click or double-tap it, or Enter |
-| **Back out to the wider wheel** | Backspace, or the button in the corner |
+| **Back out to the wider wheel** | Backspace, or the button in the corner — you land back on what you stepped out of |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
 | **Fold a branch away** | Space, or the button on the card |
 | **One stop in the flat order** | PageUp / PageDown |

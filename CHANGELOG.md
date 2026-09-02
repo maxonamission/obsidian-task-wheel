@@ -6,6 +6,25 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.18]
+
+Two places where the wheel threw away something you had just told it.
+
+- **Fixed**: stepping out keeps you on the item you were reading, now seen from
+  further out. It used to open the wider wheel wherever *that* round had been
+  left, which is right when you are resuming one and wrong when you are walking
+  a ladder. If what you were reading has no place out there — you were standing
+  on a wedge — you land on the blikveld you stepped out of instead.
+- **Added**: opening the wheel with your cursor on a task lands on that task.
+  A cursor three lines into a task's notes still means that task; a cursor in
+  prose means nothing in particular, and then the wheel opens where it always
+  did. It never guesses forward at a task below the cursor.
+- **Changed**: with diagnostics on, the wheel reports how long reading the vault
+  took. Nothing can land on an item before there is a tree to find it in, so
+  that number is where any waiting lives.
+- **Added**: the README shows the Tasks window open over the wheel, so the
+  integration is visible rather than only described.
+
 ## [0.1.17]
 
 One key, one rule: Enter and a double-click open what you are standing on.
