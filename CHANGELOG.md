@@ -6,6 +6,42 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.16]
+
+A keyboard round: the keys work the moment a wheel opens, Enter steps in and
+backspace steps back out, and a step lands once. Plus the Tasks plugin's own
+edit window, one menu entry away.
+
+- **Fixed**: a wheel takes the keyboard the moment it is the one in front. It
+  used to look ready and not be — a task on the reading wedge, a card beside it,
+  and nothing listening until you clicked the drawing. Only when it is the view
+  you are looking at, and never off a box you could still be typing in.
+- **Changed**: **Enter** opens a wheel over the item you are standing on — the
+  same move as double-clicking it. It used to fold the branch, which is what
+  **space** does, so the two keys did one thing while the move a mouse has had
+  no key at all. Space still folds.
+- **Added**: **backspace** steps back out to the wider wheel — the other half of
+  Enter. On the vault wheel there is nowhere wider, and there the key stays
+  unclaimed rather than saying so every time you press it. It is also a command
+  (*Out to the wider wheel*), so any other key you prefer is one you can bind
+  yourself.
+- **Fixed**: a step with the arrows now puts the focus ring down once. It used
+  to mark every stop the turn passed and then move once more when the drawing
+  re-opened around where you landed, so a single step read as a scramble. The
+  turn itself is unchanged, and dragging still follows what passes under the
+  wedge — that one is a turn you are watching, not a jump you asked for.
+- **Added**: **Edit in Tasks…** in the ⋯ menu, when the Tasks plugin is
+  installed. It opens that plugin's own edit window on the task in front of you
+  — dates, recurrence, dependencies, your own status set — and writes back what
+  you confirm, without leaving the round or opening the note. The wheel does not
+  build its own version of that window: without Tasks the entry is simply not
+  there, and its own actions stay what they were.
+- **Added**: a setting for what clicking a task's title opens — the card's own
+  box, which rewrites the words, or the Tasks window, which is the whole task.
+  Not a ninth button: the row on the card is full at eight, and the gesture that
+  reaches the editor already exists. With no Tasks window to open, the box opens
+  either way.
+
 ## [0.1.15]
 
 Nothing behaves differently — the examples got tidier and the README got

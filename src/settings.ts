@@ -244,6 +244,23 @@ export interface TaskWheelSettings
 	 */
 	arrowStep: "tasks" | "ring";
 	/**
+	 * What a click on the task's title opens.
+	 *
+	 * The wheel's own box rewrites the words and nothing else, which is the
+	 * right size for a review. The Tasks plugin's window is the whole task —
+	 * dates, recurrence, dependencies, your own status set — and it is already
+	 * installed for anyone who says "in Tasks" here.
+	 *
+	 * Not a button, deliberately: the row on the card is full at eight, and
+	 * editing the outline already sits behind one ellipsis rather than four
+	 * because of it. This costs no room at all — the gesture exists, and the
+	 * setting only says what it opens.
+	 *
+	 * Without the Tasks modal (not installed, or older than 7.21.0) this has
+	 * nothing to switch to and the inline box opens either way.
+	 */
+	editTask: "inline" | "tasks";
+	/**
 	 * Show what the wheel receives from the device.
 	 *
 	 * Off by default and not a feature: it exists because the wheel has to work
@@ -301,6 +318,7 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	wedgePalette: DEFAULT_PALETTE,
 	stepInto: "same-tab",
 	arrowStep: "tasks",
+	editTask: "inline",
 	wedgeMinimum: 15,
 	diagnostics: false,
 	language: "auto",
@@ -546,6 +564,11 @@ const ARROW_STEP_LABELS: Record<TaskWheelSettings["arrowStep"], string> = {
 	ring: "Along the ring — the next item at the same depth",
 };
 
+const EDIT_TASK_LABELS: Record<TaskWheelSettings["editTask"], string> = {
+	inline: "Here on the card — rewrite the words",
+	tasks: "In Tasks — the whole task, in that plugin's own window",
+};
+
 const WEDGE_DIVISION_LABELS: Record<TaskWheelSettings["wedgeDivision"], string> =
 	{
 		equal: "Equal — every domain the same slice",
@@ -752,6 +775,15 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							type: "dropdown",
 							key: "arrowStep",
 							options: ARROW_STEP_LABELS,
+						},
+					},
+					{
+						name: "Clicking a task's title",
+						desc: "The wheel's own box rewrites the words and leaves the rest of the line alone, which is the size a review needs. In Tasks hands the whole task to that plugin's own window instead — dates, recurrence, dependencies, your own status set — and writes back what you confirm, without leaving the round. It needs the Tasks plugin, version 7.21.0 or newer; without it the card's own box opens whatever this says. Either way the ⋯ menu offers the Tasks window when it is there, so this only decides what the quicker gesture reaches.",
+						control: {
+							type: "dropdown",
+							key: "editTask",
+							options: EDIT_TASK_LABELS,
 						},
 					},
 					{

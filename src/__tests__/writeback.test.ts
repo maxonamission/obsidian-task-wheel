@@ -4,8 +4,11 @@ import { extractBlock } from "../parse/cross-note";
 import {
 	type CarryOutcome,
 	type LineRef,
+	editThroughTasks,
+	editsThroughTasks,
 	togglesThroughTasks,
 	writeCarry,
+	writeLine,
 	writeDone,
 	writeStatus,
 } from "../vault/writeback";
@@ -60,9 +63,17 @@ const vault = {
 	},
 };
 
-/** The Tasks plugin, when a test wants one. `null` is "not installed". */
-let tasksApi: { executeToggleTaskDoneCommand: (line: string, path: string) => unknown } | null =
-	null;
+/**
+ * The Tasks plugin, when a test wants one. `null` is "not installed".
+ *
+ * Both members optional, because the two halves are installed independently in
+ * the wild: `editTaskLineModal` arrived in Tasks 7.21.0, so "the plugin is
+ * there but this method is not" is a real machine and not a hypothetical one.
+ */
+let tasksApi: {
+	executeToggleTaskDoneCommand?: (line: string, path: string) => unknown;
+	editTaskLineModal?: (line: string) => unknown;
+} | null = null;
 
 const app = {
 	vault,
@@ -365,5 +376,92 @@ describe("what a write says when it does not happen", () => {
 
 	it("says 'unchanged' when the line already says it", async () => {
 		expect(await writeStatus(app, refAt(0), " ")).toBe("unchanged");
+	});
+});
+
+/* ------------------------------------------------------------------ */
+/* Borrowing the Tasks plugin's own editor (BC_E3_S100)                */
+/* ------------------------------------------------------------------ */
+
+describe("the bridge to the Tasks edit modal", () => {
+	beforeEach(() => {
+		tasksApi = null;
+		write(SOURCE, ["- [ ] Bellen", "  - [ ] Nummer opzoeken"]);
+	});
+
+	it("is not offered when the plugin is not installed", async () => {
+		expect(editsThroughTasks(app)).toBe(false);
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBeNull();
+	});
+
+	it("is not offered by a Tasks that predates the modal", async () => {
+		// The half-installed case: toggling works, editing does not. Asking for
+		// the method rather than for a version number is what makes this a
+		// missing menu entry instead of a crash.
+		tasksApi = { executeToggleTaskDoneCommand: (line) => line };
+
+		expect(togglesThroughTasks(app)).toBe(true);
+		expect(editsThroughTasks(app)).toBe(false);
+	});
+
+	it("hands the line over and gives back what the modal says", async () => {
+		const seen: string[] = [];
+		tasksApi = {
+			editTaskLineModal: (line) => {
+				seen.push(line);
+				return Promise.resolve("- [ ] Bellen 🔼 📅 2026-09-09");
+			},
+		};
+
+		expect(editsThroughTasks(app)).toBe(true);
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBe(
+			"- [ ] Bellen 🔼 📅 2026-09-09",
+		);
+		expect(seen).toEqual(["- [ ] Bellen"]);
+	});
+
+	it("reads an empty answer as 'cancelled', not as an empty task", async () => {
+		// The modal's way of saying nothing came of it. Writing "" would empty
+		// the line — the one outcome that must never follow a cancel.
+		tasksApi = { editTaskLineModal: () => Promise.resolve("") };
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBeNull();
+
+		tasksApi = { editTaskLineModal: () => Promise.resolve("   ") };
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBeNull();
+	});
+
+	it("survives a plugin that throws, or answers with nonsense", async () => {
+		tasksApi = {
+			editTaskLineModal: () => {
+				throw new Error("apiV1 changed shape");
+			},
+		};
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBeNull();
+
+		tasksApi = { editTaskLineModal: () => Promise.resolve(42) };
+		expect(await editThroughTasks(app, "- [ ] Bellen")).toBeNull();
+	});
+
+	it("writes the line back only while it is still the line we read", async () => {
+		expect(await writeLine(app, refAt(0), "- [ ] Bellen 🔼")).toBe("written");
+		expect(linesOf(SOURCE)[0]).toBe("- [ ] Bellen 🔼");
+
+		// And the anchor still holds: an edit aimed at what the line used to say
+		// does not land on what it says now.
+		expect(
+			await writeLine(app, { path: SOURCE, line: 0, raw: "- [ ] Bellen" }, "- [x] Bellen"),
+		).toBe("stale");
+		expect(linesOf(SOURCE)[0]).toBe("- [ ] Bellen 🔼");
+	});
+
+	it("takes more than one line back, the way recurrence hands them over", async () => {
+		expect(
+			await writeLine(app, refAt(0), "- [ ] Bellen 🔁 every week\n- [x] Bellen"),
+		).toBe("written");
+		expect(linesOf(SOURCE)).toEqual([
+			"- [ ] Bellen 🔁 every week",
+			"- [x] Bellen",
+			"  - [ ] Nummer opzoeken",
+		]);
 	});
 });

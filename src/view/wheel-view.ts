@@ -27,8 +27,11 @@ import {
 	type CarryMode,
 	type LineAnchor,
 	type LineRef,
+	editThroughTasks,
+	editsThroughTasks,
 	writeDone,
 	writeInsertAfter,
+	writeLine,
 	writeMove,
 	writeMoveTo,
 	writeMoveToNew,
@@ -162,6 +165,8 @@ type Act =
 	| { kind: "defer"; scheduled?: string }
 	| { kind: "priority"; from: Priority; step: number }
 	| { kind: "text"; text: string }
+	/** A whole line, finished elsewhere — the Tasks modal hands one back. */
+	| { kind: "line"; text: string }
 	| { kind: "move"; direction: MoveDirection }
 	/** The heading or parent task a picker named, with the text it showed. */
 	| { kind: "moveTo"; target: LineAnchor }
@@ -335,7 +340,7 @@ export class TaskWheelView extends ItemView {
 		TaskWheelView.descriptions += 1;
 		const described = stage.createDiv({
 			cls: "task-wheel-sr-only",
-			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Space folds the branch you are in away.",
+			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Enter opens a wheel over the item you are on, and backspace comes back out. Space folds the branch you are in away.",
 			attr: { id: `task-wheel-canvas-description-${TaskWheelView.descriptions}` },
 		});
 
@@ -379,6 +384,7 @@ export class TaskWheelView extends ItemView {
 			onToggle: () => this.toggleFold(),
 			onSideways: (delta, other) => this.stepSideways(delta, other),
 			onActivate: (id) => this.openScopeFor(id),
+			onOut: () => this.stepOut(),
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
 			onMove: (direction) => this.moveFocused(direction),
@@ -388,8 +394,20 @@ export class TaskWheelView extends ItemView {
 
 		this.watchVault();
 		this.watchViewport();
+		this.watchActivation();
 		this.controller.setZoom(stateFor(this.plugin.settings, this.wheelScope).zoom);
 		await this.refresh();
+
+		// A wheel that looks ready and is not: a task on the wedge, a card
+		// beside it, and nothing listening until you click the drawing
+		// (eigenaar, 2 sep 2026). Deferred by a frame because a leaf is not
+		// always the active one yet at the moment its view opens — the event
+		// above catches that case, and this one catches an open into a tab that
+		// is already in front.
+		// The view's own window: a torn-off tab has one of its own.
+		this.containerEl.ownerDocument.defaultView?.requestAnimationFrame(() =>
+			this.claimKeyboard(),
+		);
 	}
 
 	async onClose(): Promise<void> {
@@ -563,6 +581,29 @@ export class TaskWheelView extends ItemView {
 		}
 
 		canvas.focus();
+	}
+
+	/**
+	 * Take the keyboard when this wheel is the one in front.
+	 *
+	 * Only then: a wheel opening in a background tab, or in the other half of a
+	 * split while you are typing in this one, must not pull the keys over. That
+	 * half of the rule is `takeBackKeyboard`, which already refuses to take
+	 * focus off anything you could still be typing in; this half asks the
+	 * workspace whether we are the view being looked at.
+	 */
+	private claimKeyboard(): void {
+		if (this.app.workspace.getActiveViewOfType(TaskWheelView) !== this) return;
+		this.takeBackKeyboard();
+	}
+
+	/** Switching to the tab a wheel is in gives the wheel its keys. */
+	private watchActivation(): void {
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				if (leaf === this.leaf) this.claimKeyboard();
+			}),
+		);
 	}
 
 	/**
@@ -798,6 +839,9 @@ export class TaskWheelView extends ItemView {
 				case "text":
 					outcome = await writeText(this.app, ref, what.text);
 					break;
+				case "line":
+					outcome = await writeLine(this.app, ref, what.text);
+					break;
 				case "move":
 					outcome = await writeMove(this.app, ref, what.direction);
 					break;
@@ -1017,6 +1061,23 @@ export class TaskWheelView extends ItemView {
 			return;
 		}
 		void this.plugin.openScoped(wider, this.leaf);
+	}
+
+	/**
+	 * The same move, for a key rather than for a button or a command.
+	 *
+	 * The difference is what happens when there is nowhere wider. A command and
+	 * a button were both asked for on purpose, so they answer — "this wheel is
+	 * already about the whole vault". A key press is cheap and repeatable, and
+	 * a notice for every stray Backspace on the vault wheel would be noise. So
+	 * this one says no by answering false, and the key stays unclaimed.
+	 */
+	private stepOut(): boolean {
+		const wider = outward(this.wheelScope);
+		if (wider === null) return false;
+
+		void this.plugin.openScoped(wider, this.leaf);
+		return true;
 	}
 
 	/**
@@ -1622,6 +1683,13 @@ export class TaskWheelView extends ItemView {
 				ref === null
 					? undefined
 					: {
+							// Only offered when the Tasks plugin is there *and* carries
+							// the modal. Asked per draw rather than remembered: a plugin
+							// can be switched on while a wheel stands open.
+							editInTasks: editsThroughTasks(this.app)
+								? () => void this.editInTasks(ref, laid)
+								: undefined,
+							titleOpensTasks: this.plugin.settings.editTask === "tasks",
 							rename: (text) => {
 								void this.act({ kind: "text", text }, ref, {
 									// The label after the edit is the *parsed* description, not
@@ -1827,6 +1895,47 @@ export class TaskWheelView extends ItemView {
 	}
 
 	/**
+	 * Hand the line to the Tasks plugin's own modal, and write back what returns.
+	 *
+	 * The round is not left: no note is opened, no editor gets the cursor. That
+	 * is the whole reason this goes through the API rather than through Tasks'
+	 * own command, which works on wherever the cursor happens to be and would
+	 * therefore mean opening the note first (and losing the wedge you were on).
+	 *
+	 * **The indentation is ours, not the modal's.** A subtask is a task with two
+	 * spaces in front of it, and those spaces are its place in the outline — the
+	 * modal edits a task, and has no reason to know that this one is a step of
+	 * something above it. So the line goes over without its indentation and
+	 * comes back wearing it again. Getting this wrong would not look like a bug:
+	 * the task would simply have become a sibling of its own parent.
+	 */
+	private async editInTasks(ref: LineRef, laid: LaidOutNode): Promise<void> {
+		const indent = ref.raw.slice(0, ref.raw.length - ref.raw.trimStart().length);
+
+		const edited = await editThroughTasks(this.app, ref.raw.trimStart());
+		// Cancelled, or the plugin declined. Either way the note is untouched and
+		// there is nothing to say about it.
+		if (edited === null) return;
+
+		const lines = edited.split("\n").map((line) => indent + line.trimStart());
+		// Opening the modal and pressing OK without changing anything is not an
+		// edit. Writing it anyway would be harmless but would claim, in a notice,
+		// that something happened.
+		if (lines.join("\n") === ref.raw) return;
+
+		await this.act({ kind: "line", text: lines.join("\n") }, ref, {
+			// Same reason as the rename above: the wheel's label is the *parsed*
+			// description, and the modal may well have moved a date or a tag out
+			// of the words. Only the real parser can say what it will be called.
+			rename: {
+				path: ref.path,
+				from: laid.node.label,
+				to: labelOfLine(lines[0] ?? ""),
+			},
+		});
+	}
+
+	/**
 	 * Ask for the words, then write the line.
 	 *
 	 * A prompt rather than an empty line to fill in: an empty task written to the
@@ -1912,6 +2021,12 @@ export class TaskWheelView extends ItemView {
 
 		if (id === this.laidOutFor) return;
 
+		// Before the re-layout, not after: the layout is adopted with `focusId`
+		// as the stop to keep, so leaving it on where we came *from* would put
+		// the rotation back there — a visible rewind at the end of every quiet
+		// turn (BC_E3_S104). The controller reports the same id straight after
+		// this, and finds nothing left to say.
+		this.focusId = id;
 		this.laidOutFor = id;
 		this.relayout();
 	}
@@ -2316,6 +2431,18 @@ function labelAfter(text: string): string {
 	const parsed = parseTaskLine(`- [ ] ${text.trim()}`);
 	const label = parsed?.fields.description ?? "";
 	return label.length > 0 ? label : text.trim();
+}
+
+/**
+ * The same question, of a finished line rather than of the words for one.
+ *
+ * `labelAfter` builds the checkbox itself because it is handed a description;
+ * what comes back from the Tasks modal is already a whole line, checkbox and
+ * fields and all, so building another one around it would ask the parser about
+ * the wrong text.
+ */
+function labelOfLine(line: string): string {
+	return parseTaskLine(line.trim())?.fields.description ?? "";
 }
 
 /**

@@ -96,7 +96,7 @@ export interface WheelControllerOptions {
 	 * whole wheel. Doing that on every intermediate frame would be madness.
 	 */
 	onSettle?: (detent: Detent | null) => void;
-	/** Space or Enter on the focused item: fold its branch away, or unfold it. */
+	/** Space on the focused item: fold its branch away, or unfold it. */
 	onToggle?: () => void;
 	/**
 	 * One step sideways, answered from the tree rather than from the drawing.
@@ -116,9 +116,17 @@ export interface WheelControllerOptions {
 	 *
 	 * One tap goes there; a second says "and now show me *this*". Both a
 	 * double-click and a double-tap arrive here, because a mouse sends the same
-	 * two press-release pairs a finger does.
+	 * two press-release pairs a finger does — and so does Enter, which is the
+	 * same move made from the keyboard on the stop you are already on.
 	 */
 	onActivate?: (id: string) => void;
+	/**
+	 * Step out to the wider wheel — the way back from `onActivate`.
+	 *
+	 * Answers whether there *was* anywhere wider. A wheel over the whole vault
+	 * has nowhere to go, and then the key is not ours to take.
+	 */
+	onOut?: () => boolean;
 	/** The reader closed in on the wheel, or pulled back out. */
 	onZoom?: (zoom: number) => void;
 	/**
@@ -174,6 +182,16 @@ interface Tween {
 	duration: number;
 	/** The stop being aimed at, so the landing is exact. */
 	index: number;
+	/**
+	 * Whether the stops passed on the way are reported.
+	 *
+	 * A drag is a turn: the reader watches the wheel move and the card follows
+	 * what would come to rest under the wedge. A keystroke is a *jump* to an
+	 * item chosen by name — nothing between here and there was asked for, and
+	 * reporting it walks the focus ring across every branch in between
+	 * (eigenaar, 2 sep 2026).
+	 */
+	quiet: boolean;
 }
 
 /** Which kind of event started the gesture that is running. */
@@ -353,9 +371,9 @@ export class WheelController {
 	 * not somewhere turning puts them, because there is nothing to do there
 	 * (BC_E3_S67).
 	 */
-	step(delta: number): void {
+	step(delta: number, quiet = false): void {
 		if (this.detents.length === 0) return;
-		this.snapTo(stepTurnStop(this.detents, this.index, delta));
+		this.snapTo(stepTurnStop(this.detents, this.index, delta), quiet);
 	}
 
 	/**
@@ -378,12 +396,14 @@ export class WheelController {
 		const at = indexOfId(this.detents, id);
 		if (at < 0) return false;
 
-		this.snapTo(at);
+		// Quiet: the caller named where it wants to be, so the stops in between
+		// are scenery and not stops it asked about.
+		this.snapTo(at, true);
 		return true;
 	}
 
 	/** Go to a stop by its position in the turn order. */
-	snapTo(index: number): void {
+	snapTo(index: number, quiet = false): void {
 		const detent = this.detents[index];
 		if (detent === undefined) return;
 
@@ -405,6 +425,7 @@ export class WheelController {
 			start: null,
 			duration: snapDuration(to - this.rotation),
 			index,
+			quiet,
 		};
 		this.requestFrame();
 	}
@@ -904,32 +925,57 @@ export class WheelController {
 			case "ArrowLeft":
 				this.walkRing(-1, event.shiftKey);
 				break;
+			// Every one of these names where it wants to be, so all of them turn
+			// quietly: what lies between here and there was not asked about.
 			case "ArrowUp":
-				this.snapTo(acrossRings(this.detents, this.index, true));
+				this.snapTo(acrossRings(this.detents, this.index, true), true);
 				break;
 			case "ArrowDown":
-				this.snapTo(acrossRings(this.detents, this.index, false));
+				this.snapTo(acrossRings(this.detents, this.index, false), true);
 				break;
 			// The flat order is what a full round is made of, so it keeps a key of
 			// its own: this is the walk that cannot skip anything.
 			case "PageDown":
-				this.step(1);
+				this.step(1, true);
 				break;
 			case "PageUp":
-				this.step(-1);
+				this.step(-1, true);
 				break;
 			// The ends of the *turn* order, so they agree with what turning does.
 			case "Home":
-				this.snapTo(turnStops(this.detents)[0]?.index ?? 0);
+				this.snapTo(turnStops(this.detents)[0]?.index ?? 0, true);
 				break;
 			case "End": {
 				const stops = turnStops(this.detents);
-				this.snapTo(stops[stops.length - 1]?.index ?? 0);
+				this.snapTo(stops[stops.length - 1]?.index ?? 0, true);
 				break;
 			}
 			case " ":
-			case "Enter":
 				this.options.onToggle?.();
+				break;
+			// Enter is the keyboard's double-click, not a second name for space.
+			// It used to fold, which made two keys do one thing and left the
+			// move a mouse has — "open a wheel over just this" — with no key at
+			// all (eigenaar, 2 sep 2026). The id comes from the stop we are on,
+			// where the pointer path takes it from what was under the finger:
+			// same move, two ways of saying which item.
+			case "Enter": {
+				const here = this.detents[this.index];
+				if (here === undefined) return;
+				this.options.onActivate?.(here.id);
+				break;
+			}
+			// The other half of Enter. Stepping in had a key and stepping out had
+			// only the button in the corner, which means reaching for the mouse
+			// halfway through a keyboard round (eigenaar, 2 sep 2026). Deliberately
+			// not a setting: a pair you can configure apart is not a pair any more,
+			// and the way out is already a command, so Obsidian's own key bindings
+			// are the place to move it.
+			case "Backspace":
+				// Only ours if there is somewhere wider to go. On the vault wheel
+				// there is not, and a key that swallows itself to do nothing is
+				// worse than one that never claimed the press.
+				if (this.options.onOut?.() !== true) return;
 				break;
 			case "+":
 			case "=":
@@ -990,7 +1036,7 @@ export class WheelController {
 		this.apply(tweenAt(tween.from, tween.to, progress));
 
 		if (progress < 1) {
-			this.report(nearestTurnStop(this.detents, this.rotation));
+			if (!tween.quiet) this.report(nearestTurnStop(this.detents, this.rotation));
 			this.requestFrame();
 			return;
 		}
@@ -1000,8 +1046,17 @@ export class WheelController {
 		// the second of them has to be able to say so.
 		this.tween = null;
 		const landed = this.detents[tween.index] ?? null;
-		this.report(landed);
+
+		// Settle first, report second — the one order in which the focus ring is
+		// only ever drawn once. Settling re-opens the fisheye around where we
+		// landed, and until that has happened the destination is still drawn as
+		// the *old* fisheye saw it: squeezed onto the silhouette at the end of a
+		// neighbouring branch. Marking it there and moving it a frame later is
+		// the restlessness the owner reported (2 sep 2026). Reporting after the
+		// re-layout costs nothing when nothing moved, because `report` is a
+		// no-op for a stop that is already the one reported.
 		this.options.onSettle?.(landed);
+		this.report(landed);
 	}
 
 	private apply(rotation: number): void {

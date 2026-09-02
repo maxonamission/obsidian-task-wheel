@@ -152,6 +152,22 @@ export async function writeText(
 }
 
 /**
+ * Replace the whole line, rather than the words on it.
+ *
+ * `writeText` above keeps the checkbox and the fields and swaps the
+ * description; this one takes a finished line from somewhere else — the Tasks
+ * modal — and puts it down as it stands. Same anchor check either way: what is
+ * written is only written if the line is still the one we read.
+ */
+export async function writeLine(
+	app: App,
+	ref: LineRef,
+	text: string,
+): Promise<WriteOutcome> {
+	return replace(app, ref, text);
+}
+
+/**
  * Move a task, with everything under it, to the end of another section.
  *
  * The heading is named by anchor rather than by line number: it was chosen from
@@ -437,20 +453,79 @@ function tasksToggle(app: App, line: string, path: string): string | null {
 }
 
 type ToggleFn = (line: string, path: string) => unknown;
+type EditFn = (line: string) => unknown;
 
-function api(app: App): ToggleFn | null {
+/**
+ * What we use of the Tasks plugin's public API, as we hope to find it.
+ *
+ * Every member optional, on purpose: this is a description of somebody else's
+ * object, not a contract we can hold them to. `editTaskLineModal` arrived in
+ * Tasks 7.21.0, so a perfectly healthy installation may not have it — which is
+ * why every accessor below asks whether the function is *there* rather than
+ * asking the plugin how old it is. A version string is a promise about a
+ * shape; the shape itself is the thing we can actually check.
+ */
+interface TasksApiV1 {
+	executeToggleTaskDoneCommand?: ToggleFn;
+	editTaskLineModal?: EditFn;
+}
+
+function tasksApi(app: App): TasksApiV1 | null {
 	const plugins = (
 		app as unknown as {
 			plugins?: { plugins?: Record<string, unknown> };
 		}
 	).plugins?.plugins;
 
-	const tasks = plugins?.[TASKS_PLUGIN_ID] as
-		| { apiV1?: { executeToggleTaskDoneCommand?: ToggleFn } }
-		| undefined;
+	const tasks = plugins?.[TASKS_PLUGIN_ID] as { apiV1?: TasksApiV1 } | undefined;
+	return tasks?.apiV1 ?? null;
+}
 
-	const toggle = tasks?.apiV1?.executeToggleTaskDoneCommand;
-	return typeof toggle === "function" ? toggle.bind(tasks?.apiV1) : null;
+function api(app: App): ToggleFn | null {
+	const found = tasksApi(app);
+	const toggle = found?.executeToggleTaskDoneCommand;
+	return typeof toggle === "function" ? toggle.bind(found) : null;
+}
+
+function editApi(app: App): EditFn | null {
+	const found = tasksApi(app);
+	const edit = found?.editTaskLineModal;
+	return typeof edit === "function" ? edit.bind(found) : null;
+}
+
+/** Whether the Tasks plugin offers the modal that edits a whole task line. */
+export function editsThroughTasks(app: App): boolean {
+	return editApi(app) !== null;
+}
+
+/**
+ * Open the Tasks plugin's own edit modal on a line, and hand back what it says.
+ *
+ * The one thing the wheel deliberately does not build. Its own affordances are
+ * the reduced set a review needs — tick off, push a week out, raise a priority,
+ * rewrite the words — and "no full task editor" is a non-goal we hold to
+ * (kaderdocument §10). Borrowing the editor that is already installed costs us
+ * no scope, because it is not ours: dates, recurrence, dependencies and the
+ * user's own status set all come from the plugin that owns them.
+ *
+ * Null means "nothing to write": the plugin is not there, the reader cancelled,
+ * or the call went wrong. All three end the same way — the note is untouched —
+ * so they do not need telling apart at the call site.
+ */
+export async function editThroughTasks(
+	app: App,
+	line: string,
+): Promise<string | null> {
+	const edit = editApi(app);
+	if (edit === null) return null;
+
+	try {
+		const result = await edit(line);
+		return typeof result === "string" && result.trim().length > 0 ? result : null;
+	} catch (error) {
+		console.error("Task Wheel: the Tasks plugin refused the edit", error);
+		return null;
+	}
 }
 
 /**

@@ -114,6 +114,24 @@ export interface CarryActions {
 }
 
 export interface OutlineActions {
+	/**
+	 * Hand the whole line to the Tasks plugin's own edit modal.
+	 *
+	 * Absent when that plugin is not installed, or is older than the version
+	 * that offers the modal — and then the menu simply does not name it. The
+	 * wheel builds no stand-in: its own actions plus `rename` below are the
+	 * reduced set on purpose, and "open the note" is the honest way out for
+	 * anything bigger.
+	 */
+	editInTasks?: () => void;
+	/**
+	 * Whether clicking the title opens `editInTasks` instead of the box below.
+	 *
+	 * The reader's setting, but only a wish: with no modal to open there is
+	 * nothing to honour, and the box opens either way. The card decides that by
+	 * asking whether `editInTasks` is there, so the two never disagree.
+	 */
+	titleOpensTasks?: boolean;
 	/** Rewrite what the task says. */
 	rename: (text: string) => void;
 	/** Add a task below this one, or under it. */
@@ -148,6 +166,20 @@ export interface SectionActions {
 	addSubheading: () => void;
 	/** Open a wheel over this section — the menu twin of the double tap (BC_E3_S64). */
 	openWheel?: () => void;
+}
+
+/**
+ * Which of the two a click on the task's title opens.
+ *
+ * The reader's wish *and* whether it can be granted, in one place. Asked here
+ * rather than in the settings so that "in Tasks" on a machine without the modal
+ * quietly means "here on the card" instead of meaning nothing at all — a
+ * setting that points at something absent should degrade, not break.
+ */
+export function titleOpens(outline?: OutlineActions): "tasks" | "inline" {
+	return outline?.titleOpensTasks === true && outline.editInTasks !== undefined
+		? "tasks"
+		: "inline";
 }
 
 export function renderReadingCard(
@@ -257,6 +289,8 @@ function renderTitle(
 	const outline = actions.outline;
 	const editable = outline !== undefined && focus.node.fields !== undefined;
 
+	const opensTasks = editable && titleOpens(outline) === "tasks";
+
 	const title = parent.createEl("p", {
 		// An array, never a space-separated string: `cls` is handed to the class
 		// list one token at a time, and a token holding a space is refused.
@@ -264,7 +298,7 @@ function renderTitle(
 			? ["task-wheel-card-title", "is-editable"]
 			: ["task-wheel-card-title"],
 		attr: editable
-			? { title: "Click to rename", role: "button", tabindex: "0" }
+			? { title: opensTasks ? "Click to edit in Tasks" : "Click to rename", role: "button", tabindex: "0" }
 			: {},
 	});
 
@@ -322,15 +356,23 @@ function renderTitle(
 		input.addEventListener("blur", () => finish(true));
 	};
 
+	// One gesture, two things it can open. The keyboard follows the click
+	// rather than keeping a route of its own: pressing Enter on a title is the
+	// same act as clicking it, and two answers to one act is how a surface
+	// starts to feel arbitrary.
+	const open = opensTasks && outline.editInTasks !== undefined
+		? outline.editInTasks
+		: edit;
+
 	title.addEventListener("click", (event) => {
 		event.preventDefault();
 		event.stopPropagation();
-		edit();
+		open();
 	});
 	title.addEventListener("keydown", (event) => {
 		if (event.key !== "Enter" && event.key !== "F2") return;
 		event.preventDefault();
-		edit();
+		open();
 	});
 }
 
@@ -769,6 +811,18 @@ function openOutlineMenu(
 	carry?: CarryActions,
 ): void {
 	const menu = new Menu();
+
+	// First, and behind a separator from the rest: everything below this is
+	// about the outline *around* the task, and this one is about the task
+	// itself. The ellipsis in its title is Obsidian's own convention for "this
+	// opens something" — which here is somebody else's window.
+	if (outline.editInTasks !== undefined) {
+		const edit = outline.editInTasks;
+		menu.addItem((item) =>
+			item.setTitle("Edit in Tasks…").setIcon("pencil").onClick(() => edit()),
+		);
+		menu.addSeparator();
+	}
 
 	menu.addItem((item) =>
 		item

@@ -62,9 +62,15 @@ then headings in the note, then the note as a project, then the folder as a
 domain. The domain can also come from a tag namespace such as `#domein/werk` —
 that is a setting.
 
-The Tasks plugin is not required. When it *is* installed, ticking a task off
-goes through it, so recurring tasks roll over exactly as Tasks itself would do
-it.
+The Tasks plugin is not required. When it *is* installed, the wheel borrows two
+things from it: ticking a task off goes through it, so recurring tasks roll over
+exactly as Tasks itself would do it, and the ⋯ menu offers **Edit in Tasks…**,
+which opens that plugin's own edit window on the task in front of you —
+dates, recurrence, dependencies, your own status set. A setting can send the
+quicker gesture there too: *Clicking a task's title* opens the wheel's own box
+by default, or that window instead. Without Tasks the entry is simply not there
+and the setting has nothing to switch to, so the wheel keeps to what it has:
+rewrite the words, change the priority, push a week out, or open the note.
 
 ## Working the wheel
 
@@ -75,6 +81,8 @@ it.
 | **…the other way of stepping sideways** | Shift + ← → |
 | **In or out a ring** | ↑ ↓ |
 | **Go to an item** | Tap or click it |
+| **Open a wheel over just this item** | Double-click or double-tap it, or Enter |
+| **Back out to the wider wheel** | Backspace, or the button in the corner |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
 | **Fold a branch away** | Space, or the button on the card |
 | **One stop in the flat order** | PageUp / PageDown |
