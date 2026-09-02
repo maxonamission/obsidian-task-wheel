@@ -6,6 +6,25 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.17]
+
+One key, one rule: Enter and a double-click open what you are standing on.
+
+- **Fixed**: a heading opens a wheel over **its own section**, wherever you meet
+  it. From a wheel over the whole vault or a folder it used to open the whole
+  note instead — a rung of the ladder skipped, because the rule that turns a
+  heading into a section only applied inside a wheel that was already about a
+  note.
+
+- **Changed**: Enter and a double-click now open **what the item is**. A folder,
+  a note or a heading has an inside, so opening one is a wheel over it, exactly
+  as before. A task has no inside — so it opens for editing instead, by the same
+  setting that decides what clicking its title opens. It used to open a wheel
+  over the note the task lives in, which is not the task; and in a wheel over
+  that note already it did nothing at all but say so. The key and the mouse
+  change together, deliberately: the point of giving Enter this move in 0.1.16
+  was that the keyboard should not be poorer than the mouse.
+
 ## [0.1.16]
 
 A keyboard round: the keys work the moment a wheel opens, Enter steps in and

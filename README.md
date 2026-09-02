@@ -81,7 +81,7 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **…the other way of stepping sideways** | Shift + ← → |
 | **In or out a ring** | ↑ ↓ |
 | **Go to an item** | Tap or click it |
-| **Open a wheel over just this item** | Double-click or double-tap it, or Enter |
+| **Open what you are on** | Double-click or double-tap it, or Enter |
 | **Back out to the wider wheel** | Backspace, or the button in the corner |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
 | **Fold a branch away** | Space, or the button on the card |

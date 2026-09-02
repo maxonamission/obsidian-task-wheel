@@ -182,12 +182,27 @@ export function titleOpens(outline?: OutlineActions): "tasks" | "inline" {
 		: "inline";
 }
 
+/**
+ * What the card hands back to whoever drew it.
+ *
+ * One entry, and it exists because the same act now has two ways in. Clicking
+ * the title opens the editor; so does Enter on the wheel, and that one arrives
+ * from outside the card. Rather than have the view reach into the DOM and
+ * pretend to click, the card says *here is how you open my editor* — and there
+ * stays exactly one place that decides what "the editor" means (BC_E3_S105).
+ *
+ * Absent on an item that cannot be edited: a heading, a folder, an empty card.
+ */
+export interface CardHandle {
+	editTitle?: () => void;
+}
+
 export function renderReadingCard(
 	parent: HTMLElement,
 	layout: WheelLayout,
 	focus: LaidOutNode | null,
 	actions: CardActions = {},
-): void {
+): CardHandle {
 	parent.empty();
 	parent.addClass("task-wheel-card");
 
@@ -196,7 +211,7 @@ export function renderReadingCard(
 			cls: "task-wheel-card-empty",
 			text: "Nothing under the reading wedge.",
 		});
-		return;
+		return {};
 	}
 
 	// One item at a time, beside the reading matter rather than in the action
@@ -214,7 +229,7 @@ export function renderReadingCard(
 
 	renderTrail(body, layout, focus);
 
-	renderTitle(body, focus, actions);
+	const editTitle = renderTitle(body, focus, actions);
 
 	const fields = focus.node.fields;
 	if (fields !== undefined) renderChips(body, focus, fields, layout.palette);
@@ -227,6 +242,8 @@ export function renderReadingCard(
 	if (focus.hiddenCount > 0) renderStump(body, focus, layout.showsFinished);
 	else renderSource(body, focus);
 	renderActions(parent, layout, focus, actions);
+
+	return editTitle === null ? {} : { editTitle };
 }
 
 /**
@@ -281,11 +298,12 @@ function renderSteps(parent: HTMLElement, actions: CardActions): void {
  * The card is a fixed frame, so the input takes exactly the space the title had
  * and the drawing underneath does not move.
  */
+/** Answers how to open this title's editor, or null when it has none. */
 function renderTitle(
 	parent: HTMLElement,
 	focus: LaidOutNode,
 	actions: CardActions,
-): void {
+): (() => void) | null {
 	const outline = actions.outline;
 	const editable = outline !== undefined && focus.node.fields !== undefined;
 
@@ -305,7 +323,7 @@ function renderTitle(
 	renderLabel(title, focus, actions);
 	offerToUnfold(parent, title);
 
-	if (!editable || outline === undefined) return;
+	if (!editable || outline === undefined) return null;
 
 	const edit = (): void => {
 		// Built on the parent and then swapped in, so the card's own helper does
@@ -374,6 +392,8 @@ function renderTitle(
 		event.preventDefault();
 		open();
 	});
+
+	return open;
 }
 
 /**

@@ -85,6 +85,36 @@ describe("what a second tap opens", () => {
 		});
 	});
 
+	it("makes a section wheel of that same heading from anywhere", () => {
+		// The rung that was being skipped: in a vault or folder wheel a heading
+		// fell through to "a wheel over the note", so an `# H1` opened the whole
+		// document instead of its own section (eigenaar, 2 sep 2026). A heading
+		// is the same thing wherever you meet it.
+		const answer = {
+			kind: "section",
+			path: "Werk/Plan.md",
+			heading: ["Werk", "Klanten"],
+		};
+
+		expect(scopeFor(HEADING, VAULT_SCOPE, "folder")).toEqual(answer);
+		expect(scopeFor(HEADING, { kind: "folder", path: "Werk" }, "folder")).toEqual(
+			answer,
+		);
+		expect(
+			scopeFor(HEADING, { kind: "section", path: "Werk/Plan.md", heading: ["Werk"] }, "folder"),
+		).toEqual(answer);
+	});
+
+	it("refuses a heading whose own line was never found", () => {
+		// Not "above the first heading" — that is a sentence about the bucket,
+		// and this is a heading that anchors nothing.
+		const loose: TappedNode = { kind: "group", depth: 2, label: "Klanten" };
+
+		expect(scopeFor(loose, VAULT_SCOPE, "folder")).toEqual({
+			refused: "no-source",
+		});
+	});
+
 	it("refuses the bucket above the first heading", () => {
 		const bucket: TappedNode = {
 			kind: "domain",

@@ -42,6 +42,24 @@ export type NoScope =
 	/** Nothing on this item says where it came from. */
 	| { refused: "no-source" };
 
+/**
+ * What activating an item opens: its inside, or itself.
+ *
+ * A folder, a note, a heading and the root all *contain* something, so opening
+ * one means a wheel over it — the ladder `scopeFor` below works out. A task
+ * contains nothing. Opening a task used to mean a wheel over the note it lives
+ * in, which is not the task, and inside a wheel over that note already it was a
+ * key that answered "this wheel is already about that" and did nothing else
+ * (eigenaar, 2 sep 2026). So a task opens for editing.
+ *
+ * A rule of one line, kept here rather than in the view for the reason the
+ * whole module exists: it is a rule, not a drawing, and adding a sixth kind
+ * should make a test ask what it opens.
+ */
+export function activates(kind: NodeKind): "edit" | "wheel" {
+	return kind === "task" ? "edit" : "wheel";
+}
+
 export function scopeFor(
 	node: TappedNode,
 	within: WheelScope,
@@ -49,14 +67,34 @@ export function scopeFor(
 ): WheelScope | NoScope {
 	const here = within.kind;
 
-	// In a wheel over one note or one section the wedges and rings *are*
-	// headings, so "a wheel over it" means the section. The source's heading
-	// path is absolute, so the anchor is complete whatever depth this wheel
-	// already sits at.
-	if (
-		(here === "note" || here === "section") &&
-		(node.kind === "group" || (node.depth === 1 && node.kind === "domain"))
-	) {
+	// A heading is a section, wherever you happen to be standing when you open
+	// it. The source's heading path is absolute, so the anchor is complete
+	// whatever depth this wheel already sits at.
+	//
+	// This used to be conditioned on the wheel already being over a note or a
+	// section, and in a vault or folder wheel a heading therefore fell through
+	// to the note-by-source case at the bottom: opening an `# H1` gave you the
+	// whole note instead of that section, silently skipping a rung of the
+	// ladder (eigenaar, 2 sep 2026). A heading is the same thing in every
+	// wheel; only the *wedge* case below depends on where you are.
+	if (node.kind === "group") {
+		const source = node.source;
+		if (source !== undefined) {
+			return {
+				kind: "section",
+				path: source.path,
+				heading: [...source.headingPath, node.label],
+			};
+		}
+		// A heading whose own line was never found anchors nothing. It falls
+		// through to the no-source refusal at the bottom, which says just that
+		// — rather than to "above the first heading", which would be a sentence
+		// about a different thing.
+	}
+
+	// In a wheel over one note or one section the top ring *is* headings, so a
+	// wedge there means the section it names.
+	if ((here === "note" || here === "section") && node.depth === 1 && node.kind === "domain") {
 		const source = node.source;
 		// A wedge without a heading line is the bucket for tasks above the first
 		// heading — there is no section to open for that.

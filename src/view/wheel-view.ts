@@ -59,7 +59,7 @@ import {
 	landAfter,
 } from "../model/carry";
 import { aWeekOut, today } from "../model/dates";
-import { isRefused, type NoScope, scopeFor } from "../model/scope";
+import { activates, isRefused, type NoScope, scopeFor } from "../model/scope";
 import { paneChange } from "../model/detour";
 import { openAround } from "../model/resume";
 import { inScope } from "../parse/domain";
@@ -80,7 +80,12 @@ import {
 	visibleBudgetOf,
 } from "../settings";
 import { WheelRenderer } from "./render-wheel";
-import { type CardActions, foldTarget, renderReadingCard } from "./reading-card";
+import {
+	type CardActions,
+	type CardHandle,
+	foldTarget,
+	renderReadingCard,
+} from "./reading-card";
 import { renderLegend } from "./legend";
 import type { HelpAction, HelpRoundState } from "./help-content";
 import { renderFilterPanel } from "./filter-panel";
@@ -214,6 +219,14 @@ export class TaskWheelView extends ItemView {
 	private lastViewport = "";
 	/** Id the current drawing was laid out around. */
 	private laidOutFor: string | null = null;
+	/**
+	 * A task the reader asked to edit, waiting for the card to reach it.
+	 *
+	 * Cleared as soon as the card is drawn for it, and cleared again when the
+	 * wheel settles on anything else — a request that never arrived must not
+	 * spring open the next time that item happens to come round.
+	 */
+	private editWhenShown: string | null = null;
 
 	private cardEl: HTMLElement | null = null;
 	private canvasEl: HTMLElement | null = null;
@@ -340,7 +353,7 @@ export class TaskWheelView extends ItemView {
 		TaskWheelView.descriptions += 1;
 		const described = stage.createDiv({
 			cls: "task-wheel-sr-only",
-			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Enter opens a wheel over the item you are on, and backspace comes back out. Space folds the branch you are in away.",
+			text: "Task wheel. Drag or scroll to turn through every item in order. Left and right move sideways along the ring you are on, wherever the next item on it lives; up moves out to a child, down moves in to the parent. Tap an item to bring it under the reading wedge. Enter opens what you are on: a wheel over a folder, note or heading, or the task itself for editing. Backspace comes back out. Space folds the branch you are in away.",
 			attr: { id: `task-wheel-canvas-description-${TaskWheelView.descriptions}` },
 		});
 
@@ -383,7 +396,7 @@ export class TaskWheelView extends ItemView {
 			onSettle: (detent) => this.onSettle(detent),
 			onToggle: () => this.toggleFold(),
 			onSideways: (delta, other) => this.stepSideways(delta, other),
-			onActivate: (id) => this.openScopeFor(id),
+			onActivate: (id) => this.activate(id),
 			onOut: () => this.stepOut(),
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
@@ -1599,10 +1612,87 @@ export class TaskWheelView extends ItemView {
 		const { cardEl, layout } = this;
 		if (cardEl === null || layout === null) return;
 
-		const laid = detent === null ? null : (layout.byId.get(detent.id) ?? null);
-		this.safely("drawing the card", () =>
-			renderReadingCard(cardEl, layout, laid, this.actionsFor(laid)),
-		);
+		this.drawCard(detent?.id ?? null);
+	}
+
+	/**
+	 * Draw the card for one item, and open its editor if that was asked for.
+	 *
+	 * Split out of `onFocus` because the same drawing is now wanted from two
+	 * places: the wheel arriving somewhere, and a request to edit the item it
+	 * is already on.
+	 */
+	private drawCard(id: string | null): void {
+		const { cardEl, layout } = this;
+		if (cardEl === null || layout === null) return;
+
+		const laid = id === null ? null : (layout.byId.get(id) ?? null);
+		let card: CardHandle = {};
+		this.safely("drawing the card", () => {
+			card = renderReadingCard(cardEl, layout, laid, this.actionsFor(laid));
+		});
+
+		// A task asked to be edited, and the card that can do it has only now
+		// been drawn for it. The wait is what makes a double-click work: the
+		// first press turns the wheel there and the second says "open it", and
+		// between those the card is still showing where you came from.
+		if (this.editWhenShown !== null && this.editWhenShown === id) {
+			this.editWhenShown = null;
+			card.editTitle?.();
+		}
+	}
+
+	/**
+	 * Open what this item **is** — the one rule behind Enter and a double-click.
+	 *
+	 * A folder, a note, a heading: those have an inside, so opening one means a
+	 * wheel over it, and that is the ladder the wheel has always walked. A task
+	 * has no inside. Opening a task used to mean "a wheel over the note it
+	 * lives in", which is not the task and, in a wheel over that note already,
+	 * was a key that answered *this wheel is already about that* and did
+	 * nothing else (eigenaar, 2 sep 2026).
+	 *
+	 * So a task opens for editing instead, by the same setting that decides
+	 * what clicking its title opens — one rule for "what does editing open",
+	 * and it works with or without the Tasks plugin.
+	 *
+	 * Enter and the double-click come through here together, deliberately. The
+	 * whole point of BC_E3_S99 was that the keyboard should not be poorer than
+	 * the mouse; letting only one of them learn this would put that back.
+	 */
+	private activate(id: string): void {
+		const laid = this.layout?.byId.get(id);
+		if (laid === undefined) return;
+
+		if (activates(laid.node.kind) === "wheel") {
+			this.openScopeFor(id);
+			return;
+		}
+
+		const ref = lineRefOf(laid);
+		if (ref === null) {
+			new Notice("Task wheel: that task has no line to edit.");
+			return;
+		}
+
+		if (
+			this.plugin.settings.editTask === "tasks" &&
+			editsThroughTasks(this.app)
+		) {
+			void this.editInTasks(ref, laid);
+			return;
+		}
+
+		// The card's own box belongs to the item under the wedge, so say where
+		// we want to be and let the card open it when it gets there. Already
+		// there is the common case — Enter always acts on the stop you are on —
+		// and then this is one redraw away rather than a wait.
+		this.editWhenShown = id;
+		if (this.focusId === id) {
+			this.drawCard(id);
+			return;
+		}
+		this.controller?.goTo(id);
 	}
 
 	/**
@@ -2005,6 +2095,12 @@ export class TaskWheelView extends ItemView {
 
 		const id = detent?.id ?? null;
 		if (id === null) return;
+
+		// A request to edit that the wheel never reached. Dropping it here is
+		// what keeps it from springing open the next time that item comes round.
+		if (this.editWhenShown !== null && this.editWhenShown !== id) {
+			this.editWhenShown = null;
+		}
 
 		markSeen(this.roundHost(), id);
 

@@ -200,9 +200,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "A ring outwards, to a child.",
 		keyIn: "A ring inwards, to the parent.",
 		keyTap:
-			"Brings it under the wedge. A second tap opens a wheel over just that.",
+			"Brings it under the wedge. A second tap opens it — a wheel over a heading or note, or the task itself, to edit.",
 		keyOpen:
-			"Opens a wheel over the stop you are on — the same move as a double-click.",
+			"Opens what you are on: a wheel over a folder, note or heading — or the task itself, to edit. The same move as a double-click.",
 		keyBack: "Back out to the wider wheel — vault, folder, note, section.",
 		keyFold: "Folds this branch away, or opens it again.",
 		keyZoom: "Zoom, or pinch on a touchscreen.",
@@ -290,9 +290,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Een ring naar buiten, naar een kind.",
 		keyIn: "Een ring naar binnen, naar de ouder.",
 		keyTap:
-			"Brengt het onder de leeswig. Een tweede tik opent een wiel over precies dat.",
+			"Brengt het onder de leeswig. Een tweede tik opent het — een wiel over een kop of notitie, of de taak zelf, om te bewerken.",
 		keyOpen:
-			"Opent een wiel over de stand waar je staat — dezelfde beweging als een dubbelklik.",
+			"Opent waar je op staat: een wiel over een map, notitie of kop — of de taak zelf, om te bewerken. Dezelfde beweging als een dubbelklik.",
 		keyBack: "Terug naar het wijdere wiel — vault, map, notitie, sectie.",
 		keyFold: "Klapt deze tak in, of weer uit.",
 		keyZoom: "Zoomen, of knijpen op een touchscreen.",
@@ -379,8 +379,10 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keySidewaysTouch: "جانبيًا على الحلقة نفسها — الزران على حافتي البطاقة.",
 		keyOut: "حلقة إلى الخارج، نحو فرع تابع.",
 		keyIn: "حلقة إلى الداخل، نحو الأصل.",
-		keyTap: "يضعه تحت موضع القراءة. نقرة ثانية تفتح عجلة عليه وحده.",
-		keyOpen: "يفتح عجلة على العنصر الذي تقف عنده — نفس حركة النقر المزدوج.",
+		keyTap:
+			"يضعه تحت موضع القراءة. نقرة ثانية تفتحه — عجلة على عنوان أو ملاحظة، أو المهمة نفسها للتحرير.",
+		keyOpen:
+			"يفتح ما تقف عنده: عجلة على مجلد أو ملاحظة أو عنوان — أو المهمة نفسها للتحرير. مثل النقر المزدوج تمامًا.",
 		keyBack: "يعود إلى العجلة الأوسع — الخزنة، المجلد، الملاحظة، القسم.",
 		keyFold: "يطوي هذا الفرع أو يفتحه من جديد.",
 		keyZoom: "تكبير، أو القرص على شاشة اللمس.",
@@ -464,9 +466,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Einen Ring nach außen, zu einem Kind.",
 		keyIn: "Einen Ring nach innen, zum Elternteil.",
 		keyTap:
-			"Bringt es unter den Lesekeil. Ein zweiter Tipp öffnet ein Rad über genau das.",
+			"Bringt es unter den Lesekeil. Ein zweiter Tipp öffnet es — ein Rad über Überschrift oder Notiz, oder die Aufgabe selbst, zum Bearbeiten.",
 		keyOpen:
-			"Öffnet ein Rad über dem Halt, auf dem du stehst — dieselbe Bewegung wie ein Doppelklick.",
+			"Öffnet, worauf du stehst: ein Rad über Ordner, Notiz oder Überschrift — oder die Aufgabe selbst, zum Bearbeiten. Wie ein Doppelklick.",
 		keyBack: "Zurück zum weiteren Rad — Vault, Ordner, Notiz, Abschnitt.",
 		keyFold: "Klappt diesen Ast ein oder wieder auf.",
 		keyZoom: "Zoomen, oder Kneifen auf einem Touchscreen.",
@@ -555,9 +557,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Un anillo hacia fuera, a un hijo.",
 		keyIn: "Un anillo hacia dentro, al padre.",
 		keyTap:
-			"Lo trae bajo la cuña de lectura. Un segundo toque abre una rueda solo sobre eso.",
+			"Lo trae bajo la cuña de lectura. Un segundo toque lo abre — una rueda sobre un encabezado o nota, o la tarea misma, para editarla.",
 		keyOpen:
-			"Abre una rueda sobre la parada en la que estás — el mismo gesto que un doble clic.",
+			"Abre aquello en lo que estás: una rueda sobre una carpeta, nota o encabezado — o la tarea misma, para editarla. Igual que un doble clic.",
 		keyBack: "Vuelve a la rueda más amplia — bóveda, carpeta, nota, sección.",
 		keyFold: "Pliega esta rama, o la abre de nuevo.",
 		keyZoom: "Zoom, o pellizcar en una pantalla táctil.",
@@ -647,9 +649,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Un anneau vers l'extérieur, vers un enfant.",
 		keyIn: "Un anneau vers l'intérieur, vers le parent.",
 		keyTap:
-			"L'amène sous le coin de lecture. Un second toucher ouvre une roue sur cela seul.",
+			"L'amène sous le coin de lecture. Un second toucher l'ouvre — une roue sur un titre ou une note, ou la tâche elle-même, pour la modifier.",
 		keyOpen:
-			"Ouvre une roue sur l'arrêt où vous êtes — le même geste qu'un double-clic.",
+			"Ouvre ce sur quoi vous êtes : une roue sur un dossier, une note ou un titre — ou la tâche elle-même, pour la modifier. Comme un double-clic.",
 		keyBack: "Retour à la roue plus large — coffre, dossier, note, section.",
 		keyFold: "Replie cette branche, ou la rouvre.",
 		keyZoom: "Zoomer, ou pincer sur un écran tactile.",
@@ -738,9 +740,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "एक रिंग बाहर, संतान की ओर।",
 		keyIn: "एक रिंग भीतर, मूल की ओर।",
 		keyTap:
-			"उसे पढ़ने की स्थिति के नीचे लाता है। दूसरा टैप केवल उसी पर एक पहिया खोलता है।",
+			"उसे पढ़ने की स्थिति के नीचे लाता है। दूसरा टैप उसे खोलता है — शीर्षक या नोट पर एक पहिया, या स्वयं कार्य, संपादन के लिए।",
 		keyOpen:
-			"जहाँ आप खड़े हैं उसी पड़ाव पर एक पहिया खोलता है — डबल-क्लिक जैसी ही क्रिया।",
+			"आप जिस पर हैं उसे खोलता है: फ़ोल्डर, नोट या शीर्षक पर एक पहिया — या स्वयं कार्य, संपादन के लिए। डबल-क्लिक जैसा ही।",
 		keyBack: "व्यापक पहिये पर वापस — वॉल्ट, फ़ोल्डर, नोट, अनुभाग।",
 		keyFold: "इस शाखा को मोड़ता है, या फिर खोलता है।",
 		keyZoom: "ज़ूम, या टचस्क्रीन पर पिंच।",
@@ -828,9 +830,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Un anello verso l'esterno, verso un figlio.",
 		keyIn: "Un anello verso l'interno, verso il genitore.",
 		keyTap:
-			"Lo porta sotto il cuneo di lettura. Un secondo tocco apre una ruota solo su quello.",
+			"Lo porta sotto il cuneo di lettura. Un secondo tocco lo apre — una ruota su un titolo o una nota, oppure l'attività stessa, per modificarla.",
 		keyOpen:
-			"Apre una ruota sulla fermata su cui ti trovi — lo stesso gesto di un doppio clic.",
+			"Apre ciò su cui ti trovi: una ruota su una cartella, una nota o un titolo — oppure l'attività stessa, per modificarla. Come un doppio clic.",
 		keyBack: "Torna alla ruota più ampia — vault, cartella, nota, sezione.",
 		keyFold: "Ripiega questo ramo, o lo riapre.",
 		keyZoom: "Zoom, o pizzicare su uno schermo tattile.",
@@ -918,9 +920,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keySidewaysTouch: "横へ、同じリング上を — カード両端の二つのボタン。",
 		keyOut: "一つ外のリングへ、子の方向。",
 		keyIn: "一つ内のリングへ、親の方向。",
-		keyTap:
-			"読み取り位置の下へ持ってきます。もう一度タップすると、それだけのホイールが開きます。",
-		keyOpen: "今いる停止位置だけのホイールを開きます。ダブルクリックと同じ動きです。",
+		keyTap: "読み取り位置の下へ持ってきます。もう一度タップすると開きます — 見出しやノートならそのホイール、タスクなら編集。",
+		keyOpen: "今いるものを開きます。フォルダ・ノート・見出しならそのホイール、タスクなら編集。ダブルクリックと同じ動きです。",
 		keyBack: "より広いホイールへ戻ります（保管庫・フォルダ・ノート・セクション）。",
 		keyFold: "この枝を折りたたむ、または再び開く。",
 		keyZoom: "ズーム。タッチ画面ではピンチ。",
@@ -1006,9 +1007,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keySidewaysTouch: "옆으로, 같은 링 위에서 — 카드 양쪽 가장자리의 두 버튼.",
 		keyOut: "한 링 바깥으로, 자식에게.",
 		keyIn: "한 링 안쪽으로, 부모에게.",
-		keyTap:
-			"읽기 위치 아래로 가져옵니다. 두 번째 탭은 그것만의 휠을 엽니다.",
-		keyOpen: "지금 있는 정지점만의 휠을 엽니다. 더블 클릭과 같은 동작입니다.",
+		keyTap: "읽기 위치 아래로 가져옵니다. 두 번째 탭이 그것을 엽니다 — 제목이나 노트면 휠을, 작업이면 편집을.",
+		keyOpen: "지금 있는 것을 엽니다. 폴더·노트·제목이면 그 휠을, 작업이면 편집을. 더블 클릭과 같은 동작입니다.",
 		keyBack: "더 넓은 휠로 돌아갑니다 — 보관함, 폴더, 노트, 섹션.",
 		keyFold: "이 가지를 접거나 다시 폅니다.",
 		keyZoom: "확대·축소, 터치 화면에서는 핀치.",
@@ -1096,9 +1096,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "Um anel para fora, até um filho.",
 		keyIn: "Um anel para dentro, até o pai.",
 		keyTap:
-			"Traz o item para baixo da cunha de leitura. Um segundo toque abre uma roda só sobre ele.",
+			"Traz o item para baixo da cunha de leitura. Um segundo toque o abre — uma roda sobre um título ou nota, ou a própria tarefa, para editar.",
 		keyOpen:
-			"Abre uma roda sobre a parada em que você está — o mesmo gesto de um duplo clique.",
+			"Abre aquilo em que você está: uma roda sobre uma pasta, nota ou título — ou a própria tarefa, para editar. O mesmo que um duplo clique.",
 		keyBack: "Volta para a roda mais ampla — cofre, pasta, nota, seção.",
 		keyFold: "Recolhe este ramo, ou o abre de novo.",
 		keyZoom: "Zoom, ou pinçar numa tela sensível ao toque.",
@@ -1188,9 +1188,9 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyOut: "На кольцо наружу, к потомку.",
 		keyIn: "На кольцо внутрь, к родителю.",
 		keyTap:
-			"Ставит элемент под метку чтения. Второе касание открывает колесо только над ним.",
+			"Ставит элемент под метку чтения. Второе касание открывает его — колесо над заголовком или заметкой, либо саму задачу, для правки.",
 		keyOpen:
-			"Открывает колесо над остановкой, на которой вы стоите — то же движение, что двойной щелчок.",
+			"Открывает то, на чём вы стоите: колесо над папкой, заметкой или заголовком — либо саму задачу, для правки. То же, что двойной щелчок.",
 		keyBack: "Возврат к более широкому колесу — хранилище, папка, заметка, раздел.",
 		keyFold: "Сворачивает эту ветку или снова раскрывает.",
 		keyZoom: "Масштаб, или щипок на сенсорном экране.",
@@ -1277,8 +1277,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keySidewaysTouch: "侧移，保持在同一环上 — 卡片两侧的两个按钮。",
 		keyOut: "向外一环，去往子项。",
 		keyIn: "向内一环，去往父项。",
-		keyTap: "把它带到阅读位置下。再点一次，就打开只关于它的转盘。",
-		keyOpen: "打开只关于你当前所在停靠点的转盘——与双击相同。",
+		keyTap: "把它带到阅读位置下。再点一次就打开它——标题或笔记是它的转盘，任务则打开编辑。",
+		keyOpen: "打开你当前所在的东西：文件夹、笔记或标题就是它的转盘，任务则打开编辑。与双击相同。",
 		keyBack: "回到更宽的转盘——库、文件夹、笔记、章节。",
 		keyFold: "折叠此分支，或再次展开。",
 		keyZoom: "缩放，或在触屏上捏合。",
