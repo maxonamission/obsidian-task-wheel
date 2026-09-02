@@ -6,6 +6,18 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.15]
+
+Nothing behaves differently — the examples got tidier and the README got
+pictures.
+
+- **Changed**: plainer examples in the search box and in the documentation
+  around it — `invoice OR quote`, `file:roadmap`. They explain the same three
+  things: words are combined, `OR` offers an alternative, and `file:` looks at
+  the note rather than the task.
+- **Added**: the README shows the wheel. Three screenshots, taken in the made-up
+  vault that ships with the source.
+
 ## [0.1.14]
 
 Room on a phone: with the keyboard up, the wheel gets the screen back.

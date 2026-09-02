@@ -14,13 +14,13 @@ import {
 
 const NOTES: NoteInput[] = [
 	{
-		path: "Werk/Klanten/KNSB.md",
+		path: "Werk/Klanten/Northwind.md",
 		content: ["## Analyse", "- [ ] Cijfers ophalen", "- [ ] Rapport schrijven"].join(
 			"\n",
 		),
 	},
 	{
-		path: "Werk/Klanten/NOCNSF.md",
+		path: "Werk/Klanten/Eastgate.md",
 		content: "- [ ] Offerte nakijken\n",
 	},
 	{
@@ -55,7 +55,7 @@ function wedges(notes: NoteInput[], opts: ParseOptions): string[] {
 
 describe("below", () => {
 	it("reads a path from inside a folder", () => {
-		expect(below("Werk/Klanten/KNSB.md", "Werk")).toBe("Klanten/KNSB.md");
+		expect(below("Werk/Klanten/Northwind.md", "Werk")).toBe("Klanten/Northwind.md");
 	});
 
 	it("leaves a path alone when it is not under the folder", () => {
@@ -67,7 +67,7 @@ describe("below", () => {
 	});
 
 	it("survives the slashes people actually type", () => {
-		expect(below("Werk/Klanten/KNSB.md", "/Werk/")).toBe("Klanten/KNSB.md");
+		expect(below("Werk/Klanten/Northwind.md", "/Werk/")).toBe("Klanten/Northwind.md");
 	});
 });
 
@@ -78,7 +78,7 @@ describe("inScope", () => {
 
 	it("keeps a folder scope to its own folder", () => {
 		const scope: WheelScope = { kind: "folder", path: "Werk" };
-		expect(inScope("Werk/Klanten/KNSB.md", scope)).toBe(true);
+		expect(inScope("Werk/Klanten/Northwind.md", scope)).toBe(true);
 		expect(inScope("Gezin/Weekend.md", scope)).toBe(false);
 		expect(inScope("Werkgroep/x.md", scope)).toBe(false);
 	});
@@ -153,7 +153,7 @@ describe("a wheel over one folder", () => {
 	it("tells a subfolder and a note of the same name apart", () => {
 		const twins: NoteInput[] = [
 			{ path: "Werk/Klanten.md", content: "- [ ] De notitie\n" },
-			{ path: "Werk/Klanten/KNSB.md", content: "- [ ] De map\n" },
+			{ path: "Werk/Klanten/Northwind.md", content: "- [ ] De map\n" },
 		];
 		const tree = buildTree(twins, options(scope));
 
@@ -175,8 +175,8 @@ describe("a wheel over one folder", () => {
 		const tree = buildTree(NOTES, options(scope));
 		const clients = tree.root.children.find((child) => child.label === "Klanten");
 		expect(clients?.children.map((note) => note.label).sort()).toEqual([
-			"KNSB",
-			"NOCNSF",
+			"Eastgate",
+			"Northwind",
 		]);
 	});
 
@@ -281,7 +281,7 @@ describe("isExcluded", () => {
 	it("drops everything outside the scope", () => {
 		const opts = options({ kind: "folder", path: "Werk" });
 		expect(isExcluded({ path: "Gezin/Weekend.md", content: "" }, opts)).toBe(true);
-		expect(isExcluded({ path: "Werk/Klanten/KNSB.md", content: "" }, opts)).toBe(
+		expect(isExcluded({ path: "Werk/Klanten/Northwind.md", content: "" }, opts)).toBe(
 			false,
 		);
 	});
@@ -305,7 +305,7 @@ describe("naming a scope", () => {
 
 describe("outward — the blikveld one step wider (BC_E3_S37)", () => {
 	it("takes a note out to the folder it is in", () => {
-		expect(outward({ kind: "note", path: "Werk/Klanten/KNSB.md" })).toEqual({
+		expect(outward({ kind: "note", path: "Werk/Klanten/Northwind.md" })).toEqual({
 			kind: "folder",
 			path: "Werk/Klanten",
 		});

@@ -131,7 +131,7 @@ export function matches(
  * tags, because someone typing "klant" means it whether the word ended up in
  * the text or in a tag. `file:` searches the *name* of the note the task sits
  * in — half of what a task is about is often only in the title above it, and
- * "bellen" under *KNSB jaarplan* never says KNSB itself.
+ * "call" under *Northwind roadmap* never says Northwind itself.
  *
  * The note's name, not its path. The folders are already the wedges of the
  * wheel and have their own include and exclude lists, so searching them would

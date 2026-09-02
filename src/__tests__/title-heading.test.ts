@@ -70,10 +70,10 @@ describe("titleHeadingOf", () => {
 describe("a folder of notes with and without a title heading", () => {
 	const WITH = note("Werk/Met kop.md", [
 		"# Met kop",
-		"## KNSB",
-		"- [ ] Jaarplan lezen",
+		"## Northwind",
+		"- [ ] Roadmap lezen",
 	]);
-	const WITHOUT = note("Werk/Zonder kop.md", ["## KNSB", "- [ ] Bellen"]);
+	const WITHOUT = note("Werk/Zonder kop.md", ["## Northwind", "- [ ] Bellen"]);
 
 	it("puts every task on one and the same ring", () => {
 		const tree = buildTree([WITH, WITHOUT], options());
@@ -85,14 +85,14 @@ describe("a folder of notes with and without a title heading", () => {
 		const headings = [...tree.byId.values()].filter(
 			(node) => node.kind === "group",
 		);
-		expect(headings.map((node) => node.label)).toEqual(["KNSB"]);
+		expect(headings.map((node) => node.label)).toEqual(["Northwind"]);
 	});
 
 	it("leaves the ring in place when the heading says something of its own", () => {
 		const other = note("Werk/Met kop.md", [
 			"# Met kop en meer",
-			"## KNSB",
-			"- [ ] Jaarplan lezen",
+			"## Northwind",
+			"- [ ] Roadmap lezen",
 		]);
 		const tree = buildTree([other, WITHOUT], options());
 		expect(ringsOf(tree.root)).toHaveLength(2);
@@ -108,20 +108,20 @@ describe("a folder of notes with and without a title heading", () => {
 describe("a section wheel inside a note with a title heading", () => {
 	const NOTE = note("Werk/Plan.md", [
 		"# Plan",
-		"## KNSB",
-		"- [ ] Jaarplan lezen",
-		"## NOC",
+		"## Northwind",
+		"- [ ] Roadmap lezen",
+		"## Eastgate",
 		"- [ ] Bellen",
 	]);
 
 	it("anchors on the path the wheel shows, and does not call it missing", () => {
 		const tree = buildTree(
 			[NOTE],
-			options({ scope: { kind: "section", path: NOTE.path, heading: ["KNSB"] } }),
+			options({ scope: { kind: "section", path: NOTE.path, heading: ["Northwind"] } }),
 		);
 		expect(tree.sectionMissing).toBe(false);
 		expect(tasksOf(tree.root).map((task) => task.label)).toEqual([
-			"Jaarplan lezen",
+			"Roadmap lezen",
 		]);
 	});
 

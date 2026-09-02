@@ -26,14 +26,14 @@ const NOTE: NoteInput = {
 		"- [ ] Boven elk kopje",
 		"# Werk",
 		"- [ ] Direct onder Werk",
-		"## KNSB",
-		"- [ ] Jaarplan lezen",
+		"## Northwind",
+		"- [ ] Roadmap lezen",
 		"### Details",
 		"- [ ] Bijlage checken",
-		"## NOC",
+		"## Eastgate",
 		"- [ ] Bellen",
 		"# Thuis",
-		"## KNSB",
+		"## Northwind",
 		"- [ ] Zelfde naam, ander pad",
 	].join("\n"),
 };
@@ -57,14 +57,14 @@ describe("a wheel over one section", () => {
 			"Bellen",
 			"Bijlage checken",
 			"Direct onder Werk",
-			"Jaarplan lezen",
+			"Roadmap lezen",
 		]);
 	});
 
 	it("makes the subheadings the wedges, exactly like the note wheel one deeper", () => {
 		const tree = buildTree([NOTE], options(section(["Werk"])));
 		// "Direct onder Werk" has no subheading and lands in the fallback wedge.
-		expect(tree.domains.sort()).toEqual(["KNSB", "NOC", "Overig"]);
+		expect(tree.domains.sort()).toEqual(["Eastgate", "Northwind", "Overig"]);
 	});
 
 	it("turns a sub-subheading into a ring inside its wedge", () => {
@@ -73,31 +73,31 @@ describe("a wheel over one section", () => {
 			(node) => node.kind === "group" && node.label === "Details",
 		);
 		expect(details).toBeDefined();
-		expect(details?.domain).toBe("KNSB");
+		expect(details?.domain).toBe("Northwind");
 	});
 
 	it("tells sections with the same title apart by their full path", () => {
-		const tree = buildTree([NOTE], options(section(["Werk", "KNSB"])));
+		const tree = buildTree([NOTE], options(section(["Werk", "Northwind"])));
 		const labels = [...tree.byId.values()]
 			.filter((node) => node.kind === "task")
 			.map((node) => node.label);
 
-		expect(labels.sort()).toEqual(["Bijlage checken", "Jaarplan lezen"]);
+		expect(labels.sort()).toEqual(["Bijlage checken", "Roadmap lezen"]);
 	});
 
 	it("keeps the sources absolute, so a wedge can become a wheel of its own", () => {
 		const tree = buildTree([NOTE], options(section(["Werk"])));
-		const knsb = tree.root.children.find((child) => child.label === "KNSB");
+		const northwind = tree.root.children.find((child) => child.label === "Northwind");
 		// The wedge's own heading line, with the path *above* it — together
 		// they name the section completely, whatever depth this wheel sits at.
-		expect(knsb?.source?.headingPath).toEqual(["Werk"]);
-		expect(knsb?.source?.raw).toBe("## KNSB");
+		expect(northwind?.source?.headingPath).toEqual(["Werk"]);
+		expect(northwind?.source?.raw).toBe("## Northwind");
 	});
 
 	it("still runs the skip rules on the full heading paths", () => {
 		const tree = buildTree(
 			[NOTE],
-			options(section(["Werk"]), { excludeHeadings: ["knsb"] }),
+			options(section(["Werk"]), { excludeHeadings: ["northwind"] }),
 		);
 		const labels = [...tree.byId.values()]
 			.filter((node) => node.kind === "task")
@@ -129,17 +129,17 @@ describe("a wheel over one section", () => {
 
 describe("the section scope itself", () => {
 	it("keys on the full path, so two sections sharing a title keep their own round", () => {
-		expect(scopeKey(section(["Werk", "KNSB"]))).not.toBe(
-			scopeKey(section(["Thuis", "KNSB"])),
+		expect(scopeKey(section(["Werk", "Northwind"]))).not.toBe(
+			scopeKey(section(["Thuis", "Northwind"])),
 		);
 	});
 
 	it("is called by its own heading", () => {
-		expect(scopeLabel(section(["Werk", "KNSB"]))).toBe("KNSB");
+		expect(scopeLabel(section(["Werk", "Northwind"]))).toBe("Northwind");
 	});
 
 	it("goes out to its note — one rung, not straight to the folder", () => {
-		expect(outward(section(["Werk", "KNSB"]))).toEqual({
+		expect(outward(section(["Werk", "Northwind"]))).toEqual({
 			kind: "note",
 			path: NOTE.path,
 		});
@@ -149,10 +149,10 @@ describe("the section scope itself", () => {
 describe("hasHeadingPath", () => {
 	it("finds a nested path and refuses a near miss", () => {
 		const path = NOTE.path;
-		expect(hasHeadingPath(path, NOTE.content, ["Werk", "KNSB", "Details"])).toBe(
+		expect(hasHeadingPath(path, NOTE.content, ["Werk", "Northwind", "Details"])).toBe(
 			true,
 		);
-		expect(hasHeadingPath(path, NOTE.content, ["KNSB"])).toBe(false);
+		expect(hasHeadingPath(path, NOTE.content, ["Northwind"])).toBe(false);
 		expect(hasHeadingPath(path, NOTE.content, ["Werk", "Details"])).toBe(false);
 	});
 
@@ -166,8 +166,8 @@ describe("hasHeadingPath", () => {
 		// The note's one top heading repeats its name, so it has no ring — and a
 		// section anchor from that wheel starts a step lower. Asking the raw file
 		// would call every such section missing (BC_E3_S70).
-		const titled = ["# Plan", "## KNSB", "- [ ] Jaarplan lezen"].join("\n");
-		expect(hasHeadingPath("Werk/Plan.md", titled, ["KNSB"])).toBe(true);
-		expect(hasHeadingPath("Werk/Plan.md", titled, ["Plan", "KNSB"])).toBe(false);
+		const titled = ["# Plan", "## Northwind", "- [ ] Roadmap lezen"].join("\n");
+		expect(hasHeadingPath("Werk/Plan.md", titled, ["Northwind"])).toBe(true);
+		expect(hasHeadingPath("Werk/Plan.md", titled, ["Plan", "Northwind"])).toBe(false);
 	});
 });

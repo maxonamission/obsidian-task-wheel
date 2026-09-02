@@ -256,7 +256,7 @@ function search(
 	const input = line.createEl("input", {
 		attr: {
 			type: "search",
-			placeholder: "knsb OR nocnsf, file:jaarplan",
+			placeholder: "invoice OR quote, file:roadmap",
 			value,
 			"aria-label": "Words in the task and its tags",
 			"aria-describedby": described.id,

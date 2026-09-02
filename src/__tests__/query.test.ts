@@ -7,7 +7,7 @@ import {
 	within,
 } from "../parse/query";
 
-const HAY = "KNSB rapportage afmaken voor de bond werk/klant";
+const HAY = "Northwind rapportage afmaken voor de bond werk/klant";
 
 function finds(box: string, haystack = HAY, file = ""): boolean {
 	return matchesQuery(parseQuery(box), { task: haystack, file });
@@ -15,14 +15,14 @@ function finds(box: string, haystack = HAY, file = ""): boolean {
 
 describe("words are ANDed", () => {
 	it("wants every word, in any order", () => {
-		expect(finds("knsb rapportage")).toBe(true);
-		expect(finds("rapportage knsb")).toBe(true);
-		expect(finds("knsb offerte")).toBe(false);
+		expect(finds("northwind rapportage")).toBe(true);
+		expect(finds("rapportage northwind")).toBe(true);
+		expect(finds("northwind offerte")).toBe(false);
 	});
 
 	it("ignores case on both sides", () => {
-		expect(finds("KNSB")).toBe(true);
-		expect(finds("knsb")).toBe(true);
+		expect(finds("Northwind")).toBe(true);
+		expect(finds("northwind")).toBe(true);
 	});
 
 	it("matches part of a word", () => {
@@ -38,104 +38,104 @@ describe("words are ANDed", () => {
 
 describe("OR offers an alternative", () => {
 	it("takes either side", () => {
-		expect(finds("knsb OR nocnsf")).toBe(true);
-		expect(finds("nocnsf OR knsb")).toBe(true);
-		expect(finds("nocnsf OR vwo")).toBe(false);
+		expect(finds("northwind OR eastgate")).toBe(true);
+		expect(finds("eastgate OR northwind")).toBe(true);
+		expect(finds("eastgate OR vwo")).toBe(false);
 	});
 
 	it("binds looser than the space, so each side may be several words", () => {
-		expect(finds("knsb rapportage OR nocnsf begroting")).toBe(true);
+		expect(finds("northwind rapportage OR eastgate begroting")).toBe(true);
 		// Neither side is complete on its own: the first word of each matches,
 		// the second does not.
-		expect(finds("knsb begroting OR nocnsf rapportage")).toBe(false);
+		expect(finds("northwind begroting OR eastgate rapportage")).toBe(false);
 	});
 
 	it("takes a pipe as well, for people who type it that way", () => {
-		expect(finds("nocnsf | knsb")).toBe(true);
+		expect(finds("eastgate | northwind")).toBe(true);
 	});
 
 	it("only listens to capitals", () => {
 		// "or" is an ordinary word; a box that turns it into an operator would be
 		// searching for something the reader did not ask for.
-		expect(parseQuery("knsb or nocnsf")).toHaveLength(1);
-		expect(parseQuery("knsb OR nocnsf")).toHaveLength(2);
+		expect(parseQuery("northwind or eastgate")).toHaveLength(1);
+		expect(parseQuery("northwind OR eastgate")).toHaveLength(2);
 	});
 
 	it("survives a typo in the query itself", () => {
-		expect(finds("OR knsb")).toBe(true);
-		expect(finds("knsb OR")).toBe(true);
-		expect(finds("knsb OR OR nocnsf")).toBe(true);
+		expect(finds("OR northwind")).toBe(true);
+		expect(finds("northwind OR")).toBe(true);
+		expect(finds("northwind OR OR eastgate")).toBe(true);
 	});
 });
 
 describe("quotes hold a phrase together", () => {
 	it("wants the words in that order", () => {
-		expect(finds('"knsb rapportage"')).toBe(true);
-		expect(finds('"rapportage knsb"')).toBe(false);
+		expect(finds('"northwind rapportage"')).toBe(true);
+		expect(finds('"rapportage northwind"')).toBe(false);
 	});
 
 	it("does not forgive a typo, because quoting means exactly this", () => {
-		expect(finds('"knsb rapportagie"')).toBe(false);
+		expect(finds('"northwind rapportagie"')).toBe(false);
 		expect(finds("rapportagie")).toBe(true);
 	});
 
 	it("runs to the end when the quote is never closed", () => {
 		// Half-typed input is the normal state of a search box.
-		expect(finds('"knsb rapport')).toBe(true);
+		expect(finds('"northwind rapport')).toBe(true);
 	});
 
 	it("combines with the rest", () => {
-		expect(finds('"knsb rapportage" bond')).toBe(true);
-		expect(finds('"knsb rapportage" begroting')).toBe(false);
+		expect(finds('"northwind rapportage" bond')).toBe(true);
+		expect(finds('"northwind rapportage" begroting')).toBe(false);
 	});
 });
 
 describe("file: aims a term at the note instead of the task", () => {
-	const NOTE = "KNSB jaarplan 2027";
+	const NOTE = "Northwind roadmap 2027";
 
 	it("looks in the note name, and only there", () => {
-		expect(finds("file:jaarplan", HAY, NOTE)).toBe(true);
+		expect(finds("file:roadmap", HAY, NOTE)).toBe(true);
 		expect(finds("file:rapportage", HAY, NOTE)).toBe(false);
 	});
 
 	it("leaves the bare word aimed at the task, and only there", () => {
 		expect(finds("rapportage", HAY, NOTE)).toBe(true);
-		expect(finds("jaarplan", HAY, NOTE)).toBe(false);
+		expect(finds("roadmap", HAY, NOTE)).toBe(false);
 	});
 
 	it("wants both when both are asked for", () => {
-		expect(finds("rapportage file:jaarplan", HAY, NOTE)).toBe(true);
-		expect(finds("begroting file:jaarplan", HAY, NOTE)).toBe(false);
+		expect(finds("rapportage file:roadmap", HAY, NOTE)).toBe(true);
+		expect(finds("begroting file:roadmap", HAY, NOTE)).toBe(false);
 		expect(finds("rapportage file:begroting", HAY, NOTE)).toBe(false);
 	});
 
 	it("binds to a quoted phrase behind it", () => {
-		expect(finds('file:"knsb jaarplan"', HAY, NOTE)).toBe(true);
-		expect(finds('file:"jaarplan knsb"', HAY, NOTE)).toBe(false);
+		expect(finds('file:"northwind roadmap"', HAY, NOTE)).toBe(true);
+		expect(finds('file:"roadmap northwind"', HAY, NOTE)).toBe(false);
 	});
 
 	it("stands on either side of an OR", () => {
-		expect(finds("file:begroting OR file:jaarplan", HAY, NOTE)).toBe(true);
-		expect(finds("begroting OR file:jaarplan", HAY, NOTE)).toBe(true);
+		expect(finds("file:begroting OR file:roadmap", HAY, NOTE)).toBe(true);
+		expect(finds("begroting OR file:roadmap", HAY, NOTE)).toBe(true);
 		expect(finds("begroting OR file:offerte", HAY, NOTE)).toBe(false);
 	});
 
 	it("forgives a typo, like any other bare word", () => {
-		expect(finds("file:jaarpaln", HAY, NOTE)).toBe(true);
+		expect(finds("file:raodmap", HAY, NOTE)).toBe(true);
 	});
 
 	it("is recognised however it is capitalised, unlike OR", () => {
 		// OR has to shout because 'or' is an ordinary word; 'file:' cannot be
 		// mistaken for one, so there is nothing to be strict about.
-		expect(finds("FILE:jaarplan", HAY, NOTE)).toBe(true);
-		expect(finds("File:jaarplan", HAY, NOTE)).toBe(true);
+		expect(finds("FILE:roadmap", HAY, NOTE)).toBe(true);
+		expect(finds("File:roadmap", HAY, NOTE)).toBe(true);
 	});
 
 	it("ignores itself when there is nothing behind it", () => {
 		expect(isEmpty(parseQuery("file:"))).toBe(true);
-		expect(isEmpty(parseQuery("file: jaarplan"))).toBe(false);
+		expect(isEmpty(parseQuery("file: roadmap"))).toBe(false);
 		// ...and that trailing word is an ordinary one, not a note search.
-		expect(finds("file: jaarplan", HAY, NOTE)).toBe(false);
+		expect(finds("file: roadmap", HAY, NOTE)).toBe(false);
 	});
 
 	it("does not turn a word that merely contains it into an operator", () => {
@@ -168,8 +168,8 @@ describe("a star means the same here as in the skip lists", () => {
 	});
 
 	it("earns its keep in the middle", () => {
-		expect(finds("knsb*afmaken")).toBe(true);
-		expect(finds("afmaken*knsb")).toBe(false);
+		expect(finds("northwind*afmaken")).toBe(true);
+		expect(finds("afmaken*northwind")).toBe(false);
 	});
 
 	it("says what it means, so it gets no typo latitude", () => {
@@ -180,13 +180,13 @@ describe("a star means the same here as in the skip lists", () => {
 	});
 
 	it("still finds a real asterisk when you quote it", () => {
-		expect(finds('"noc*nsf"', "afspraak met noc*nsf")).toBe(true);
-		expect(finds('"noc*nsf"', "afspraak met nocnsf")).toBe(false);
+		expect(finds('"east*gate"', "afspraak met east*gate")).toBe(true);
+		expect(finds('"east*gate"', "afspraak met eastgate")).toBe(false);
 	});
 
 	it("works behind file: as well", () => {
-		expect(finds("file:jaar*plan", HAY, "KNSB jaarplan 2027")).toBe(true);
-		expect(finds("file:plan*jaar", HAY, "KNSB jaarplan 2027")).toBe(false);
+		expect(finds("file:road*map", HAY, "Northwind roadmap 2027")).toBe(true);
+		expect(finds("file:map*road", HAY, "Northwind roadmap 2027")).toBe(false);
 	});
 });
 
@@ -246,10 +246,10 @@ describe("within", () => {
 
 describe("describeQuery", () => {
 	it("writes the query back the way it was meant", () => {
-		expect(describeQuery(parseQuery("knsb rapport"))).toBe("knsb rapport");
-		expect(describeQuery(parseQuery("knsb OR nocnsf"))).toBe("knsb OR nocnsf");
-		expect(describeQuery(parseQuery('"jaarplan 2027" knsb'))).toBe(
-			'"jaarplan 2027" knsb',
+		expect(describeQuery(parseQuery("northwind rapport"))).toBe("northwind rapport");
+		expect(describeQuery(parseQuery("northwind OR eastgate"))).toBe("northwind OR eastgate");
+		expect(describeQuery(parseQuery('"roadmap 2027" northwind'))).toBe(
+			'"roadmap 2027" northwind',
 		);
 	});
 

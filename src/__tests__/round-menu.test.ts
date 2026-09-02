@@ -111,7 +111,7 @@ describe("roundMenu — the round's own actions", () => {
 		// A filter on words or priority is still a filter — it just is not one of
 		// these two, and ticking one of them would say it was.
 		const rows = roundMenu(
-			wheel({ filtering: true, filterText: "knsb", due: "any" }),
+			wheel({ filtering: true, filterText: "northwind", due: "any" }),
 		);
 
 		expect(find(rows, "overdue").checked).toBe(false);

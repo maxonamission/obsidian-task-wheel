@@ -31,10 +31,10 @@ function keyOf(state: unknown): string {
 const SCOPES: WheelScope[] = [
 	VAULT_SCOPE,
 	{ kind: "folder", path: "Werk" },
-	{ kind: "folder", path: "Werk/KNSB" },
+	{ kind: "folder", path: "Werk/Northwind" },
 	{ kind: "note", path: "Werk/Plan.md" },
-	{ kind: "section", path: "Werk/Plan.md", heading: ["KNSB"] },
-	{ kind: "section", path: "Werk/Plan.md", heading: ["KNSB", "Jaarplan"] },
+	{ kind: "section", path: "Werk/Plan.md", heading: ["Northwind"] },
+	{ kind: "section", path: "Werk/Plan.md", heading: ["Northwind", "Roadmap"] },
 ];
 
 describe("a leaf's stored state names its blikveld", () => {

@@ -15,6 +15,11 @@ possible, but it is not what the wheel is for.
 Everything is computed locally: **no network calls, no telemetry, no account**.
 Free and GPL-3.0.
 
+| | | |
+|---|---|---|
+| ![The whole vault: six domains as wedges, 115 tasks open, and the card holding the one under the reading wedge](docs/screenshots/wheel-mobile.png) | ![Closer in: the reading wedge at the top, the rings from note to heading to task](docs/screenshots/reading-wedge.png) | ![Renaming a task on the card, without leaving the round](docs/screenshots/rename-mobile.png) |
+| The whole vault at once | The reading wedge, closer in | Editing without leaving the round |
+
 ## Why a wheel
 
 A list of five thousand tasks is not reviewable. You scroll, you lose your
@@ -131,7 +136,7 @@ already carries puts it back to open, which is the only way back from a mis-tap
 on a phone. The card keeps one fixed size at every stop, so the drawing
 underneath never jumps.
 
-A task like `Sportprogramma [[week-01]] afmaken` says half of what it is about
+A task like `Finish the training plan [[week-01]]` says half of what it is about
 in the link, so the card shows it as one: `[[note]]`, `[[note|alias]]`,
 `[label](target)` and a pasted `https://…` are all followed, through Obsidian's
 own link resolution from the note the task lives in — ctrl- or cmd-click opens
@@ -174,19 +179,19 @@ nothing to park, so *ready now* keeps everything and the badge says `0 out` —
 that is the filter reporting an empty rule, not ignoring you.
 
 The search box takes four things and nothing more. Words are combined:
-`knsb rapport` wants both, in any order, and either may be typed slightly
-wrong — `loodgeiter` still finds the plumber. `OR` in capitals offers an
-alternative: `knsb OR nocnsf`. Quotes hold a phrase together and are matched
-exactly: `"jaarplan 2027"`. And `file:` looks at the note instead of the task:
-`file:jaarplan` finds the tasks in every note whose name says so, and
-`bellen file:jaarplan` wants both at once. Half of what a task is about is
-often only in the title above it — `bellen` under *KNSB jaarplan* never says
-KNSB itself — but that is a thing you ask for, so a bare `plan` cannot quietly
-drag in everything living in *Plan.md*.
+`roof invoice` wants both, in any order, and either may be typed slightly
+wrong — `plummer` still finds the plumber. `OR` in capitals offers an
+alternative: `invoice OR quote`. Quotes hold a phrase together and are matched
+exactly: `"annual plan 2027"`. And `file:` looks at the note instead of the
+task: `file:roadmap` finds the tasks in every note whose name says so, and
+`call file:roadmap` wants both at once. Half of what a task is about is often
+only in the title above it — `call` under *Northwind roadmap* never says
+Northwind itself — but that is a thing you ask for, so a bare `plan` cannot
+quietly drag in everything living in *Plan.md*.
 
 A `*` means here what it means in the settings: any run of characters. A bare
 word already matches part of a word, so the star earns its keep in the middle —
-`week*verslag`. A box holding nothing but a star asks for everything, which is
+`week*report`. A box holding nothing but a star asks for everything, which is
 what an empty box already does, so the filter stays off. Inside quotes a star is
 an ordinary character, which is how you search for a literal one.
 

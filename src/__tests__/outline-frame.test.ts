@@ -34,8 +34,8 @@ const CRM = `# CRM
 
 ## Fase 2 - Interesse
 
-### KNSB
-- [ ] Inrichten Informatiemanagement binnen KNSB
+### Northwind
+- [ ] Inrichten Informatiemanagement binnen Northwind
 
 ## Fase 3 - Concrete vragen
 
@@ -43,7 +43,7 @@ const CRM = `# CRM
 
 ## Fase 5 - Herhaalopdrachten
 
-### KNSB
+### Northwind
 
 ## Fase 6 - On Hold
 
@@ -85,10 +85,10 @@ describe("the frame comes from the document", () => {
 	});
 
 	it("draws an empty heading deeper in too, not only a wedge", () => {
-		// The owner saw the gap at client level as well: `KNSB` under Fase 5.
+		// The owner saw the gap at client level as well: `Northwind` under Fase 5.
 		const tree = buildTree([NOTE], OVER_NOTE);
 		const fase5 = tree.root.children.find((c) => c.label.startsWith("Fase 5"));
-		expect(fase5?.children.map((c) => c.label)).toEqual(["KNSB"]);
+		expect(fase5?.children.map((c) => c.label)).toEqual(["Northwind"]);
 	});
 
 	it("leaves the round exactly as it was", () => {
@@ -174,7 +174,7 @@ describe("where the frame does not reach", () => {
 				heading: ["Fase 5 - Herhaalopdrachten"],
 			},
 		});
-		expect(tree.root.children.map((c) => c.label)).toEqual(["KNSB"]);
+		expect(tree.root.children.map((c) => c.label)).toEqual(["Northwind"]);
 	});
 });
 

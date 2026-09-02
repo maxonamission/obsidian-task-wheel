@@ -337,7 +337,7 @@ function renderTitle(
 /**
  * The label, with the links inside it as links.
  *
- * `Sportprogramma [[week-01]]` says half of what it is about in the link, and
+ * `Training plan [[week-01]]` says half of what it is about in the link, and
  * four square brackets is not what the reader wrote it for. Following one goes
  * through Obsidian's own resolution, so it lands where it would from the note
  * itself — same aliases, same headings, same folder rules.

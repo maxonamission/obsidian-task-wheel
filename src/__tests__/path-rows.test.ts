@@ -15,7 +15,7 @@ const vault: PathRow[] = [
 	{ kind: "folder", path: "Werk/Klanten" },
 	{ kind: "folder", path: "Gezin" },
 	{ kind: "note", path: "Werk/Plan.md" },
-	{ kind: "note", path: "Werk/Klanten/KNSB.md" },
+	{ kind: "note", path: "Werk/Klanten/Northwind.md" },
 	{ kind: "note", path: "Gezin/Weekend.md" },
 ];
 
@@ -39,7 +39,7 @@ describe("pathRows — folders and notes in one box", () => {
 
 		expect(rows.map((row) => row.path)).toEqual([
 			"Werk/Klanten",
-			"Werk/Klanten/KNSB.md",
+			"Werk/Klanten/Northwind.md",
 		]);
 	});
 

@@ -35,9 +35,9 @@ function fresh(): TaskWheelSettings {
 describe("every wheel filters for itself", () => {
 	it("a folder wheel does not take the vault wheel's filter", () => {
 		const settings = fresh();
-		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "knsb" });
+		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "northwind" });
 
-		expect(filterOf(settings, VAULT_SCOPE).text).toBe("knsb");
+		expect(filterOf(settings, VAULT_SCOPE).text).toBe("northwind");
 		expect(filterOf(settings, WERK).text).toBe("");
 	});
 
@@ -61,9 +61,9 @@ describe("every wheel filters for itself", () => {
 	it("keeps the vault wheel on the fields it always used", () => {
 		// So an existing data.json needs no rewriting at all.
 		const settings = fresh();
-		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "knsb" });
+		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "northwind" });
 
-		expect(settings.filterText).toBe("knsb");
+		expect(settings.filterText).toBe("northwind");
 		expect(settings.state.filter).toBeUndefined();
 	});
 });
@@ -75,7 +75,7 @@ describe("a new selection is a new round", () => {
 
 		const { restarted } = setFilter(settings, VAULT_SCOPE, {
 			...NO_FILTER,
-			text: "knsb",
+			text: "northwind",
 		});
 
 		expect(restarted).toBe(3);
@@ -97,12 +97,12 @@ describe("a new selection is a new round", () => {
 	it("costs nothing when the filter did not actually change", () => {
 		// Flipping a control back to what it already said must not cost a round.
 		const settings = fresh();
-		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "knsb" });
+		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "northwind" });
 		settings.state.seen = ["a", "b"];
 
 		const { restarted } = setFilter(settings, VAULT_SCOPE, {
 			...NO_FILTER,
-			text: "knsb",
+			text: "northwind",
 		});
 
 		expect(restarted).toBe(0);
@@ -111,7 +111,7 @@ describe("a new selection is a new round", () => {
 
 	it("counts turning a filter off as a new selection too", () => {
 		const settings = fresh();
-		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "knsb" });
+		setFilter(settings, VAULT_SCOPE, { ...NO_FILTER, text: "northwind" });
 		settings.state.seen = ["a"];
 
 		expect(clearFilter(settings, VAULT_SCOPE).restarted).toBe(1);

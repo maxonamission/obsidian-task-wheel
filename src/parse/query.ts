@@ -3,12 +3,12 @@
  *
  * Three things it does, and nothing more:
  *
- *  - **Words are ANDed.** `knsb rapport` wants both, in any order.
- *  - **`OR` (or `|`) offers an alternative.** `knsb OR nocnsf` wants either.
- *  - **Quotes hold a phrase together.** `"jaarplan 2027"` is one thing to find,
+ *  - **Words are ANDed.** `roof invoice` wants both, in any order.
+ *  - **`OR` (or `|`) offers an alternative.** `invoice OR quote` wants either.
+ *  - **Quotes hold a phrase together.** `"annual plan 2027"` is one thing to find,
  *    in that order, and exactly as written.
- *  - **`file:` looks at the note instead of the task.** `file:jaarplan` finds
- *    the tasks in every note whose name says jaarplan; `bellen file:jaarplan`
+ *  - **`file:` looks at the note instead of the task.** `file:roadmap` finds
+ *    the tasks in every note whose name says roadmap; `call file:roadmap`
  *    wants both at once.
  *  - **A `*` stands for any run of characters**, the same as in the skip lists.
  *    A bare word already matches part of a word, so the star earns its keep in
@@ -25,7 +25,7 @@
  *
  * Everything else is a bare word, and a bare word is allowed to be typed
  * badly: it matches as a part of a word, and failing that within a small edit
- * distance, so `loodgeiter` still finds the plumber. A phrase in quotes does
+ * distance, so `plummer` still finds the plumber. A phrase in quotes does
  * not get that latitude — quoting is how you say "I mean exactly this".
  *
  * Deliberately no parentheses and no NOT. Tags already have their own
@@ -242,7 +242,7 @@ function tokenise(text: string): Token[] {
 		}
 
 		// `file:` binds to whatever comes straight after it, quoted or not, so
-		// `file:"jaarplan 2027"` is one phrase aimed at the note name.
+		// `file:"annual plan 2027"` is one phrase aimed at the note name.
 		let field: Field = "task";
 		if (text.slice(cursor).toLowerCase().startsWith(FILE_PREFIX)) {
 			field = "file";

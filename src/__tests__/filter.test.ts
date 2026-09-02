@@ -82,18 +82,18 @@ group("matches — dates", () => {
 });
 
 group("matches — words in the task", () => {
-	const rapport = fields("- [ ] KNSB rapportage afmaken #werk 📅 2026-08-20");
+	const rapport = fields("- [ ] Northwind rapportage afmaken #werk 📅 2026-08-20");
 	const bellen = fields("- [ ] Loodgieter bellen");
 
 	it("keeps what holds every word, in any order", () => {
-		expect(matches(rapport, filter({ text: "knsb rapport" }), TODAY)).toBe(true);
-		expect(matches(rapport, filter({ text: "rapport knsb" }), TODAY)).toBe(true);
-		expect(matches(rapport, filter({ text: "knsb offerte" }), TODAY)).toBe(false);
-		expect(matches(bellen, filter({ text: "knsb" }), TODAY)).toBe(false);
+		expect(matches(rapport, filter({ text: "northwind rapport" }), TODAY)).toBe(true);
+		expect(matches(rapport, filter({ text: "rapport northwind" }), TODAY)).toBe(true);
+		expect(matches(rapport, filter({ text: "northwind offerte" }), TODAY)).toBe(false);
+		expect(matches(bellen, filter({ text: "northwind" }), TODAY)).toBe(false);
 	});
 
 	it("ignores case", () => {
-		expect(matches(rapport, filter({ text: "KNSB" }), TODAY)).toBe(true);
+		expect(matches(rapport, filter({ text: "Northwind" }), TODAY)).toBe(true);
 	});
 
 	it("matches part of a word, so a stem finds its longer form", () => {
@@ -127,16 +127,16 @@ group("matches — words in the task", () => {
 	it("says what it is looking for, in the reader's own words", () => {
 		// Written back as typed rather than wrapped in quotes: quotes now mean a
 		// phrase, so putting them round everything would say something else.
-		expect(describe(filter({ text: "knsb rapport" }))).toBe("knsb rapport");
-		expect(describe(filter({ text: "knsb OR nocnsf" }))).toBe("knsb OR nocnsf");
+		expect(describe(filter({ text: "northwind rapport" }))).toBe("northwind rapport");
+		expect(describe(filter({ text: "northwind OR eastgate" }))).toBe("northwind OR eastgate");
 	});
 
 	it("takes OR and a quoted phrase", () => {
-		const either = filter({ text: "knsb OR loodgieter" });
+		const either = filter({ text: "northwind OR loodgieter" });
 		expect(matches(rapport, either, TODAY)).toBe(true);
 		expect(matches(bellen, either, TODAY)).toBe(true);
 
-		const phrase = filter({ text: '"knsb rapportage"' });
+		const phrase = filter({ text: '"northwind rapportage"' });
 		expect(matches(rapport, phrase, TODAY)).toBe(true);
 		expect(matches(bellen, phrase, TODAY)).toBe(false);
 	});
@@ -149,23 +149,23 @@ group("matches — words in the task", () => {
 
 group("matches — file: reaches into the note around the task", () => {
 	// Half of what a task is about often lives in the title of its note:
-	// 'Bellen' under 'KNSB jaarplan' never says KNSB itself. Reaching for it is
+	// 'Bellen' under 'Northwind roadmap' never says Northwind itself. Reaching for it is
 	// an operator rather than the default, so a bare word cannot quietly drag in
 	// everything that happens to live in one note.
 	const bellen = fields("- [ ] Bellen");
-	const NOTE = "Werk/KNSB jaarplan.md";
+	const NOTE = "Werk/Northwind roadmap.md";
 
 	it("finds a task by the name of the note it sits in", () => {
-		expect(matches(bellen, filter({ text: "file:jaarplan" }), TODAY, NOTE)).toBe(true);
+		expect(matches(bellen, filter({ text: "file:roadmap" }), TODAY, NOTE)).toBe(true);
 	});
 
 	it("leaves the note out of it when nobody asked", () => {
-		expect(matches(bellen, filter({ text: "jaarplan" }), TODAY, NOTE)).toBe(false);
+		expect(matches(bellen, filter({ text: "roadmap" }), TODAY, NOTE)).toBe(false);
 	});
 
 	it("combines the two: one word from the task, one from the note", () => {
-		expect(matches(bellen, filter({ text: "bellen file:knsb" }), TODAY, NOTE)).toBe(true);
-		expect(matches(bellen, filter({ text: "mailen file:knsb" }), TODAY, NOTE)).toBe(false);
+		expect(matches(bellen, filter({ text: "bellen file:northwind" }), TODAY, NOTE)).toBe(true);
+		expect(matches(bellen, filter({ text: "mailen file:northwind" }), TODAY, NOTE)).toBe(false);
 	});
 
 	it("does not look for the task's own words in the note name", () => {
@@ -173,10 +173,10 @@ group("matches — file: reaches into the note around the task", () => {
 	});
 
 	it("takes a phrase, and offers an alternative", () => {
-		expect(matches(bellen, filter({ text: 'file:"knsb jaarplan"' }), TODAY, NOTE)).toBe(true);
-		expect(matches(bellen, filter({ text: 'file:"jaarplan knsb"' }), TODAY, NOTE)).toBe(false);
+		expect(matches(bellen, filter({ text: 'file:"northwind roadmap"' }), TODAY, NOTE)).toBe(true);
+		expect(matches(bellen, filter({ text: 'file:"roadmap northwind"' }), TODAY, NOTE)).toBe(false);
 		expect(
-			matches(bellen, filter({ text: "file:offerte OR file:jaarplan" }), TODAY, NOTE),
+			matches(bellen, filter({ text: "file:offerte OR file:roadmap" }), TODAY, NOTE),
 		).toBe(true);
 	});
 
@@ -191,17 +191,17 @@ group("matches — file: reaches into the note around the task", () => {
 	});
 
 	it("forgives a typo there too", () => {
-		expect(matches(bellen, filter({ text: "file:jaarpaln" }), TODAY, NOTE)).toBe(true);
+		expect(matches(bellen, filter({ text: "file:raodmap" }), TODAY, NOTE)).toBe(true);
 	});
 
 	it("says what it is looking for, operator and all", () => {
-		expect(describe(filter({ text: "bellen file:jaarplan" }))).toBe(
-			"bellen file:jaarplan",
+		expect(describe(filter({ text: "bellen file:roadmap" }))).toBe(
+			"bellen file:roadmap",
 		);
 	});
 
 	it("is still a filter when it is the only thing set", () => {
-		expect(isFiltering(filter({ text: "file:jaarplan" }))).toBe(true);
+		expect(isFiltering(filter({ text: "file:roadmap" }))).toBe(true);
 	});
 
 	it("ignores a half-typed operator", () => {

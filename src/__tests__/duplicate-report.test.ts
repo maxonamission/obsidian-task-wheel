@@ -149,7 +149,7 @@ describe("what the reader gets to judge with", () => {
 				note(
 					"A.md",
 					"## Werk",
-					"### KNSB",
+					"### Northwind",
 					"- [ ] Loodgieter bellen",
 					"- [ ] Loodgieter bellen",
 				),
@@ -158,8 +158,8 @@ describe("what the reader gets to judge with", () => {
 		);
 
 		expect(report.groups[0].occurrences).toEqual([
-			{ path: "A.md", line: 2, heading: "KNSB" },
-			{ path: "A.md", line: 3, heading: "KNSB" },
+			{ path: "A.md", line: 2, heading: "Northwind" },
+			{ path: "A.md", line: 3, heading: "Northwind" },
 		]);
 	});
 

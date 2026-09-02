@@ -1,7 +1,7 @@
 /**
  * The links inside a task's own words.
  *
- * A task like `Sportprogramma [[week-01]]` says half of what it is about in the
+ * A task like `Training plan [[week-01]]` says half of what it is about in the
  * link, and reading it as four square brackets is reading it wrong. The card is
  * where a task is read out in full, so the links belong there as links.
  *
@@ -111,8 +111,8 @@ export function splitLinks(text: string): Piece[] {
  * The same words with the link syntax taken off — what a link *says*.
  *
  * For the places that can only show plain text: the label beside a dot on the
- * wheel, the trail on the card, a line in a picker. `Sportprogramma [[week-01]]`
- * reads as `Sportprogramma week-01` there, which is what the writer meant; four
+ * wheel, the trail on the card, a line in a picker. `Training plan [[week-01]]`
+ * reads as `Training plan week-01` there, which is what the writer meant; four
  * square brackets in the middle of a name is reading it wrong (owner, 19 aug
  * 2026).
  *

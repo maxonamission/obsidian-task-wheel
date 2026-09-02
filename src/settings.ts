@@ -802,7 +802,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						control: {
 							type: "text",
 							key: "filterText",
-							placeholder: "knsb OR nocnsf",
+							placeholder: "invoice OR quote",
 						},
 					},
 					{
