@@ -15,6 +15,7 @@ import {
 	tweenAt,
 	type TravelSample,
 } from "../layout/momentum";
+import { aimedAt } from "../layout/aim";
 import { pixelsOf, scrollTurn } from "../layout/scroll";
 import { clampZoom, ZOOM_STEP } from "../layout/zoom";
 import type { WheelRenderer } from "./render-wheel";
@@ -169,6 +170,15 @@ export interface WheelControllerOptions {
 	 * when a drag begins and again when it ends, the answer arrives in the same
 	 * trace as the gesture that caused it (BC_E3_S76).
 	 */
+	/**
+	 * Whether one of the wheel's own panels lies over this point.
+	 *
+	 * Only taps ask. A drag that begins on the card still turns the wheel — the
+	 * card covers a good part of the drawing, and taking that away would cost a
+	 * phone half its handle (see the note on `.task-wheel-card` in the
+	 * stylesheet). What a tap on it may not do is name something behind it.
+	 */
+	covered?: (x: number, y: number) => boolean;
 	panels?: () => string;
 	/**
 	 * Put the side panels back the way `panels()` said they were.
@@ -771,9 +781,17 @@ export class WheelController {
 		if (travelled > TAP_SLOP) return false;
 		if (time !== undefined && time - contact.time > TAP_TIME) return false;
 
-		const target = this.doc().elementFromPoint(at.clientX, at.clientY);
-		const id = target?.closest("[data-tw-id]")?.getAttribute("data-tw-id");
-		if (id === null || id === undefined) return false;
+		// A panel of ours lies here. The card is see-through so that a drag
+		// across it still turns the wheel, and that let a *tap* on it name
+		// whatever was drawn behind it — which is how tapping the words on the
+		// card opened a task under the heading you were reading (BC_E3_S118).
+		if (this.options.covered?.(at.clientX, at.clientY) === true) {
+			this.trace("tap on the card, not on the wheel");
+			return false;
+		}
+
+		const id = this.itemAt(at);
+		if (id === null) return false;
 
 		const index = indexOfId(this.detents, id);
 		if (index < 0) return false;
@@ -795,6 +813,33 @@ export class WheelController {
 		this.trace(`tap on ${id}`);
 		this.snapTo(index);
 		return true;
+	}
+
+	/**
+	 * What a tap at this point named (BC_E3_S117).
+	 *
+	 * Not what lies *under* the finger. A node is drawn as a dot and, beside it,
+	 * the word — and the word hangs a tap-disc's width outward, so it begins
+	 * exactly where its own node stops taking taps and points at the ring where
+	 * the children are. Tapping the heading you are reading therefore landed on
+	 * a task under it (eigenaar, 2 sep 2026, measured off his own screenshot:
+	 * the two discs are 45 units apart and 18 across, so they never even
+	 * touched — it was never the discs).
+	 *
+	 * So both shapes count, and the nearest of them wins. The browser's own
+	 * answer is kept only where there is nothing to measure — a stand-in, or a
+	 * drawing that has not been laid out yet.
+	 */
+	private itemAt(at: Spot): string | null {
+		const targets = this.renderer?.targetsOnScreen() ?? [];
+		if (targets.length > 0) {
+			const aimed = aimedAt({ x: at.clientX, y: at.clientY }, targets);
+			this.trace(`aim: ${aimed ?? "nothing"} of ${targets.length} drawn`);
+			return aimed;
+		}
+
+		const target = this.doc().elementFromPoint(at.clientX, at.clientY);
+		return target?.closest("[data-tw-id]")?.getAttribute("data-tw-id") ?? null;
 	}
 
 	/**

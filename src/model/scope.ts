@@ -60,6 +60,55 @@ export function activates(kind: NodeKind): "edit" | "wheel" {
 	return kind === "task" ? "edit" : "wheel";
 }
 
+/**
+ * Why the card's title cannot be rewritten here — so the view can say which.
+ *
+ * The same rule as `NoScope` above, one act further along: a tap on the title
+ * of a task opens its editor, and a tap on anything else did nothing at all
+ * (eigenaar, 2 sep 2026, on a phone, where "nothing happened" and "the tap
+ * missed" look identical). Every refusal has a reason and every reason has a
+ * sentence — and where there is somewhere else to do it, the sentence says so
+ * rather than only saying no.
+ *
+ * Two of these five are temporary: a heading and a note both *have* a name
+ * worth changing from here, and BC_E3_S119 is the decision to let them. The
+ * other three are permanent — a folder is file management, and a tag or a
+ * property wedge is a name that is written down nowhere at all.
+ */
+export type NoRename =
+	/** A heading: its name is a line in the note it stands in. */
+	| { refused: "heading" }
+	/** A note: its name is the file's, and links follow when it changes. */
+	| { refused: "note" }
+	/** A wedge standing for a folder. */
+	| { refused: "folder" }
+	/** A wedge standing for a tag or a property value: written down nowhere. */
+	| { refused: "wedge"; source: DomainSource }
+	/** Anything else with no name of its own. */
+	| { refused: "nameless" };
+
+export function renameRefusal(
+	node: TappedNode,
+	within: WheelScope,
+	domainSource: DomainSource,
+): NoRename {
+	if (node.kind === "group") return { refused: "heading" };
+	if (node.kind === "project") return { refused: "note" };
+
+	if (node.kind === "domain" && node.depth === 1) {
+		// In a wheel over one note the top ring *is* headings — the same branch
+		// `scopeFor` takes, for the same reason.
+		if (within.kind === "note" || within.kind === "section") {
+			return { refused: "heading" };
+		}
+		return domainSource === "folder"
+			? { refused: "folder" }
+			: { refused: "wedge", source: domainSource };
+	}
+
+	return { refused: "nameless" };
+}
+
 export function scopeFor(
 	node: TappedNode,
 	within: WheelScope,

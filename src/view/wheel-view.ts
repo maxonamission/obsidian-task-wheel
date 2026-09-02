@@ -59,7 +59,14 @@ import {
 	landAfter,
 } from "../model/carry";
 import { aWeekOut, today } from "../model/dates";
-import { activates, isRefused, type NoScope, scopeFor } from "../model/scope";
+import {
+	activates,
+	isRefused,
+	type NoRename,
+	type NoScope,
+	renameRefusal,
+	scopeFor,
+} from "../model/scope";
 import { paneChange } from "../model/detour";
 import { type Landing, landingId, readLanding } from "../model/landing";
 import { openAround } from "../model/resume";
@@ -434,6 +441,7 @@ export class TaskWheelView extends ItemView {
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
 			onMove: (direction) => this.moveFocused(direction),
+			covered: (x, y) => this.coveredAt(x, y),
 			panels: () => this.panelState(),
 			restorePanels: (was) => this.restorePanels(was),
 		});
@@ -1384,6 +1392,48 @@ export class TaskWheelView extends ItemView {
 		void leaf.openFile(file, line === null ? undefined : { eState: { line } });
 	}
 
+	/** Say why this title cannot be rewritten from here (BC_E3_S118). */
+	private explainNoRename(laid: LaidOutNode): void {
+		const refusal = renameRefusal(
+			{
+				kind: laid.node.kind,
+				depth: laid.depth,
+				label: laid.node.label,
+				source: laid.node.source,
+			},
+			this.wheelScope,
+			this.plugin.settings.domainSource,
+		);
+		new Notice(`Task wheel: ${noRenameText(refusal)}`);
+	}
+
+	/**
+	 * Whether a panel of ours lies over the wheel at this point (BC_E3_S118).
+	 *
+	 * The card is see-through to the hand on purpose — it covers a good part of
+	 * the drawing, and a drag across it has to keep turning the wheel, or a
+	 * phone loses half its handle. But see-through means a *tap* on it fell
+	 * through as well, and landed on whatever was drawn behind it: standing on
+	 * a heading and tapping the words on the card opened a task inside that
+	 * branch, because that is what the card was covering (eigenaar, 2 sep 2026).
+	 *
+	 * So a drag still goes through and a tap no longer does. The card is asked
+	 * for its own rectangle rather than the DOM for what is on top: the parts of
+	 * the card that *do* take taps — the buttons, an editable title — have
+	 * already had them by the time this is asked.
+	 */
+	private coveredAt(x: number, y: number): boolean {
+		for (const el of [this.cardEl, this.controlsEl, this.outEl, this.scopeEl]) {
+			if (el === null) continue;
+			const box = el.getBoundingClientRect();
+			if (box.width === 0 && box.height === 0) continue;
+			if (x >= box.left && x <= box.right && y >= box.top && y <= box.bottom) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/**
 	 * How Obsidian's own side panels stand, in a word.
 	 *
@@ -1840,6 +1890,8 @@ export class TaskWheelView extends ItemView {
 								ref,
 							);
 						},
+			onTitleRefused:
+				ref !== null ? undefined : () => this.explainNoRename(laid),
 			open: laid.node.source === undefined ? undefined : () => this.openNote(laid),
 			follow:
 				laid.node.source === undefined
@@ -2735,5 +2787,30 @@ function refusalText(refusal: NoScope): string {
 				: "this wedge comes from a note property, not from a folder, so there is no folder to open for it.";
 		case "no-source":
 			return "nothing on this item says which note it came from.";
+	}
+}
+
+/**
+ * What to say when a title has no editor behind it (BC_E3_S118).
+ *
+ * The same division as `refusalText`: the rule is `model/scope.ts`'s, the words
+ * are the view's. And the same standard — where the thing *can* be renamed, but
+ * not from here, the sentence says where. "Cannot rename" would leave the
+ * reader with the same question they tapped with.
+ */
+function noRenameText(refusal: NoRename): string {
+	switch (refusal.refused) {
+		case "heading":
+			return "a heading is renamed in the note itself — open it from the card.";
+		case "note":
+			return "a note is renamed in the file list, so that its links follow.";
+		case "folder":
+			return "a folder is renamed in the file list.";
+		case "wedge":
+			return refusal.source === "tag"
+				? "this wedge comes from a tag, so there is no name written down to change."
+				: "this wedge comes from a note property, so there is no name written down to change.";
+		case "nameless":
+			return "there is nothing here to rename.";
 	}
 }

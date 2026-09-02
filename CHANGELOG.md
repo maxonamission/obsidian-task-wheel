@@ -6,6 +6,26 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.20]
+
+Aiming, on a phone: two ways a tap could land somewhere you did not point at.
+
+- **Fixed**: a tap on the reading card no longer reaches the wheel behind it.
+  The card is deliberately see-through to the hand, so that a drag across it
+  still turns the wheel — but a tap fell through as well, onto whatever the card
+  was covering. Standing on a heading and tapping the words on the card would
+  open a task inside that branch. A drag still goes through; a tap does not.
+- **Added**: a title with no editor behind it now says why, instead of doing
+  nothing. A heading is renamed in the note itself, a note in the file list so
+  that its links follow, and a wedge that comes from a tag or a note property
+  has no name written down anywhere to change.
+- **Fixed**: the word beside an item is a tap target, like its dot. A label
+  hangs outward by exactly the width of the dot's tap area, so it began where
+  its own item stopped being tappable and pointed at the ring where the children
+  are — which meant tapping the word you were reading could name something else.
+  A tap now takes the nearest of the two shapes rather than whatever the browser
+  found under the finger.
+
 ## [0.1.19]
 
 Two more keys, and one of them was missing exactly where you needed it.

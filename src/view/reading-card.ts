@@ -41,6 +41,15 @@ export interface CardActions {
 	 * again when it closes (BC_E3_S29).
 	 */
 	suggestLinks?: (field: HTMLTextAreaElement) => { detach: () => void };
+	/**
+	 * Someone tapped a title that has no editor behind it.
+	 *
+	 * Only offered where the item is not a task. The card does not know *why*
+	 * there is nothing to rewrite — that is a rule, and it lives in
+	 * `model/scope.ts` — so it hands the tap over and the view says the
+	 * sentence (BC_E3_S118).
+	 */
+	onTitleRefused?: () => void;
 	/** Tick the task off. */
 	done?: () => void;
 	/** Mark the task as started, or take that mark off again. */
@@ -306,6 +315,7 @@ function renderTitle(
 ): (() => void) | null {
 	const outline = actions.outline;
 	const editable = outline !== undefined && focus.node.fields !== undefined;
+	const refuse = editable ? undefined : actions.onTitleRefused;
 
 	const opensTasks = editable && titleOpens(outline) === "tasks";
 
@@ -314,7 +324,9 @@ function renderTitle(
 		// list one token at a time, and a token holding a space is refused.
 		cls: editable
 			? ["task-wheel-card-title", "is-editable"]
-			: ["task-wheel-card-title"],
+			: refuse === undefined
+				? ["task-wheel-card-title"]
+				: ["task-wheel-card-title", "is-refusing"],
 		attr: editable
 			? { title: opensTasks ? "Click to edit in Tasks" : "Click to rename", role: "button", tabindex: "0" }
 			: {},
@@ -323,7 +335,20 @@ function renderTitle(
 	renderLabel(title, focus, actions);
 	offerToUnfold(parent, title);
 
-	if (!editable || outline === undefined) return null;
+	if (!editable || outline === undefined) {
+		// The card is see-through to the hand, so a title that answers nothing
+		// let the tap fall onto the drawing behind it (BC_E3_S118). It takes the
+		// tap now, and says why there is nothing to rewrite here — a tap that
+		// quietly does nothing is the failure this whole surface avoids.
+		if (refuse !== undefined) {
+			title.addEventListener("click", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				refuse();
+			});
+		}
+		return null;
+	}
 
 	const edit = (): void => {
 		// Built on the parent and then swapped in, so the card's own helper does

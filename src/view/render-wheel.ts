@@ -36,6 +36,7 @@ import {
 	READING_GAP,
 	TITLE_GAP,
 } from "../layout/window";
+import type { Box, Target } from "../layout/aim";
 import { clampZoom, viewBoxAttr, viewBoxFor } from "../layout/zoom";
 import { plainText } from "../parse/links";
 
@@ -616,6 +617,34 @@ export class WheelRenderer {
 	}
 
 	/**
+	 * Everything on screen that a tap could have been aimed at (BC_E3_S117).
+	 *
+	 * Both shapes per item: the tap disc around its dot, and the word beside it
+	 * where it has one. The word matters as much as the dot — more, on a phone,
+	 * because it is what the reader is looking at — and it is drawn a tap-disc's
+	 * width away from its own node, over the ring where the children live.
+	 *
+	 * Measured rather than computed: the drawing hangs under a rotation, a
+	 * viewBox and a zoom, and asking the elements carries all three without this
+	 * having to know about any of them. Measured on the tap, too, and not kept:
+	 * a tap is a moment, and everything here moves every frame.
+	 */
+	targetsOnScreen(): Target[] {
+		const targets: Target[] = [];
+
+		for (const place of this.places) {
+			const boxes: Box[] = [];
+			for (const el of [place.hit, place.label?.el]) {
+				const box = boxOf(el);
+				if (box !== null) boxes.push(box);
+			}
+			if (boxes.length > 0) targets.push({ id: place.laid.id, boxes });
+		}
+
+		return targets;
+	}
+
+	/**
 	 * Close in on the reading wedge, or pull back out.
 	 *
 	 * One attribute. The drawing does not change, the window onto it does — so
@@ -1128,4 +1157,26 @@ function dotRadius(depth: number): number {
 
 function round(value: number): number {
 	return Math.round(value * 1000) / 1000;
+}
+
+/**
+ * One drawn shape as a rectangle, or null when there is nothing to measure.
+ *
+ * An element that is not laid out — or a stand-in in a test — measures as a
+ * point at the origin, and a point at the origin would claim to be the nearest
+ * thing to every tap on the left of the screen.
+ */
+function boxOf(el: Element | undefined): Box | null {
+	if (el === undefined) return null;
+	if (typeof el.getBoundingClientRect !== "function") return null;
+
+	const box = el.getBoundingClientRect();
+	if (box.width === 0 && box.height === 0) return null;
+
+	return {
+		left: box.left,
+		top: box.top,
+		right: box.right,
+		bottom: box.bottom,
+	};
 }

@@ -492,6 +492,15 @@
 	color: var(--text-normal);
 }
 
+/* A title with nothing behind it still takes its own tap, so that it can say
+   why — the card is see-through to the hand, and without this the tap landed on
+   the drawing underneath (BC_E3_S118). No hand cursor: there is nothing to
+   open, and promising otherwise is the same lie in a different place. */
+.task-wheel-card-title.is-refusing {
+	pointer-events: auto;
+	cursor: default;
+}
+
 .task-wheel-card-title.is-editable {
 	pointer-events: auto;
 	cursor: text;
