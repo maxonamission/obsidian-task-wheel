@@ -6,6 +6,15 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.22]
+
+One file is now also available under the MIT licence.
+
+- **Changed**: `src/view/link-suggest.ts` — the part that offers notes while you
+  type a `[[` link — is dual-licensed `GPL-3.0-or-later OR MIT`, so that
+  MIT-licensed plugins can use it as it stands. See `LICENSE-MIT`. Task Wheel
+  itself remains GPL-3.0; nothing about how the plugin works has changed.
+
 ## [0.1.21]
 
 The filter gets a keyboard, and the card gets room.

@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR MIT
+//
+// The one file in Task Wheel that is dual-licensed. The plugin as a whole is
+// GPL-3.0; this file may also be used under the MIT licence (see LICENSE-MIT),
+// so that MIT-licensed plugins can lift it as it stands. Given away after
+// obsidian-tasks#1763, where the same problem — offering notes while a `[[` is
+// being typed — was being solved with Obsidian's private editor instead.
+
 import { type App, prepareFuzzySearch, renderResults, type TFile } from "obsidian";
 import { openLink, withLink } from "../parse/link-query";
 

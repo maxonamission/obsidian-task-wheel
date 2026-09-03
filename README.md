@@ -473,4 +473,6 @@ colour, stop and filter rule is tested headlessly, without an Obsidian window.
 
 ## License
 
-[GPL-3.0](LICENSE).
+[GPL-3.0](LICENSE), with one exception: `src/view/link-suggest.ts` — the piece
+that offers notes while you type a `[[` link — is also available under the
+[MIT licence](LICENSE-MIT), so that MIT-licensed plugins can use it as it stands.
