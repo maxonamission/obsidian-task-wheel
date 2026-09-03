@@ -2,6 +2,7 @@ import { addDays, isIsoDate } from "../model/dates";
 import { projectLabel } from "./domain";
 import { describeQuery, isEmpty, matchesQuery, parseQuery } from "./query";
 import {
+	type DateField,
 	isFinished,
 	PRIORITY_RANK,
 	type StatusRule,
@@ -55,6 +56,7 @@ export function describe(filter: TaskFilter): string {
 	else if (filter.due === "undated") parts.push("no date");
 	else if (filter.due === "parked") parts.push("parked for later");
 	else if (filter.due === "ready") parts.push("ready now");
+	else if (filter.due === "between") parts.push(describeWindow(filter));
 
 	// One bound reads as a direction, both as a band — and a band is what the
 	// reader set out to describe when they used two controls.
@@ -153,6 +155,39 @@ function matchesText(
 	});
 }
 
+/** The date a window is measured against. */
+function dateOf(fields: TaskFields, field: DateField): string | undefined {
+	if (field === "scheduled") return fields.scheduled;
+	if (field === "start") return fields.start;
+	return fields.due;
+}
+
+/**
+ * The window, in words, for the line that has to show it.
+ *
+ * Both ends, one end, or neither: an empty pair still leaves out everything
+ * without a date, and "has a date" is the honest description of that.
+ */
+function describeWindow(filter: TaskFilter): string {
+	const from = isIsoDate(filter.from) ? filter.from : "";
+	const until = isIsoDate(filter.until) ? filter.until : "";
+
+	// The word only when it is not the deadline: "due 15 – 22" is the ordinary
+	// case and does not need explaining, "scheduled" does.
+	const what = filter.dateField === "due" ? "due" : filter.dateField;
+
+	if (from !== "" && until !== "") {
+		// A window that ends before it begins holds nothing, and a reader who
+		// typed that needs telling rather than an empty wheel with no reason.
+		return from > until
+			? `${what} ${from} – ${until} (empty range)`
+			: `${what} ${from} – ${until}`;
+	}
+	if (from !== "") return `${what} from ${from}`;
+	if (until !== "") return `${what} up to ${until}`;
+	return filter.dateField === "due" ? "has a date" : `has a ${what} date`;
+}
+
 /**
  * Whether the status rule keeps this task.
  *
@@ -207,6 +242,20 @@ function matchesDue(
 			return isParked(fields, today);
 		case "ready":
 			return !isParked(fields, today);
+		case "between": {
+			// Not necessarily the deadline: a window is as often a question about
+			// when you meant to *pick something up* as about when it is due, and
+			// Tasks carries both dates (eigenaar, 3 sep 2026).
+			const on = dateOf(fields, filter.dateField);
+			// A task without that date lies between nothing. Someone hunting for
+			// those has a rule of their own, two cases up.
+			if (!isIsoDate(on)) return false;
+			// ISO dates compare as text, which is the whole reason the format is
+			// worth insisting on. Both ends inclusive; an empty end is open.
+			if (isIsoDate(filter.from) && on < filter.from) return false;
+			if (isIsoDate(filter.until) && on > filter.until) return false;
+			return true;
+		}
 	}
 }
 

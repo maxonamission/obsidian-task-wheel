@@ -228,6 +228,8 @@ export function keyGroups(touch: boolean, s: HelpStrings): KeyGroup[] {
 				{ keys: ["backspace"], text: s.keyBack },
 				{ keys: ["ctrl", "enter"], text: s.keyNote },
 				{ keys: ["space"], text: s.keyFold },
+				{ keys: ["ctrl", "f"], text: s.keySearch },
+				{ keys: ["a", "shift", "a"], text: s.keyAdd },
 				{ keys: ["+", "−", "0"], text: s.keyZoom },
 				{ keys: ["alt", "↑ ↓"], text: s.keyMove },
 			],

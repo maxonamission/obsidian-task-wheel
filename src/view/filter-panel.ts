@@ -3,6 +3,7 @@ import { describe, isFiltering } from "../parse/filter";
 import { PRIORITY_LADDER } from "../layout/colour";
 import {
 	NO_FILTER,
+	type DateField,
 	type DateRule,
 	type Priority,
 	type StatusRule,
@@ -30,8 +31,16 @@ const DUE_LABELS: Record<DateRule, string> = {
 	soon: "Due soon",
 	dated: "Has a date",
 	undated: "Has no date",
+	between: "Due between two dates",
 	parked: "Parked for later (🛫 or ⏳ ahead)",
 	ready: "Ready now (nothing parking it)",
+};
+
+/** Which of a task's dates a window is measured against. */
+const DATE_FIELD_LABELS: Record<DateField, string> = {
+	due: "Due date (📅)",
+	scheduled: "Scheduled date (⏳)",
+	start: "Start date (🛫)",
 };
 
 /**
@@ -65,6 +74,29 @@ export interface FilterPanelOptions {
 	open: boolean;
 	/** How many tasks the filter is leaving out right now. */
 	left: number;
+	/**
+	 * Enter in the search box: take me to what I searched for (BC_E3_S121).
+	 *
+	 * The box applies its words on `change` like any other field; this is the
+	 * *other* half, and it is the half that was missing. Typing a search and
+	 * then still standing in the text field is a search that stopped one step
+	 * short of the item.
+	 */
+	onSubmit?: (text: string) => void;
+	/** Escape in the search box: give the wheel its keyboard back. */
+	onEscape?: () => void;
+}
+
+/**
+ * What the panel hands back to whoever drew it.
+ *
+ * One entry, for the same reason the card has one: Ctrl+F arrives from outside
+ * the panel and has to be able to put the cursor in the box without the panel
+ * being redrawn for it (BC_E3_S120).
+ */
+export interface FilterPanelHandle {
+	/** Put the cursor in the search box, if the panel is open. */
+	focusSearch: () => void;
 }
 
 export function renderFilterPanel(
@@ -73,7 +105,7 @@ export function renderFilterPanel(
 	/** What this wheel is filtering on — its own, not the plugin's. */
 	filter: TaskFilter,
 	options: FilterPanelOptions,
-): void {
+): FilterPanelHandle {
 	parent.empty();
 	parent.addClass("task-wheel-controls");
 	parent.toggleClass("is-open", options.open);
@@ -109,14 +141,14 @@ export function renderFilterPanel(
 		options.onToggleOpen(!options.open);
 	});
 
-	if (!options.open) return;
+	if (!options.open) return { focusSearch: () => undefined };
 
 	const body = parent.createDiv({ cls: "task-wheel-controls-body" });
 
 	// First, because it is the one people reach for: type two words and the
 	// round is about those. Applied on change rather than on every keystroke —
 	// a rescan of the vault per letter would be a poor trade.
-	search(body, "Words", filter.text, (value) => change({ text: value }));
+	const box = search(body, "Words", filter.text, (value) => change({ text: value }), options);
 
 	dropdown(body, "Status", STATUS_LABELS, filter.status, (value) => {
 		change({ status: value as StatusRule });
@@ -130,6 +162,20 @@ export function renderFilterPanel(
 		number(body, "Within days", filter.horizon, (value) => {
 			change({ horizon: value });
 		});
+	}
+
+	// Only under the rule they belong to, like "Within days" above: two date
+	// fields that mean nothing seven-eighths of the time are two rows of noise
+	// in a panel that has to stay readable on a phone.
+	if (filter.due === "between") {
+		// Which date, before the two ends: a window on the deadline and a window
+		// on when you meant to start are different questions, and Tasks carries
+		// both (eigenaar, 3 sep 2026).
+		dropdown(body, "Date", DATE_FIELD_LABELS, filter.dateField, (value) => {
+			change({ dateField: value as DateField });
+		});
+		date(body, "From", filter.from, (value) => change({ from: value }));
+		date(body, "Up to", filter.until, (value) => change({ until: value }));
 	}
 
 	dropdown(
@@ -185,6 +231,13 @@ export function renderFilterPanel(
 			options.onChange({ ...NO_FILTER });
 		});
 	}
+
+	return {
+		focusSearch: () => {
+			box.focus();
+			box.select();
+		},
+	};
 }
 
 /** Counts the search boxes built, to keep their description ids apart. */
@@ -232,12 +285,38 @@ function number(
 	});
 }
 
-function search(
+/**
+ * One end of the window, as a date.
+ *
+ * A native date field rather than a text box: it brings the platform's own
+ * picker on a phone, and it hands back ISO — which is the format the rest of
+ * the plugin compares dates in, so nothing has to parse anything (BC_E3_S126).
+ *
+ * Empty is a real answer here: it means "open at this end", so an empty field
+ * is not a validation problem to be nagged about.
+ */
+function date(
 	parent: HTMLElement,
 	label: string,
 	value: string,
 	onSet: (value: string) => void,
 ): void {
+	const input = parent.createDiv({ cls: "task-wheel-controls-row" });
+	input.createSpan({ cls: "task-wheel-controls-label", text: label });
+
+	const field = input.createEl("input", {
+		attr: { type: "date", value, "aria-label": `${label} (leave empty for no bound)` },
+	});
+	field.addEventListener("change", () => onSet(field.value.trim()));
+}
+
+function search(
+	parent: HTMLElement,
+	label: string,
+	value: string,
+	onSet: (value: string) => void,
+	options: FilterPanelOptions,
+): HTMLInputElement {
 	const line = row(parent, label);
 
 	// The syntax, for someone who cannot see the panel — and only for them.
@@ -264,6 +343,28 @@ function search(
 	});
 
 	input.addEventListener("change", () => onSet(input.value.trim()));
+
+	// Enter takes you to what you searched for; Escape hands the wheel back.
+	// Both are the same complaint from opposite sides: a search box you cannot
+	// leave without reaching for the mouse (eigenaar, 3 sep 2026).
+	input.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			// Apply first, then jump. `change` fires when the field is *left*,
+			// and pressing Enter is not leaving it — without this the jump would
+			// look for what the previous words matched.
+			onSet(input.value.trim());
+			options.onSubmit?.(input.value.trim());
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			options.onEscape?.();
+		}
+		// The wheel listens for the arrows and for space on its own surface. A
+		// key pressed while typing in this box is never a move on the wheel.
+		event.stopPropagation();
+	});
+
+	return input;
 }
 
 function tags(

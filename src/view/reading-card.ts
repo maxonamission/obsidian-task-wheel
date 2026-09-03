@@ -143,7 +143,15 @@ export interface OutlineActions {
 	titleOpensTasks?: boolean;
 	/** Rewrite what the task says. */
 	rename: (text: string) => void;
-	/** Add a task below this one, or under it. */
+	/**
+	 * Add a task beside this one, or a step inside it.
+	 *
+	 * `false` is a sibling — the same level, straight after this task — and
+	 * `true` indents one step. The menu used to call the first *"Add a task
+	 * below"*, and *below* reads both ways: lower in the file, or hanging under
+	 * it (eigenaar, 3 sep 2026). The direction word is gone; *subtask* already
+	 * carries the nesting on its own.
+	 */
 	add: (asChild: boolean) => void;
 	/** Move it past the sibling before or after. */
 	move: (direction: "up" | "down") => void;
@@ -252,7 +260,30 @@ export function renderReadingCard(
 	else renderSource(body, focus);
 	renderActions(parent, layout, focus, actions);
 
+	markClipping(body);
+
 	return editTitle === null ? {} : { editTitle };
+}
+
+/**
+ * Say so when the words did not fit (BC_E3_S122).
+ *
+ * The card is a fixed frame and clips rather than grows — the right trade for a
+ * panel that sits over the drawing, because one that changes size keeps
+ * uncovering and re-covering what you are reading. But a clip nobody can see is
+ * the small version of the half-truth harde eis §3.3 forbids: the reader has no
+ * way to tell "that is the whole task" from "that is where it was cut off".
+ *
+ * One measurement, taken once per drawn card rather than per frame. A card that
+ * has not been laid out yet reports nought for both, which is not a clip.
+ */
+function markClipping(body: HTMLElement): void {
+	if (typeof body.scrollHeight !== "number") return;
+	if (body.clientHeight === 0) return;
+
+	// A pixel of slack: sub-pixel line heights make an exactly-fitting box
+	// report one more scroll pixel than it has room for.
+	body.toggleClass("is-clipped", body.scrollHeight > body.clientHeight + 1);
 }
 
 /**
@@ -871,13 +902,13 @@ function openOutlineMenu(
 
 	menu.addItem((item) =>
 		item
-			.setTitle("Add a task below")
+			.setTitle("Add task")
 			.setIcon("list-plus")
 			.onClick(() => outline.add(false)),
 	);
 	menu.addItem((item) =>
 		item
-			.setTitle("Add a subtask")
+			.setTitle("Add subtask")
 			.setIcon("corner-down-right")
 			.onClick(() => outline.add(true)),
 	);

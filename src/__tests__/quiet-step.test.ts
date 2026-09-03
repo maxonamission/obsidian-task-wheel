@@ -108,7 +108,12 @@ function press(key: string, mod = false): Record<string, unknown> {
 }
 
 function wheel(
-	options: { onOut?: () => boolean; onOpenNote?: () => boolean } = {},
+	options: {
+		onOut?: () => boolean;
+		onOpenNote?: () => boolean;
+		onSearch?: () => boolean;
+		onAdd?: (asChild: boolean) => boolean;
+	} = {},
 ): {
 	host: Host;
 	controller: WheelController;
@@ -309,5 +314,101 @@ describe("control with enter", () => {
 		w.host.fire("keydown", press("Enter"));
 
 		expect(w.opened).toEqual(["a"]);
+	});
+});
+
+describe("control with f", () => {
+	it("opens the filter, and takes the key when it does", () => {
+		// Elsewhere in Obsidian this is the editor's search bar; inside a view of
+		// our own it is free, and the filter is what you reach for with it
+		// (BC_E3_S120).
+		const search = vi.fn(() => true);
+		const w = wheel({ onSearch: search });
+
+		const event = press("f", true);
+		w.host.fire("keydown", event);
+
+		expect(search).toHaveBeenCalled();
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+
+	it("works on a wheel with nothing on it", () => {
+		// The trap Backspace fell into: an empty wheel is exactly when you want
+		// the filter, because the filter is usually why it is empty.
+		const search = vi.fn(() => true);
+		const host = surface();
+		const controller = new WheelController({
+			surface: host.el,
+			register: host.register,
+			onFocus: () => undefined,
+			onSearch: search,
+		});
+		controller.adopt(renderer(), [], null);
+
+		host.fire("keydown", press("f", true));
+		expect(search).toHaveBeenCalled();
+	});
+
+	it("leaves the key alone on a wheel with no filter to open", () => {
+		const w = wheel({ onSearch: () => false });
+
+		const event = press("f", true);
+		w.host.fire("keydown", event);
+
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("leaves a bare f alone", () => {
+		// The wheel claims no plain letters: typing is for the boxes.
+		const search = vi.fn(() => true);
+		const w = wheel({ onSearch: search });
+
+		w.host.fire("keydown", press("f"));
+
+		expect(search).not.toHaveBeenCalled();
+	});
+});
+
+describe("a and shift+a", () => {
+	it("adds beside, and takes the key", () => {
+		const add = vi.fn(() => true);
+		const w = wheel({ onAdd: add });
+
+		const event = press("a");
+		w.host.fire("keydown", event);
+
+		expect(add).toHaveBeenCalledWith(false);
+		expect(event.preventDefault).toHaveBeenCalled();
+	});
+
+	it("adds inside when shift is held", () => {
+		const add = vi.fn(() => true);
+		const w = wheel({ onAdd: add });
+
+		w.host.fire("keydown", { ...press("A"), shiftKey: true });
+
+		expect(add).toHaveBeenCalledWith(true);
+	});
+
+	it("leaves the letter alone where there is no outline to add to", () => {
+		// The vault wheel: no outline actions, so `a` is not ours. A key that
+		// swallows itself to do nothing is worse than one that never took it.
+		const w = wheel({ onAdd: () => false });
+
+		const event = press("a");
+		w.host.fire("keydown", event);
+
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+
+	it("is not the letter with a modifier on it", () => {
+		// Ctrl+A is select-all everywhere, and Alt+A belongs to whoever bound it.
+		const add = vi.fn(() => true);
+		const w = wheel({ onAdd: add });
+
+		w.host.fire("keydown", press("a", true));
+		w.host.fire("keydown", { ...press("a"), altKey: true });
+
+		expect(add).not.toHaveBeenCalled();
 	});
 });

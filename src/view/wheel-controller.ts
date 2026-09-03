@@ -162,14 +162,33 @@ export interface WheelControllerOptions {
 	 */
 	onMove?: (direction: "up" | "down") => void;
 	/**
-	 * Whether Obsidian's own side panels stand open, in a word.
+	 * Ctrl/Cmd+F: open the filter and put the cursor in its search box.
 	 *
-	 * The one thing the trace could not say: *did the panel open while we had
-	 * the gesture?* The reader had to remember and correlate by hand, and two
-	 * rounds of traces came back showing turns that had gone fine. Read once
-	 * when a drag begins and again when it ends, the answer arrives in the same
-	 * trace as the gesture that caused it (BC_E3_S76).
+	 * Elsewhere in Obsidian this is the editor's search bar; in a view of our
+	 * own it is unclaimed, and the filter is the thing you reach for with it
+	 * (eigenaar, 3 sep 2026, nagekeken op het wiel). It is also a command, so
+	 * anyone who wants the key back rebinds it there — the same reasoning as
+	 * BC_E3_S103.
+	 *
+	 * Answers whether it took the key, so a wheel without a filter panel leaves
+	 * it to whoever else wants it.
 	 */
+	onSearch?: () => boolean;
+	/**
+	 * `a` adds a task beside this one; `Shift+A` adds a step inside it.
+	 *
+	 * The only bare letters the wheel claims, and they are safe because it
+	 * claims no others: the canvas is not a text field, so a letter here can
+	 * only ever have been meant for the wheel. Both are commands as well, which
+	 * is how anyone who wants different keys gets them — Obsidian owns the key
+	 * map, and a plugin that builds its own is a plugin with two of them
+	 * (eigenaar, 3 sep 2026; dezelfde redenering als BC_E3_S103 en S120).
+	 *
+	 * Answers whether the item under the wedge could take it. On a wheel that
+	 * is not over one note there is no outline to add to, and then the letter is
+	 * not ours.
+	 */
+	onAdd?: (asChild: boolean) => boolean;
 	/**
 	 * Whether one of the wheel's own panels lies over this point.
 	 *
@@ -179,6 +198,15 @@ export interface WheelControllerOptions {
 	 * stylesheet). What a tap on it may not do is name something behind it.
 	 */
 	covered?: (x: number, y: number) => boolean;
+	/**
+	 * Whether Obsidian's own side panels stand open, in a word.
+	 *
+	 * The one thing the trace could not say: *did the panel open while we had
+	 * the gesture?* The reader had to remember and correlate by hand, and two
+	 * rounds of traces came back showing turns that had gone fine. Read once
+	 * when a drag begins and again when it ends, the answer arrives in the same
+	 * trace as the gesture that caused it (BC_E3_S76).
+	 */
 	panels?: () => string;
 	/**
 	 * Put the side panels back the way `panels()` said they were.
@@ -965,6 +993,29 @@ export class WheelController {
 		// 2 sep 2026).
 		if (event.key === "Backspace") {
 			if (this.options.onOut?.() !== true) return;
+			event.preventDefault();
+			return;
+		}
+
+		// Also before the empty check, and for the same reason as Backspace: a
+		// wheel with nothing on it is exactly when you want to reach the filter
+		// — that is usually *why* there is nothing on it (BC_E3_S120).
+		if ((event.key === "f" || event.key === "F") && (event.ctrlKey || event.metaKey)) {
+			if (this.options.onSearch?.() !== true) return;
+			event.preventDefault();
+			return;
+		}
+
+		// The only bare letters the wheel claims. Safe because it claims no
+		// others: this canvas is not a text field, so a letter here was meant
+		// for the wheel. Shift is what says "inside" rather than "beside".
+		if (
+			(event.key === "a" || event.key === "A") &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey
+		) {
+			if (this.options.onAdd?.(event.shiftKey) !== true) return;
 			event.preventDefault();
 			return;
 		}

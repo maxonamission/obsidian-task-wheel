@@ -13,6 +13,7 @@ import {
 } from "./layout/colour";
 import {
 	type CarryPreset,
+	type DateField,
 	type DateRule,
 	DEFAULT_PARSE_OPTIONS,
 	type DomainSource,
@@ -136,6 +137,10 @@ export interface TaskWheelSettings
 	filterText: string;
 	filterDue: DateRule;
 	filterHorizon: number;
+	/** The window the `between` rule looks at, as ISO dates (BC_E3_S126). */
+	filterFrom: string;
+	filterUntil: string;
+	filterDateField: DateField;
 	filterStatus: StatusRule;
 	filterMinPriority: Priority | "any";
 	filterMaxPriority: Priority | "any";
@@ -303,6 +308,9 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	filterText: NO_FILTER.text,
 	filterDue: NO_FILTER.due,
 	filterHorizon: NO_FILTER.horizon,
+	filterFrom: NO_FILTER.from,
+	filterUntil: NO_FILTER.until,
+	filterDateField: NO_FILTER.dateField,
 	filterStatus: NO_FILTER.status,
 	filterMinPriority: NO_FILTER.minPriority,
 	filterMaxPriority: NO_FILTER.maxPriority,
@@ -398,6 +406,11 @@ export function filterOf(
 		text: settings.filterText,
 		due: settings.filterDue,
 		horizon: settings.filterHorizon,
+		// Stored after the field existed, so a vault from before it reads as
+		// `undefined` — which is neither a date nor "open at this end".
+		from: settings.filterFrom ?? NO_FILTER.from,
+		until: settings.filterUntil ?? NO_FILTER.until,
+		dateField: settings.filterDateField ?? NO_FILTER.dateField,
 		status: settings.filterStatus,
 		minPriority: settings.filterMinPriority,
 		maxPriority: settings.filterMaxPriority ?? "any",
@@ -431,6 +444,9 @@ export function setFilter(
 		settings.filterText = next.text;
 		settings.filterDue = next.due;
 		settings.filterHorizon = next.horizon;
+		settings.filterFrom = next.from;
+		settings.filterUntil = next.until;
+		settings.filterDateField = next.dateField;
 		settings.filterStatus = next.status;
 		settings.filterMinPriority = next.minPriority;
 		settings.filterMaxPriority = next.maxPriority;
@@ -462,6 +478,9 @@ export function sameFilter(a: TaskFilter, b: TaskFilter): boolean {
 		a.text === b.text &&
 		a.due === b.due &&
 		a.horizon === b.horizon &&
+		a.from === b.from &&
+		a.until === b.until &&
+		a.dateField === b.dateField &&
 		a.status === b.status &&
 		a.minPriority === b.minPriority &&
 		a.maxPriority === b.maxPriority &&
@@ -483,12 +502,19 @@ export function visibleBudgetOf(settings: TaskWheelSettings): number {
 	return DETAIL_BUDGETS[settings.detail] ?? DETAIL_BUDGETS.balanced;
 }
 
+const DATE_FIELD_LABELS: Record<DateField, string> = {
+	due: "Due date (📅)",
+	scheduled: "Scheduled date (⏳)",
+	start: "Start date (🛫)",
+};
+
 const DUE_LABELS: Record<DateRule, string> = {
 	any: "Anything",
 	overdue: "Overdue, or due today",
 	soon: "Due soon",
 	dated: "Dated",
 	undated: "Undated",
+	between: "Due in a date range",
 	parked: "Parked for later (🛫 or ⏳ ahead)",
 	ready: "Ready now (nothing parking it)",
 };
@@ -864,6 +890,36 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							key: "filterHorizon",
 							min: 0,
 							placeholder: String(NO_FILTER.horizon),
+						},
+					},
+					{
+						name: "Which date the window uses",
+						desc: "A window on the deadline (📅) and a window on when you meant to start (🛫) or pick something up (⏳) are different questions, and Tasks carries all three. Only the window uses this; overdue and due soon are always about the deadline.",
+						visible: () => settings.filterDue === "between",
+						control: {
+							type: "dropdown",
+							key: "filterDateField",
+							options: DATE_FIELD_LABELS,
+						},
+					},
+					{
+						name: "Due from",
+						desc: "The start of the window, as YYYY-MM-DD. Both ends count as inside it, and leaving this empty means the window is open at the early end. Tasks without a due date are never in a window.",
+						visible: () => settings.filterDue === "between",
+						control: {
+							type: "text",
+							key: "filterFrom",
+							placeholder: "2026-09-15",
+						},
+					},
+					{
+						name: "Due up to",
+						desc: "The end of the window, as YYYY-MM-DD, and it counts as inside it. Empty means open at the late end. An end before the start selects nothing, and the line under the wheel says so.",
+						visible: () => settings.filterDue === "between",
+						control: {
+							type: "text",
+							key: "filterUntil",
+							placeholder: "2026-09-22",
 						},
 					},
 					{

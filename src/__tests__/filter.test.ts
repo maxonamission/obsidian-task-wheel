@@ -60,6 +60,93 @@ group("matches — dates", () => {
 		expect(matches(undated, rule, TODAY)).toBe(false);
 	});
 
+	it("takes a window with both ends inside it", () => {
+		// The seven other rules are all reckoned from today; this is the one that
+		// is not. Both bounds count as in — "up to the 27th" is what a reader
+		// means by "to the 27th" (BC_E3_S126).
+		const rule = filter({ due: "between", from: "2026-08-20", until: "2026-08-27" });
+		expect(matches(todayTask, rule, TODAY)).toBe(true);
+		expect(matches(soon, rule, TODAY)).toBe(true);
+		expect(matches(overdue, rule, TODAY)).toBe(false);
+		expect(matches(far, rule, TODAY)).toBe(false);
+	});
+
+	it("leaves an end open when it is not given", () => {
+		const from = filter({ due: "between", from: "2026-08-20" });
+		expect(matches(overdue, from, TODAY)).toBe(false);
+		expect(matches(far, from, TODAY)).toBe(true);
+
+		const until = filter({ due: "between", until: "2026-08-20" });
+		expect(matches(overdue, until, TODAY)).toBe(true);
+		expect(matches(far, until, TODAY)).toBe(false);
+	});
+
+	it("takes the window's own date, not always the deadline", () => {
+		// Tasks carries three dates and the window is as often about when you
+		// meant to pick something up as about when it is due (eigenaar, 3 sep
+		// 2026). Same task, two answers, depending on which date is asked for.
+		const both = fields("- [ ] Bellen ⏳ 2026-08-21 📅 2026-09-30");
+		const week = { from: "2026-08-20", until: "2026-08-27" } as const;
+
+		expect(matches(both, filter({ due: "between", ...week }), TODAY)).toBe(false);
+		expect(
+			matches(both, filter({ due: "between", ...week, dateField: "scheduled" }), TODAY),
+		).toBe(true);
+	});
+
+	it("leaves out a task that has no date of the asked-for kind", () => {
+		const dueOnly = fields("- [ ] Alleen deadline 📅 2026-08-21");
+		const rule = filter({
+			due: "between",
+			from: "2026-08-20",
+			until: "2026-08-27",
+			dateField: "start",
+		});
+		expect(matches(dueOnly, rule, TODAY)).toBe(false);
+	});
+
+	it("says which date the window is about, when it is not the deadline", () => {
+		const rule = filter({
+			due: "between",
+			from: "2026-09-15",
+			until: "2026-09-22",
+			dateField: "scheduled",
+		});
+		expect(describe(rule)).toContain("scheduled 2026-09-15 – 2026-09-22");
+		// And stays quiet about it when it is: "due 15 – 22" needs no explaining.
+		expect(describe(filter({ due: "between", from: "2026-09-15", until: "2026-09-22" })))
+			.toContain("due 2026-09-15");
+	});
+
+	it("never puts an undated task in a window", () => {
+		// It lies between nothing, and there is a rule of its own for finding
+		// those. This is the assumption that could quietly flip, so it is pinned.
+		for (const rule of [
+			filter({ due: "between" }),
+			filter({ due: "between", from: "2020-01-01", until: "2030-01-01" }),
+		]) {
+			expect(matches(undated, rule, TODAY)).toBe(false);
+		}
+	});
+
+	it("selects nothing from a window that ends before it starts", () => {
+		const rule = filter({ due: "between", from: "2026-08-27", until: "2026-08-20" });
+		for (const task of [overdue, todayTask, soon, far, undated]) {
+			expect(matches(task, rule, TODAY)).toBe(false);
+		}
+		expect(describe(rule)).toContain("empty range");
+	});
+
+	it("says the window in words", () => {
+		expect(describe(filter({ due: "between", from: "2026-09-15", until: "2026-09-22" })))
+			.toContain("due 2026-09-15 – 2026-09-22");
+		expect(describe(filter({ due: "between", from: "2026-09-15" }))).toContain("due from 2026-09-15");
+		expect(describe(filter({ due: "between", until: "2026-09-22" }))).toContain("due up to 2026-09-22");
+		// Neither end: still a filter, because everything undated falls out.
+		expect(describe(filter({ due: "between" }))).toContain("has a date");
+		expect(isFiltering(filter({ due: "between" }))).toBe(true);
+	});
+
 	it("reaches as far ahead as the horizon says", () => {
 		const rule = filter({ due: "soon", horizon: 14 });
 		expect(matches(soon, rule, TODAY)).toBe(true);

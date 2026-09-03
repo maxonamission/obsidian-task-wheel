@@ -283,7 +283,14 @@
 	bottom: 0;
 	transform: translateX(-50%);
 	width: min(88%, 26em);
-	height: 9.6em;
+	/* Room for four lines of a task's name above the trail and the action row.
+	   It was 9,6em, which held two — and the framework document promises the
+	   opposite: "de vaste kaart bij de leeswig schrijft de taak in focus
+	   volledig uit, zodat die niet wordt afgekapt" (§4, besluit 13 aug 2026).
+	   Raising it does not touch the rule this block is built on: what may not
+	   change is the size *while you are reading*, and a taller card is still a
+	   still card (BC_E3_S122). */
+	height: 12.4em;
 	/* Binds only in a pane too short to be useful anyway — landscape on a phone.
 	   The text gives way there, never the action row. */
 	max-height: 72%;
@@ -298,6 +305,38 @@
 	border-radius: var(--radius-m);
 	background: var(--background-secondary);
 	padding: var(--size-2-3) var(--size-4-3);
+}
+
+/* On a phone the card is most of what you read, and 88% of a narrow screen
+   throws away two margins of width to show wheel that the card is standing in
+   front of anyway (eigenaar, 3 sep 2026). Full width within the safe zone, so
+   the words get the room instead. Still one fixed size — a breakpoint is not an
+   animation (BC_E3_S122). */
+.is-mobile .task-wheel-card {
+	left: var(--size-4-2);
+	right: var(--size-4-2);
+	width: auto;
+	transform: none;
+}
+
+/* Say when the words did not fit.
+   The card clips rather than grows, which is the right trade for a panel that
+   sits over the drawing — but a clip nobody can see is the small version of the
+   half-truth harde eis §3.3 forbids. The class is set by the card when it
+   measures its own text as taller than the room it has. */
+.task-wheel-card-body.is-clipped::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 1.5em;
+	pointer-events: none;
+	background: linear-gradient(
+		to bottom,
+		transparent,
+		var(--background-secondary)
+	);
 }
 
 /* The text may run out of room; the button below it may not. */

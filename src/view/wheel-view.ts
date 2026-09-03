@@ -49,7 +49,12 @@ import {
 } from "../layout/colour";
 import { domainWeights, type WedgeDivision } from "../layout/budgets";
 import { type LaidOutNode, layoutWheel, type WheelLayout } from "../layout/radial";
-import { buildDetents, type Detent } from "../layout/detents";
+import {
+	buildDetents,
+	type Detent,
+	indexOfId,
+	nextMatching,
+} from "../layout/detents";
 import { type SidewaysAlong, sidewaysFrom, taskAfter } from "../layout/order";
 import { prune } from "../layout/sweep";
 import {
@@ -96,7 +101,7 @@ import {
 } from "./reading-card";
 import { renderLegend } from "./legend";
 import type { HelpAction, HelpRoundState } from "./help-content";
-import { renderFilterPanel } from "./filter-panel";
+import { type FilterPanelHandle, renderFilterPanel } from "./filter-panel";
 import { pickHeading } from "./heading-picker";
 import { parentCandidates, pickTask } from "./task-picker";
 import { attachLinkSuggest } from "./link-suggest";
@@ -247,6 +252,8 @@ export class TaskWheelView extends ItemView {
 	private canvasEl: HTMLElement | null = null;
 	private legendEl: HTMLElement | null = null;
 	private controlsEl: HTMLElement | null = null;
+	/** The filter panel's own handle, so Ctrl+F can reach its search box. */
+	private panel: FilterPanelHandle | null = null;
 	/** The button in the pane that goes one step wider, under the filter panel. */
 	private outEl: HTMLElement | null = null;
 	private scopeEl: HTMLElement | null = null;
@@ -441,6 +448,8 @@ export class TaskWheelView extends ItemView {
 			onZoom: (zoom) => this.onZoom(zoom),
 			onTrace: (line) => this.onTrace(line),
 			onMove: (direction) => this.moveFocused(direction),
+			onSearch: () => this.openSearch(),
+			onAdd: (asChild) => this.addFromKey(asChild),
 			covered: (x, y) => this.coveredAt(x, y),
 			panels: () => this.panelState(),
 			restorePanels: (was) => this.restorePanels(was),
@@ -477,6 +486,7 @@ export class TaskWheelView extends ItemView {
 		this.cardEl = null;
 		this.canvasEl = null;
 		this.controlsEl = null;
+		this.panel = null;
 		this.legendEl = null;
 		this.errorEl = null;
 		this.traceEl = null;
@@ -1687,7 +1697,7 @@ export class TaskWheelView extends ItemView {
 		const el = this.controlsEl;
 		if (el === null) return;
 
-		renderFilterPanel(
+		this.panel = renderFilterPanel(
 			el,
 			this.plugin.settings,
 			filterOf(this.plugin.settings, this.wheelScope),
@@ -1700,8 +1710,85 @@ export class TaskWheelView extends ItemView {
 					this.drawControls();
 				},
 				onChange: (next) => void this.changeFilter(next),
+				onSubmit: (text) => void this.jumpToSearch(text),
+				onEscape: () => this.takeBackKeyboard(),
 			},
 		);
+	}
+
+	/**
+	 * `a` and `Shift+A`: add a task beside this one, or a step inside it.
+	 *
+	 * Answers whether the item under the wedge could take it. Only a wheel over
+	 * one note hands in outline actions, so on the vault wheel these letters are
+	 * not ours — and a key that swallows itself to do nothing is worse than one
+	 * that never took the press (BC_E3_S113).
+	 */
+	private addFromKey(asChild: boolean): boolean {
+		const laid = this.focusId === null ? null : (this.layout?.byId.get(this.focusId) ?? null);
+		const add = this.actionsFor(laid).outline?.add;
+		if (add === undefined) return false;
+
+		add(asChild);
+		return true;
+	}
+
+	/**
+	 * Open the filter and put the cursor in its search box (BC_E3_S120).
+	 *
+	 * Answers whether it did, so Ctrl+F stays unclaimed on a wheel that has no
+	 * panel to open — a key that swallows itself to do nothing is worse than one
+	 * that never took the press.
+	 */
+	openSearch(): boolean {
+		if (this.controlsEl === null) return false;
+
+		if (!this.plugin.settings.filterPanelOpen) {
+			this.plugin.settings.filterPanelOpen = true;
+			this.plugin.persist();
+			this.drawControls();
+		}
+		// Already open counts too: the point of the key is the cursor, not the
+		// panel, and pressing it twice should not close what it just opened.
+		this.panel?.focusSearch();
+		return true;
+	}
+
+	/**
+	 * Enter in the search box: go to what was searched for (BC_E3_S121).
+	 *
+	 * The words are already applied by the time this runs, so every stop left on
+	 * the wheel is a match and "the next match" is simply the next task stop in
+	 * the turn direction (`nextMatching`). Forward from here rather than back to
+	 * the start of the circle: a round you are halfway through should move on,
+	 * and pressing Enter again walks the matches (eigenaarsbesluit 3 sep 2026).
+	 *
+	 * The rescan is awaited first — the filter has to have been applied before
+	 * there is anything to jump *to*.
+	 */
+	private async jumpToSearch(text: string): Promise<void> {
+		await this.refresh();
+
+		const layout = this.layout;
+		if (layout === null) return;
+
+		const detents = buildDetents(layout);
+		const from = this.focusId === null ? -1 : indexOfId(detents, this.focusId);
+		const next = nextMatching(detents, from, (id) => {
+			return layout.byId.get(id)?.node.kind === "task";
+		});
+
+		if (next === null) {
+			new Notice(
+				text.length > 0
+					? `Task wheel: nothing in this round matches "${text}".`
+					: "Task wheel: nothing in this round to jump to.",
+			);
+			return;
+		}
+
+		this.controller?.goTo(next.id);
+		this.takeBackKeyboard();
 	}
 
 	/**

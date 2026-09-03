@@ -222,7 +222,7 @@ export async function writeMove(
 }
 
 /**
- * Add a task below this one, or under it.
+ * Add a task beside this one, or a step inside it.
  *
  * Returns where it landed in `outcome` terms only; the caller rescans, and the
  * new line is found again by its text like every other node.

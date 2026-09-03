@@ -88,9 +88,13 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **Open the note it lives in** | Ctrl/Cmd + Enter — add Shift if something else on your setup already claims that combination — or the note button on the card |
 | **Zoom** | Pinch, ctrl-scroll, or + − |
 | **Fold a branch away** | Space, or the button on the card |
+| **Open a wheel over the note you are in** | The command *Open the wheel over this note* — it lands on the task under your cursor |
+| **Open the filter** | Ctrl/Cmd + F, or the panel in the corner — the cursor lands in the search box |
+| **Jump to what you searched for** | Enter in the search box: the next match in the turn direction. Escape hands the wheel back |
 | **One stop in the flat order** | PageUp / PageDown |
 | **Jump to the first or last** | Home / End |
 | **Carry to a named place** | The ⋯ button, or a key you bind yourself |
+| **Add a task** | `a` beside this one, `Shift+A` inside it — in a wheel over one note. Both are commands too, so Obsidian can bind other keys |
 | **Make it a subtask of another** | The ⋯ button, in a wheel over one note |
 | **Help** | The ? in the wheel's header — keys, the drawing's legend, and where this round stands |
 
@@ -179,6 +183,19 @@ brings finished work back for that round whatever *Include finished tasks*
 says: asking for it in the filter is asking for it. The hub then counts what it
 is showing rather than what is open, and says `shown` instead of `open`.
 
+**Dates** are all reckoned from today — overdue, due soon, has a date, has no
+date — except one. **Due between two dates** takes a window of its own, and both
+ends count as inside it: *up to the 22nd* includes the 22nd. It is also the only
+rule that lets you say **which** date it means: the deadline (📅), the scheduled
+date (⏳) or the start date (🛫). The others are always about the deadline,
+because that is what *overdue* and *due soon* mean. Leave an end empty
+and the window is open at that end, which is how you ask for "everything from
+September onwards" or "anything that was already due before this week". A task
+without a due date is in no window at all — for those there is *has no date*,
+one line up. A window that ends before it starts holds nothing, and the line
+under the wheel says so rather than leaving you with an empty wheel and no
+reason.
+
 There is no "deferred" among the statuses, because Tasks has no status
 character for it: putting something off is a *date*. So that lives with the
 dates, as **parked for later** — a start (🛫) or scheduled (⏳) date that has
@@ -248,6 +265,9 @@ sit under no heading at all, which no heading rule can reach.
 - **The whole vault** — the ribbon icon, or the command *Open the wheel*.
 - **One folder or one note** — right-click it in the file list (long-press on a
   phone) and choose *Open task wheel here*.
+- **The note you are reading** — the command *Open the wheel over this note*,
+  which lands on the task your cursor is on. Obsidian will bind a key to it if
+  you want one.
 
 A local wheel re-roots the angular axis: inside a folder the **subfolders**
 become the wedges, inside a note its **headings** do. The angle is always the

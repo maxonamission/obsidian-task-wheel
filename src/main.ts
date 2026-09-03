@@ -130,6 +130,21 @@ export default class TaskWheelPlugin extends Plugin {
 			},
 		});
 
+		// The wheel over the note you are *in*. Reachable by right-clicking the
+		// note in the file list since BC_E3_S11, and by nothing else — so from
+		// the note itself it was mouse-only, and there was no command for
+		// Obsidian to hang a key on (eigenaar, 3 sep 2026). Deliberately a
+		// second command rather than a mode on `open-wheel`: one command that
+		// sometimes opens the vault and sometimes one note is a command you
+		// cannot bind a key to with any confidence.
+		this.addCommand({
+			id: "open-note-wheel",
+			name: "Open the wheel over this note",
+			callback: () => {
+				void this.openNoteWheel();
+			},
+		});
+
 		this.addCommand({
 			id: "open-help",
 			name: "Show the help panel",
@@ -204,6 +219,21 @@ export default class TaskWheelPlugin extends Plugin {
 			name: "Clear the filter",
 			callback: () => {
 				void this.clearFilter();
+			},
+		});
+
+		// The way *into* the filter, which the panel only had by mouse. A
+		// command rather than a fixed key, so the reader binds whatever they
+		// like — Ctrl/Cmd+F is what the wheel itself answers to, and that one
+		// is free inside a view of our own (BC_E3_S120).
+		this.addCommand({
+			id: "open-filter",
+			name: "Open the filter",
+			checkCallback: (checking: boolean) => {
+				const wheel = this.activeWheel();
+				if (wheel === null) return false;
+				if (!checking) wheel.openSearch();
+				return true;
 			},
 		});
 
@@ -503,6 +533,28 @@ export default class TaskWheelPlugin extends Plugin {
 		if (editor === null || path === undefined) return undefined;
 
 		return { kind: "line", path, line: editor.editor.getCursor().line };
+	}
+
+	/**
+	 * A wheel over the note that is in front (BC_E3_S112).
+	 *
+	 * The same wheel the file list's context menu opens, reached from where the
+	 * reading actually happens — and it lands on the task under the cursor,
+	 * because that is where you were looking when you asked (BC_E3_S108).
+	 *
+	 * Says so when there is no note rather than opening the vault wheel
+	 * instead: a command that quietly answers a different question is worse
+	 * than one that admits it cannot answer this one.
+	 */
+	async openNoteWheel(): Promise<void> {
+		const editor = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const path = editor?.file?.path;
+		if (path === undefined) {
+			new Notice("Task wheel: no note is open, so there is none to open a wheel over.");
+			return;
+		}
+
+		await this.openScoped({ kind: "note", path }, undefined, this.cursorLanding());
 	}
 
 	/**
@@ -1046,6 +1098,16 @@ const FOCUS_COMMANDS: readonly {
 		id: "focus-priority-down",
 		name: "Lower the priority",
 		pick: (a) => (a.priority === undefined ? undefined : () => a.priority?.(-1)),
+	},
+	{
+		id: "focus-add-task",
+		name: "Add task",
+		pick: (a) => (a.outline === undefined ? undefined : () => a.outline?.add(false)),
+	},
+	{
+		id: "focus-add-subtask",
+		name: "Add subtask",
+		pick: (a) => (a.outline === undefined ? undefined : () => a.outline?.add(true)),
 	},
 	{ id: "focus-open", name: "Open the note here", pick: (a) => a.open },
 	{

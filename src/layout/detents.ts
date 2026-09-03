@@ -110,6 +110,40 @@ export function stepTurnStop(
 	return nearestTurnStop(detents, here?.rotation ?? 0)?.index ?? index;
 }
 
+/**
+ * The next stop in the turn direction that the caller wants (BC_E3_S121).
+ *
+ * Enter in the search box means "take me to what I just searched for", and the
+ * honest reading of that on a wheel is *the next one from here* rather than
+ * "the first one on the circle": a round you are halfway through should move
+ * forward, not start over. Pressing it again walks on, which is what makes it
+ * usable for stepping through what a search turned up.
+ *
+ * Deliberately exclusive of where you stand. Landing on the stop you are
+ * already on looks exactly like a key that did nothing.
+ *
+ * Wraps once and gives up: with one match, that match is the answer even when
+ * you are standing on it; with none, `null`, and the caller says so rather than
+ * moving the wheel to nowhere.
+ */
+export function nextMatching(
+	detents: readonly Detent[],
+	from: number,
+	wanted: (id: string) => boolean,
+): Detent | null {
+	const stops = turnStops(detents);
+	if (stops.length === 0) return null;
+
+	const here = detents[from];
+	const at = here === undefined ? -1 : stops.findIndex((s) => s.id === here.id);
+
+	for (let step = 1; step <= stops.length; step++) {
+		const next = stops[(((at + step) % stops.length) + stops.length) % stops.length];
+		if (wanted(next.id)) return next;
+	}
+	return null;
+}
+
 /** The stop turning would settle on for this rotation. */
 export function nearestTurnStop(
 	detents: readonly Detent[],

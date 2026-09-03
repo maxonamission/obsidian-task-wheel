@@ -68,6 +68,10 @@ export interface HelpStrings {
 	/** Enter: the keyboard's double-click. */
 	keyOpen: string;
 	keyFold: string;
+	/** Ctrl/Cmd+F: the way into the filter, and Enter the way out of it. */
+	keySearch: string;
+	/** a / Shift+A: add a task beside this one, or a step inside it. */
+	keyAdd: string;
 	keyZoom: string;
 	keyZoomTouch: string;
 	keyMove: string;
@@ -208,6 +212,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Back out to the wider wheel — vault, folder, note, section.",
 		keyNote: "Opens the note this task is written in, at its own line.",
 		keyFold: "Folds this branch away, or opens it again.",
+		keySearch: "Opens the filter and puts the cursor in its search box. Enter there takes you to the next task it finds; Escape hands the wheel back.",
+		keyAdd: "Adds a task beside this one; with shift, a step inside it. Only in a wheel over one note — elsewhere there is no outline to add to.",
 		keyZoom: "Zoom, or pinch on a touchscreen.",
 		keyZoomTouch: "Zoom.",
 		keyMove:
@@ -299,6 +305,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Terug naar het wijdere wiel — vault, map, notitie, sectie.",
 		keyNote: "Opent de notitie waar deze taak in staat, op zijn eigen regel.",
 		keyFold: "Klapt deze tak in, of weer uit.",
+		keySearch: "Opent het filter met de cursor in het zoekveld. Enter brengt je daar naar de volgende gevonden taak; Escape geeft het wiel terug.",
+		keyAdd: "Voegt een taak naast deze toe; met shift een stap erbinnen. Alleen in een wiel over één notitie — elders is er geen outline om aan toe te voegen.",
 		keyZoom: "Zoomen, of knijpen op een touchscreen.",
 		keyZoomTouch: "Zoomen.",
 		keyMove:
@@ -390,6 +398,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "يعود إلى العجلة الأوسع — الخزنة، المجلد، الملاحظة، القسم.",
 		keyNote: "يفتح الملاحظة التي كُتبت فيها هذه المهمة، عند سطرها.",
 		keyFold: "يطوي هذا الفرع أو يفتحه من جديد.",
+		keySearch: "يفتح عامل التصفية ويضع المؤشر في مربع البحث. يأخذك Enter إلى المهمة التالية التي يجدها، وEscape يعيد لك العجلة.",
+		keyAdd: "يضيف مهمة بجانب هذه المهمة، ومع shift خطوة داخلها. فقط في عجلة فوق ملاحظة واحدة — في غير ذلك لا يوجد مخطط للإضافة إليه.",
 		keyZoom: "تكبير، أو القرص على شاشة اللمس.",
 		keyZoomTouch: "تكبير.",
 		keyMove: "ينقل المهمة نفسها مع كل ما تحتها. في عجلة على ملاحظة واحدة.",
@@ -478,6 +488,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote:
 			"Öffnet die Notiz, in der diese Aufgabe steht, bei ihrer eigenen Zeile.",
 		keyFold: "Klappt diesen Ast ein oder wieder auf.",
+		keySearch: "Öffnet den Filter und setzt den Cursor ins Suchfeld. Enter bringt dich dort zur nächsten gefundenen Aufgabe; Escape gibt das Rad zurück.",
+		keyAdd: "Fügt eine Aufgabe neben dieser ein; mit Umschalt einen Schritt darin. Nur in einem Rad über einer Notiz — sonst gibt es keine Gliederung dafür.",
 		keyZoom: "Zoomen, oder Kneifen auf einem Touchscreen.",
 		keyZoomTouch: "Zoomen.",
 		keyMove:
@@ -570,6 +582,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Vuelve a la rueda más amplia — bóveda, carpeta, nota, sección.",
 		keyNote: "Abre la nota donde está escrita esta tarea, en su propia línea.",
 		keyFold: "Pliega esta rama, o la abre de nuevo.",
+		keySearch: "Abre el filtro con el cursor en el campo de búsqueda. Allí, Enter te lleva a la siguiente tarea encontrada; Escape devuelve la rueda.",
+		keyAdd: "Añade una tarea junto a esta; con mayúsculas, un paso dentro de ella. Solo en una rueda sobre una nota — en otras no hay esquema al que añadir.",
 		keyZoom: "Zoom, o pellizcar en una pantalla táctil.",
 		keyZoomTouch: "Zoom.",
 		keyMove:
@@ -663,6 +677,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Retour à la roue plus large — coffre, dossier, note, section.",
 		keyNote: "Ouvre la note où cette tâche est écrite, à sa propre ligne.",
 		keyFold: "Replie cette branche, ou la rouvre.",
+		keySearch: "Ouvre le filtre et place le curseur dans le champ de recherche. Entrée vous emmène à la tâche suivante trouvée ; Échap rend la roue.",
+		keyAdd: "Ajoute une tâche à côté de celle-ci ; avec Maj, une étape à l'intérieur. Uniquement dans une roue sur une note — ailleurs il n'y a pas de plan où l'ajouter.",
 		keyZoom: "Zoomer, ou pincer sur un écran tactile.",
 		keyZoomTouch: "Zoomer.",
 		keyMove:
@@ -755,6 +771,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "व्यापक पहिये पर वापस — वॉल्ट, फ़ोल्डर, नोट, अनुभाग।",
 		keyNote: "जिस नोट में यह कार्य लिखा है उसे उसी पंक्ति पर खोलता है।",
 		keyFold: "इस शाखा को मोड़ता है, या फिर खोलता है।",
+		keySearch: "फ़िल्टर खोलता है और कर्सर खोज बॉक्स में रखता है। वहाँ Enter अगली मिली हुई task पर ले जाता है; Escape पहिया वापस देता है।",
+		keyAdd: "इसके बगल में एक task जोड़ता है; shift के साथ इसके भीतर एक चरण। केवल एक नोट के पहिये में — अन्यथा जोड़ने के लिए कोई outline नहीं है।",
 		keyZoom: "ज़ूम, या टचस्क्रीन पर पिंच।",
 		keyZoomTouch: "ज़ूम।",
 		keyMove:
@@ -846,6 +864,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Torna alla ruota più ampia — vault, cartella, nota, sezione.",
 		keyNote: "Apre la nota in cui è scritta questa attività, alla sua riga.",
 		keyFold: "Ripiega questo ramo, o lo riapre.",
+		keySearch: "Apre il filtro con il cursore nel campo di ricerca. Lì Enter porta all'attività successiva trovata; Escape restituisce la ruota.",
+		keyAdd: "Aggiunge un'attività accanto a questa; con maiusc, un passo al suo interno. Solo in una ruota su una nota — altrove non c'è struttura a cui aggiungere.",
 		keyZoom: "Zoom, o pizzicare su uno schermo tattile.",
 		keyZoomTouch: "Zoom.",
 		keyMove:
@@ -936,6 +956,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "より広いホイールへ戻ります（保管庫・フォルダ・ノート・セクション）。",
 		keyNote: "このタスクが書かれているノートを、その行で開きます。",
 		keyFold: "この枝を折りたたむ、または再び開く。",
+		keySearch: "フィルターを開き、検索欄にカーソルを置く。そこで Enter を押すと見つかった次のタスクへ移動し、Escape でホイールに戻る。",
+		keyAdd: "このタスクの隣にタスクを追加する。Shift を押しながらだと中に一段入れる。ノート一つのホイールでのみ有効。",
 		keyZoom: "ズーム。タッチ画面ではピンチ。",
 		keyZoomTouch: "ズーム。",
 		keyMove:
@@ -1024,6 +1046,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "더 넓은 휠로 돌아갑니다 — 보관함, 폴더, 노트, 섹션.",
 		keyNote: "이 작업이 적힌 노트를 해당 줄에서 엽니다.",
 		keyFold: "이 가지를 접거나 다시 폅니다.",
+		keySearch: "필터를 열고 검색란에 커서를 놓습니다. 그곳에서 Enter는 찾은 다음 작업으로 이동하고, Escape는 휠로 돌아갑니다.",
+		keyAdd: "이 작업 옆에 작업을 추가합니다. Shift와 함께 누르면 안쪽으로 한 단계 들어갑니다. 노트 하나를 다루는 휠에서만 됩니다.",
 		keyZoom: "확대·축소, 터치 화면에서는 핀치.",
 		keyZoomTouch: "확대·축소.",
 		keyMove:
@@ -1115,6 +1139,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Volta para a roda mais ampla — cofre, pasta, nota, seção.",
 		keyNote: "Abre a nota em que esta tarefa está escrita, na sua própria linha.",
 		keyFold: "Recolhe este ramo, ou o abre de novo.",
+		keySearch: "Abre o filtro com o cursor no campo de busca. Ali, Enter leva à próxima tarefa encontrada; Escape devolve a roda.",
+		keyAdd: "Adiciona uma tarefa ao lado desta; com shift, um passo dentro dela. Só numa roda sobre uma nota — noutras não há estrutura para adicionar.",
 		keyZoom: "Zoom, ou pinçar numa tela sensível ao toque.",
 		keyZoomTouch: "Zoom.",
 		keyMove:
@@ -1208,6 +1234,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "Возврат к более широкому колесу — хранилище, папка, заметка, раздел.",
 		keyNote: "Открывает заметку, в которой записана эта задача, на её строке.",
 		keyFold: "Сворачивает эту ветку или снова раскрывает.",
+		keySearch: "Открывает фильтр и ставит курсор в поле поиска. Enter там переходит к следующей найденной задаче, Escape возвращает колесо.",
+		keyAdd: "Добавляет задачу рядом с этой; с shift — шаг внутри неё. Только в колесе над одной заметкой — в других нет структуры для добавления.",
 		keyZoom: "Масштаб, или щипок на сенсорном экране.",
 		keyZoomTouch: "Масштаб.",
 		keyMove:
@@ -1297,6 +1325,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyBack: "回到更宽的转盘——库、文件夹、笔记、章节。",
 		keyNote: "打开写着这条任务的笔记，并定位到那一行。",
 		keyFold: "折叠此分支，或再次展开。",
+		keySearch: "打开筛选器并把光标放进搜索框。在那里按 Enter 跳到找到的下一个任务，按 Escape 交回轮盘。",
+		keyAdd: "在这个任务旁边加一个任务；按住 shift 则加在它里面一层。只在针对单篇笔记的轮盘中可用。",
 		keyZoom: "缩放，或在触屏上捏合。",
 		keyZoomTouch: "缩放。",
 		keyMove: "移动任务本身及其下的一切。仅在单个笔记的转盘上。",

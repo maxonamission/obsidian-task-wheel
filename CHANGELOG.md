@@ -6,6 +6,32 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.21]
+
+The filter gets a keyboard, and the card gets room.
+
+- **Added**: **Ctrl/Cmd + F** opens the filter with the cursor in its search box,
+  and **Enter** there takes you to the next task the search finds — the next one
+  in the turn direction, so a round you are halfway through moves on rather than
+  starting over. Press it again to walk the matches; **Escape** hands the wheel
+  its keyboard back. Both are commands too, so you can bind other keys.
+- **Added**: a command **Open the wheel over this note**. The note wheel was
+  reachable only by right-clicking in the file list; now it opens from the note
+  you are reading, and lands on the task your cursor is on.
+- **Added**: **`a`** adds a task beside the one under the wedge, **`Shift+A`**
+  adds a subtask — in a wheel over one note, where there is an outline to add to.
+  Also commands, so Obsidian can bind whatever keys you prefer. The two actions
+  are now called *Add task* and *Add subtask* everywhere: *"add a task below"*
+  read both as "lower in the file" and as "hanging under it".
+- **Added**: **due between two dates** in the filter, with a choice of which
+  date it measures — the deadline (📅), the scheduled date (⏳) or the start date
+  (🛫). Both ends count as inside the window, and an empty end leaves that side
+  open. A task without that date is in no window; a window that ends before it
+  begins says so.
+- **Changed**: the reading card is **taller**, and on a phone it uses the **full
+  width** of the screen. Where the text still does not fit, the card now fades at
+  the bottom instead of cutting off silently.
+
 ## [0.1.20]
 
 Aiming, on a phone: two ways a tap could land somewhere you did not point at.

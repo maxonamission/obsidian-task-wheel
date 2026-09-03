@@ -375,7 +375,16 @@ export type DateRule =
 	/** Parked: a start (🛫) or scheduled (⏳) date that has not arrived yet. */
 	| "parked"
 	/** The other side of it: everything that is not parked. */
-	| "ready";
+	| "ready"
+	/**
+	 * A window on the due date, from `from` up to and including `until`.
+	 *
+	 * The seven rules above are all reckoned from today; this is the one that is
+	 * not. "What was still open in August" and "what lands in the week of the
+	 * 15th" are review questions that no amount of horizon reaches
+	 * (eigenaar, 3 sep 2026).
+	 */
+	| "between";
 
 /**
  * Which statuses a round is about.
@@ -392,12 +401,39 @@ export type StatusRule = "any" | "open" | "in-progress" | "finished";
  * The shape lives here with the other types; the rules that read it live in
  * `parse/filter`, which is where the thinking is and where the tests are.
  */
+/** Which of a task's dates a window is measured against. */
+export type DateField = "due" | "scheduled" | "start";
+
 export interface TaskFilter {
 	/** Words that must all appear in the task's own text. */
 	text: string;
 	due: DateRule;
 	/** How many days "soon" reaches. */
 	horizon: number;
+	/**
+	 * The window `between` looks at, as ISO dates. Empty means open at that end.
+	 *
+	 * Both ends **inclusive**: "up to the 15th" is what a reader means by "to
+	 * the 15th", and the other reading is the classic off-by-one that costs
+	 * someone the last day of their week (BC_E3_S126).
+	 */
+	from: string;
+	until: string;
+	/**
+	 * Which date the window looks at (BC_E3_S126, aanvulling 3 sep 2026).
+	 *
+	 * The seven rules reckoned from today are all about the **deadline**, which
+	 * is what `overdue` and `soon` mean. A window is not: "what was I going to
+	 * pick up in the week of the 15th" is a question about the *scheduled* date
+	 * as often as about the due date, and Tasks carries both — plus a start
+	 * date (eigenaar, 3 sep 2026: *"datum selecteert alleen op echte due dates
+	 * terwijl tasks ook andere datums kent"*).
+	 *
+	 * One dropdown rather than three sets of fields: naming the date is a
+	 * smaller question than filtering on three of them at once, and a panel
+	 * that has to stay readable on a phone cannot afford the second.
+	 */
+	dateField: DateField;
 	/** Which statuses count. */
 	status: StatusRule;
 	/** Lowest priority that still counts, or `any`. */
@@ -420,6 +456,9 @@ export const NO_FILTER: TaskFilter = {
 	text: "",
 	due: "any",
 	horizon: 14,
+	from: "",
+	until: "",
+	dateField: "due",
 	status: "any",
 	minPriority: "any",
 	maxPriority: "any",
