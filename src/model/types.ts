@@ -507,6 +507,55 @@ export interface ParseOptions {
 	 */
 	excludeHeadings: string[];
 	/**
+	 * Front-matter property that marks a note as being one task itself.
+	 *
+	 * Empty means off, and off is the default: a reader who never opens this
+	 * setting sees exactly the wheel they saw before (BC_E3_S130).
+	 *
+	 * A property name rather than a fixed one, because there is no fixed one to
+	 * pick. Vaults that keep a document standard write `type: task`; Operon
+	 * writes an `operonId` and lets the reader **rename** its properties
+	 * afterwards. A hard-coded key would break on the first vault that did.
+	 */
+	taskNoteProperty: string;
+	/**
+	 * The value that property must carry, or empty for "having it is enough".
+	 *
+	 * `type` + `task` is one convention; an id-style marker is the other, and
+	 * there the value is different in every note and only its presence means
+	 * anything.
+	 */
+	taskNoteValue: string;
+	/** Property that carries such a note's status. */
+	taskNoteDoneProperty: string;
+	/**
+	 * Extra values of that property that also mean the note is off your plate.
+	 *
+	 * Beside the two words below, which always count. A vault whose documents
+	 * end in `archived` or `wontfix` as well as `done` says so here, and the
+	 * wheel stops bringing them round again.
+	 */
+	taskNoteDoneValues: string[];
+	/**
+	 * The four words this vault uses for the four states the wheel knows
+	 * (BC_E3_S132).
+	 *
+	 * Read *and* written. Reading is what puts a task document in the right
+	 * state on the wheel; writing is what makes ticking one off mean something —
+	 * a checkbox has brackets to change, a document has this property.
+	 *
+	 * Four rather than a free list, because the wheel has exactly four states to
+	 * map onto. A vault may well know more — `backlog`, `on hold` — and those
+	 * are left alone: they are not one of the four, so they read as open and the
+	 * wheel never writes them away by itself. What it *will* overwrite is the
+	 * status of a document you act on, and then the word it writes is one of
+	 * these.
+	 */
+	taskNoteOpenValue: string;
+	taskNoteDoingValue: string;
+	taskNoteDoneValue: string;
+	taskNoteCancelledValue: string;
+	/**
 	 * The part of the vault this wheel is about.
 	 *
 	 * Whole vault by default, so nothing about the ordinary wheel changes.
@@ -529,6 +578,14 @@ export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
 	includeFolders: [],
 	excludeNoteTypes: [],
 	excludeHeadings: [],
+	taskNoteProperty: "",
+	taskNoteValue: "",
+	taskNoteDoneProperty: "status",
+	taskNoteDoneValues: [],
+	taskNoteOpenValue: "todo",
+	taskNoteDoingValue: "doing",
+	taskNoteDoneValue: "done",
+	taskNoteCancelledValue: "cancelled",
 	scope: VAULT_SCOPE,
 	filter: NO_FILTER,
 	today: "1970-01-01",

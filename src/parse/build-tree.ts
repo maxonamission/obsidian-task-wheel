@@ -36,11 +36,14 @@ import {
 import { isFiltering, matches } from "./filter";
 import { showsFinishedWork } from "./round";
 import { TASK_LINE } from "./task-line";
+import { isTaskNote, taskNoteLabel, taskNoteState } from "./task-note";
 import {
 	isFinished,
 	isRoundItem,
 	type NoteInput,
 	type ParseOptions,
+	type TaskFields,
+	type TaskState,
 	type WheelNode,
 	type WheelTree,
 } from "../model/types";
@@ -102,6 +105,12 @@ export function buildTreeFrom(
 	for (const { note, tasks: outlined } of ordered) {
 		if (isExcluded(note, options)) continue;
 
+		// A note that says it is itself a task (BC_E3_S130). Worked out before
+		// anything is built, because it changes what the note's own node *is*.
+		const asNoteTask = noteTaskOf(note, options, showsFinished);
+		if (asNoteTask !== undefined && asNoteTask.filteredOut) filteredOut += 1;
+		const asTask = asNoteTask?.task;
+
 		// The document's own outline, on the wheels where the wheel *is* that
 		// outline (BC_E3_S85). Before everything else, including the early exit
 		// below: a note whose every heading is empty is exactly the case this is
@@ -110,8 +119,16 @@ export function buildTreeFrom(
 			ensureContainers(root, byId, note, group, options);
 		}
 
+		// A task note is work whether or not anybody wrote a checkbox in it, so
+		// its node is made before the two "nothing here" exits below. Without
+		// this a one-line task note — the ordinary case — would be a note with
+		// no tasks, and the wheel would drop the very thing it stands for.
+		if (asTask !== undefined) {
+			ensureContainers(root, byId, note, noteGroup(note, options), options, asTask);
+		}
+
 		if (outlined.length === 0) {
-			emptyNotes.push(note.path);
+			if (asTask === undefined) emptyNotes.push(note.path);
 			continue;
 		}
 
@@ -144,12 +161,19 @@ export function buildTreeFrom(
 			countRoundItems(open, showsFinished) - countRoundItems(kept, showsFinished);
 
 		if (kept.length === 0) {
-			emptyNotes.push(note.path);
+			if (asTask === undefined) emptyNotes.push(note.path);
 			continue;
 		}
 
 		for (const group of groupTasks(kept, note, options)) {
-			const container = ensureContainers(root, byId, note, group, options);
+			const container = ensureContainers(
+				root,
+				byId,
+				note,
+				group,
+				options,
+				asTask,
+			);
 			attachTasks(container, byId, note, group.tasks);
 		}
 	}
@@ -345,6 +369,129 @@ interface TaskGroup {
 }
 
 /**
+ * The bracket character each state would have worn on a line.
+ *
+ * A note has no brackets, but everything downstream — the badge, the started
+ * ring, the status filter — reads `state`, and `statusChar` beside it keeps the
+ * shape of a task whole rather than half-filled.
+ */
+const STATUS_CHAR: Readonly<Record<TaskState, string>> = {
+	open: " ",
+	"in-progress": "/",
+	done: "x",
+	cancelled: "-",
+};
+
+/** A note standing as one task: what to call it, and what it says about itself. */
+interface NoteTask {
+	label: string;
+	fields: TaskFields;
+}
+
+/**
+ * Whether this note stands on the wheel as a task, and what it then reads as.
+ *
+ * Three ways a marked note is *not* drawn as a task, and each of them is a
+ * decision rather than an omission:
+ *
+ *  - **On a wheel over that very note.** There the wheel already *is* the note
+ *    and its headings are the wedges (kaderdocument §4.1); a task in the middle
+ *    standing for the whole thing would be the wheel inside itself.
+ *  - **When it is finished** and the round is not about finished work. It falls
+ *    back to being a plain note, so any checkbox still open inside it stays
+ *    visible. Dropping the note whole would hide open work, and nothing may go
+ *    quiet (§2.3).
+ *  - **When the filter leaves it out.** Same fallback, and counted as filtered
+ *    out — the tasks inside it are judged on their own, exactly as they were
+ *    before this note ever claimed to be one.
+ */
+function noteTaskOf(
+	note: NoteInput,
+	options: ParseOptions,
+	showsFinished: boolean,
+): { task?: NoteTask; filteredOut: boolean } | undefined {
+	if (!isTaskNote(note, options)) return undefined;
+	if (options.scope.kind === "note" || options.scope.kind === "section") {
+		return undefined;
+	}
+
+	const state = taskNoteState(note, options);
+	const finished = state === "done" || state === "cancelled";
+	if (finished && !showsFinished) return { filteredOut: false };
+
+	const label = taskNoteLabel(note);
+	const fields = noteFields(note, label, state);
+
+	if (
+		isFiltering(options.filter) &&
+		!matches(fields, options.filter, options.today, note.path)
+	) {
+		return { filteredOut: true };
+	}
+
+	return { task: { label, fields }, filteredOut: false };
+}
+
+/**
+ * What a task note says about itself, in the shape every task is read in.
+ *
+ * Real fields, so the filter, the colour ramp and the status badge need no
+ * special case — its tags are the note's own front-matter tags, which is what
+ * "tags op documentniveau" was decided to mean (eigenaar, 4 sep 2026).
+ *
+ * `raw` is empty, and that is the one place this shape differs from a checkbox:
+ * there is no line to quote. Nothing writes through it — `source.raw` is `null`
+ * on this node, which is the wheel's existing signal for "stands for a whole
+ * note", and the write paths test that.
+ */
+function noteFields(
+	note: NoteInput,
+	label: string,
+	state: TaskState,
+): TaskFields {
+	return {
+		statusChar: STATUS_CHAR[state],
+		done: state === "done",
+		state,
+		dependsOn: [],
+		priority: "normal",
+		tags: note.frontmatterTags ?? [],
+		description: label,
+		raw: "",
+	};
+}
+
+/**
+ * The note itself as a group with nothing in it, so its node gets made.
+ *
+ * The same shape `groupTasks` builds, minus the tasks: one wedge, no heading
+ * path. Its wedge is resolved from the note rather than from a task, which is
+ * what makes the folder — or the tag, or the property — decide where a task
+ * note hangs, exactly as it decides for every checkbox inside it.
+ */
+function noteGroup(note: NoteInput, options: ParseOptions): TaskGroup {
+	const wedge = resolveWedge(
+		{
+			notePath: note.path,
+			frontmatterTags: note.frontmatterTags ?? [],
+			taskTags: [],
+			frontmatter: note.frontmatter,
+		},
+		options,
+	);
+
+	return {
+		wedge,
+		domain: wedge.label,
+		headingPath: [],
+		headingLines: [],
+		headingRaws: [],
+		firstLine: 0,
+		tasks: [],
+	};
+}
+
+/**
  * The note's own headings, as groups with no tasks in them (BC_E3_S85).
  *
  * On a wheel over one note or one section the wheel does not *show* an outline,
@@ -517,6 +664,7 @@ function ensureContainers(
 	note: NoteInput,
 	group: TaskGroup,
 	options: ParseOptions,
+	asTask?: NoteTask,
 ): WheelNode {
 	// A wheel over one note is already inside that note: a project ring would
 	// be one node with everything under it, a wasted ring on the smallest wheel
@@ -530,10 +678,11 @@ function ensureContainers(
 	const domain = ensureChild(byId, root, {
 		// A wedge that *is* a note says so, because a whole note is carried, moved
 		// and counted differently from a folder — and a wedge that lied about that
-		// would carry one block out of the note instead of the note.
-		kind: group.wedge.note ? "project" : "domain",
+		// would carry one block out of the note instead of the note. When that
+		// note is itself a task, the wedge is that task (BC_E3_S130).
+		kind: group.wedge.note ? (asTask === undefined ? "project" : "task") : "domain",
 		key: group.wedge.key,
-		label: group.domain,
+		label: group.wedge.note && asTask !== undefined ? asTask.label : group.domain,
 		domain: group.domain,
 		// Folders and tags sort by name — that is what keeps a wedge in the same
 		// place year after year. A note's own headings sort by where they are in
@@ -554,6 +703,7 @@ function ensureContainers(
 			headingPath: [],
 			raw: null,
 		};
+		if (asTask !== undefined) domain.fields ??= asTask.fields;
 	}
 
 	// The top heading of a note is a wedge rather than a ring, but it is still a
@@ -579,10 +729,14 @@ function ensureContainers(
 
 	let parent = domain;
 	if (!scoped && !group.wedge.note) {
+		// The note's own ring — or, when the note declares itself a task, that
+		// task. Same node, same place, same id: what changes is that it is now
+		// something to review rather than somewhere reviewing happens, so it
+		// counts, colours and can be swept like any other task (BC_E3_S130).
 		parent = ensureChild(byId, domain, {
-			kind: "project",
+			kind: asTask === undefined ? "project" : "task",
 			key: `p:${note.path}`,
-			label: projectLabel(note.path),
+			label: asTask === undefined ? projectLabel(note.path) : asTask.label,
 			domain: group.domain,
 			sortKey: sortableText(note.path),
 		});
@@ -593,6 +747,7 @@ function ensureContainers(
 			headingPath: [],
 			raw: null,
 		};
+		if (asTask !== undefined) parent.fields ??= asTask.fields;
 	}
 
 	if (!options.useHeadingsAsGroups) return parent;

@@ -260,6 +260,70 @@ first. A heading you expected to have caught, sitting in that list, is a
 heading spelled differently than you think — or a checklist that turns out to
 sit under no heading at all, which no heading rule can reach.
 
+## A note that is itself a task
+
+Some work is too big for a line. It gets its own note, with a body, references
+and a few checkboxes inside it. On the wheel such a note was a *branch holding
+tasks* and never a task itself, so the work it stands for could not be seen,
+reviewed or counted.
+
+Name the front-matter property those notes carry and each of them becomes **one
+task**, labelled with its title, with the checkboxes inside it as its subtasks.
+The folder still decides its wedge and the note's own tags still count as its
+tags — it is a task like any other, in the place it was already in.
+
+- **Property that marks one** — `type`, say. Empty by default, and empty means
+  nothing changes.
+- **Value it must have** — `task`, next to a `type`. Leave it empty when
+  carrying the property at all is the point, which is how an id-style marker
+  works: its value differs in every note.
+- **Property that says it is finished**, and **the values that mean it** —
+  `status`, with `done` and `cancelled`. A checkbox has its brackets; a note has
+  whatever its front matter says, and without this a task note would keep coming
+  back for ever. Case is ignored, and a word without a dot also matches the part
+  after the last dot, so `done` covers a status written `Project.Done`.
+
+### Its status, in your own words
+
+A checkbox has brackets; a document has whatever its front matter says. Name the
+property and the four words your vault uses, and a task document behaves like any
+other task: **tick it off**, **start it**, **cancel it**, and press the same
+button again to take that back. The wheel writes your word into your property,
+and a document in progress wears the same ring as a started checkbox.
+
+Anything the four words do not cover — `backlog`, `on hold` — reads as open and
+is never written away by itself. A vault that ends its documents in more ways
+than two can name those under *Other values that also mean finished*; those are
+read, never written.
+
+One honest limit: un-ticking a document writes your *open* word. If it said
+`on hold` before you ticked it off, that is gone — the wheel never saw it. The
+same thing a checkbox has always done, and the reason the four words are yours to
+set.
+
+**Renaming** works from the card too: the title of a task document is its file
+name, so renaming it is Obsidian renaming the file, with every link that pointed
+at it following along.
+
+### What it deliberately does not do
+
+**Deferring and priority** are absent. The wheel reads no date and no priority
+from a note's front matter, and writing one would be inventing a convention for
+every vault that has none.
+
+**Carrying** is absent as well, and for a sharper reason: carrying moves task
+**lines** out of a note into another one, which on a task document would empty
+the very thing you meant to move. In its place the ⋯ button opens **Obsidian's
+own file menu** — *Move file to…*, *Rename…*, and whatever else your setup puts
+there. One way to move a file in the whole vault, and you already know it.
+
+That menu is offered only here. On an ordinary note ring the ⋯ keeps its two
+carry entries, and the file menu is one right-click away in the file list anyway.
+Reviewing is quick and half-attentive; making folders is not, and a folder typed
+with the wrong capital is a *new* folder on a case-sensitive file system. A finished task note leaves the round, but
+if a checkbox inside it is still open that checkbox stays on the wheel: nothing
+disappears without saying so.
+
 ## Two ways to open it
 
 - **The whole vault** — the ribbon icon, or the command *Open the wheel*.

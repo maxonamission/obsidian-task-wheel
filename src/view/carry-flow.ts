@@ -91,6 +91,12 @@ export function whatTravels(
 	// A note is not a block: its first line is whatever the writer put there, so
 	// lifting a block from it meant carrying a different thing in every note
 	// (measured 18 aug 2026). It is walked whole instead, filter or no filter.
+	//
+	// Only the note *ring*. A note that is itself a task never gets here: what
+	// this walk does is lift the task lines **out** of a note and leave the file
+	// behind, which for a task document would empty the very thing the reader
+	// asked to move (eigenaar, 4 sep 2026). Carrying is not offered there at
+	// all; `isNoteTask` decides that where the menu is built.
 	if (kind === "project") return extractFilteredNote(lines, shows);
 
 	// Is that line still the thing the wheel is showing? `extractBlock` accepts

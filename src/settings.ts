@@ -148,6 +148,19 @@ export interface TaskWheelSettings
 	filterWithoutTags: string[];
 	excludeNoteTypes: string[];
 	excludeHeadings: string[];
+	/** Front-matter property that marks a note as being one task (BC_E3_S130). */
+	taskNoteProperty: string;
+	/** Value it must carry, or empty when having the property is enough. */
+	taskNoteValue: string;
+	/** Property that carries such a note's status. */
+	taskNoteDoneProperty: string;
+	/** Extra values of that property that also mean finished. */
+	taskNoteDoneValues: string[];
+	/** The four words this vault uses for the wheel's four states. */
+	taskNoteOpenValue: string;
+	taskNoteDoingValue: string;
+	taskNoteDoneValue: string;
+	taskNoteCancelledValue: string;
 	/** Whether the filter panel in the pane stands open. */
 	filterPanelOpen: boolean;
 	/**
@@ -318,6 +331,14 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	filterWithoutTags: [],
 	excludeNoteTypes: [],
 	excludeHeadings: [],
+	taskNoteProperty: "",
+	taskNoteValue: "",
+	taskNoteDoneProperty: "status",
+	taskNoteDoneValues: [],
+	taskNoteOpenValue: "todo",
+	taskNoteDoingValue: "doing",
+	taskNoteDoneValue: "done",
+	taskNoteCancelledValue: "cancelled",
 	filterPanelOpen: false,
 	openOnStart: false,
 	startPath: "",
@@ -382,6 +403,14 @@ export function parseOptionsOf(
 		includeFolders: settings.includeFolders,
 		excludeNoteTypes: settings.excludeNoteTypes,
 		excludeHeadings: settings.excludeHeadings,
+		taskNoteProperty: settings.taskNoteProperty,
+		taskNoteValue: settings.taskNoteValue,
+		taskNoteDoneProperty: settings.taskNoteDoneProperty,
+		taskNoteDoneValues: settings.taskNoteDoneValues,
+		taskNoteOpenValue: settings.taskNoteOpenValue,
+		taskNoteDoingValue: settings.taskNoteDoingValue,
+		taskNoteDoneValue: settings.taskNoteDoneValue,
+		taskNoteCancelledValue: settings.taskNoteCancelledValue,
 	};
 }
 
@@ -1003,6 +1032,90 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 				],
 			},
+			{
+				type: "group",
+				heading: "A note that is itself a task",
+				items: [
+					{
+						name: "Property that marks one",
+						desc: "Leave empty to leave everything as it is. Some work is too big for a line and gets its own note; naming the front-matter property those notes carry makes each of them one task on the wheel, labelled with its title, with the checkboxes inside it as its subtasks. A property name rather than a fixed one, because there is no fixed one: 'type' is a common choice, and a plugin that writes its own id works just as well.",
+						control: {
+							type: "text",
+							key: "taskNoteProperty",
+							placeholder: "type",
+						},
+					},
+					{
+						name: "Value it must have",
+						desc: "Leave empty when carrying the property at all is what makes a note a task — which is how an id-style marker works, since its value is different in every note. Fill it in for a document standard, where the same property says what kind of note this is: 'task' next to 'type'.",
+						control: {
+							type: "text",
+							key: "taskNoteValue",
+							placeholder: "task",
+						},
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "The status of a task document",
+				items: [
+					{
+						name: "Property that carries it",
+						desc: "A checkbox has its brackets; a note has whatever its front matter says. This is the property the wheel reads to tell what state a task document is in — and writes when you tick it off, start it or cancel it from the card.",
+						control: {
+							type: "text",
+							key: "taskNoteDoneProperty",
+							placeholder: "status",
+						},
+					},
+					{
+						name: "Your word for: open",
+						desc: "Written when you take a status back off. Case is ignored, and a word without a dot also matches the part after the last dot, so 'done' covers a status written 'Project.Done' as well.",
+						control: {
+							type: "text",
+							key: "taskNoteOpenValue",
+							placeholder: "todo",
+						},
+					},
+					{
+						name: "Your word for: in progress",
+						desc: "A task document in this state wears the same ring as a started checkbox.",
+						control: {
+							type: "text",
+							key: "taskNoteDoingValue",
+							placeholder: "doing",
+						},
+					},
+					{
+						name: "Your word for: done",
+						desc: "Written when you tick a task document off, and read to keep it out of the next round.",
+						control: {
+							type: "text",
+							key: "taskNoteDoneValue",
+							placeholder: "done",
+						},
+					},
+					{
+						name: "Your word for: cancelled",
+						desc: "The other way off your plate: you decided not to do it.",
+						control: {
+							type: "text",
+							key: "taskNoteCancelledValue",
+							placeholder: "cancelled",
+						},
+					},
+					{
+						name: "Other values that also mean finished",
+						desc: "Comma-separated, and only needed when your documents end in more ways than the two words above — 'archived', say, or 'wontfix'. These are read, never written. A status the wheel does not recognise at all counts as open, so a vault that also knows 'backlog' or 'on hold' keeps seeing that work.",
+						control: {
+							type: "text",
+							key: "taskNoteDoneValues",
+							placeholder: "archived, wontfix",
+						},
+					},
+				],
+			},
 			this.folderList(
 				"Excluded folders",
 				"Skipped even when they sit inside a folder above. Keeps templates, archives or an inbox off the wheel. Pick a folder or start typing its name.",
@@ -1224,9 +1337,10 @@ type TagListKey = "filterWithTags" | "filterWithoutTags";
 const TEXT_LISTS: ReadonlySet<string> = new Set([
 	"excludeNoteTypes",
 	"excludeHeadings",
+	"taskNoteDoneValues",
 ]);
 
-type TextListKey = "excludeNoteTypes" | "excludeHeadings";
+type TextListKey = "excludeNoteTypes" | "excludeHeadings" | "taskNoteDoneValues";
 
 const LIST_KEYS: ReadonlySet<string> = new Set([
 	"includeFolders",

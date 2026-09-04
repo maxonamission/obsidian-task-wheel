@@ -43,6 +43,22 @@ export type NoScope =
 	| { refused: "no-source" };
 
 /**
+ * Whether this item is a task that *is* a whole note (BC_E3_S130).
+ *
+ * One question asked in four places — what a rename refuses, what activating
+ * says, what may be carried, and where a step out lands — so it is answered
+ * once. Both halves are needed: `raw === null` alone also fits a heading whose
+ * own line was never found, and a note ring is a whole note without being a
+ * task.
+ */
+export function isNoteTask(node: {
+	kind: NodeKind;
+	source?: SourceRef;
+}): boolean {
+	return node.kind === "task" && node.source?.raw === null;
+}
+
+/**
  * What activating an item opens: its inside, or itself.
  *
  * A folder, a note, a heading and the root all *contain* something, so opening
@@ -94,6 +110,11 @@ export function renameRefusal(
 ): NoRename {
 	if (node.kind === "group") return { refused: "heading" };
 	if (node.kind === "project") return { refused: "note" };
+
+	// A task that stands for a whole note has no line to rewrite: its name is
+	// the file's (BC_E3_S130). The reader is sent to the file list, where
+	// renaming carries the links along.
+	if (isNoteTask(node)) return { refused: "note" };
 
 	if (node.kind === "domain" && node.depth === 1) {
 		// In a wheel over one note the top ring *is* headings — the same branch

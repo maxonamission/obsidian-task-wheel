@@ -47,6 +47,8 @@ export type WriteOutcome =
 	| "written"
 	/** The note has changed since the scan; the caller should rescan. */
 	| "stale"
+	/** The reader asked for something the file system cannot carry out. */
+	| "refused"
 	/** The note is gone. */
 	| "missing"
 	/** The line already said what we wanted it to say. */
@@ -600,3 +602,73 @@ async function apply(
 	return outcome;
 }
 
+
+/**
+ * Set the status property of a note that is itself a task (BC_E3_S132).
+ *
+ * The counterpart of `writeStatus` one level up: a checkbox has brackets to
+ * rewrite, a task document has a front-matter property. `processFrontMatter` is
+ * Obsidian's own way in — it parses, hands over the object, and writes the file
+ * back — so nothing here has to know how YAML is quoted, and a document with a
+ * dozen other properties keeps every one of them.
+ *
+ * Deliberately no staleness check like the line paths make. There is no line to
+ * have moved: the property is found by name, and if the reader changed it in the
+ * editor a moment ago, writing the word the card just showed is what they asked
+ * for either way.
+ */
+export async function writeNoteStatus(
+	app: App,
+	path: string,
+	property: string,
+	value: string,
+): Promise<WriteOutcome> {
+	const key = property.trim();
+	if (key === "" || value.trim() === "") return "unchanged";
+
+	const file = app.vault.getAbstractFileByPath(path);
+	if (!(file instanceof TFile)) return "missing";
+
+	let changed = false;
+	await app.fileManager.processFrontMatter(file, (raw: unknown) => {
+		// Obsidian hands over a plain object typed `any`; narrowing it here keeps
+		// the one property we touch honest and leaves the rest untouched.
+		const frontmatter = raw as Record<string, unknown>;
+		if (frontmatter[key] === value) return;
+		frontmatter[key] = value;
+		changed = true;
+	});
+
+	return changed ? "written" : "unchanged";
+}
+
+/**
+ * Rename the note a task document *is*.
+ *
+ * Through `fileManager.renameFile` rather than `vault.rename`, and that is the
+ * whole point: the file manager updates every link that pointed at the old name.
+ * Renaming a task from the card must not quietly break the four notes that
+ * referred to it.
+ *
+ * The new name is a title, not a path: it keeps the folder it is in, and
+ * anything that cannot live in a file name is refused rather than silently
+ * mangled — a slash would move the note somewhere else, and moving is a
+ * different act with a different menu entry (BC_E3_S131).
+ */
+export async function renameNoteTask(
+	app: App,
+	path: string,
+	title: string,
+): Promise<WriteOutcome> {
+	const wanted = title.trim();
+	if (wanted === "") return "unchanged";
+	if (/[\\/:*?"<>|#^[\]]/.test(wanted)) return "refused";
+
+	const file = app.vault.getAbstractFileByPath(path);
+	if (!(file instanceof TFile)) return "missing";
+	if (file.basename === wanted) return "unchanged";
+
+	const folder = path.slice(0, path.lastIndexOf("/") + 1);
+	await app.fileManager.renameFile(file, `${folder}${wanted}.md`);
+	return "written";
+}

@@ -6,6 +6,36 @@ lifts each version's section into the GitHub release notes.
 
 ## [Unreleased]
 
+## [0.1.23]
+
+A note can now be a task in its own right.
+
+- **Added**: some work is too big for a line and gets its own note. Name the
+  front-matter property those notes carry — under *A note that is itself a
+  task* — and each of them becomes **one task** on the wheel, labelled with its
+  title, with the checkboxes inside it as its subtasks. The folder still decides
+  its wedge and the note's own tags still count as its tags. A second setting
+  says when such a note is finished (`status`, `done` or `cancelled` by
+  default), so a task document leaves the round like anything else; a checkbox
+  still open inside a finished one stays on the wheel rather than disappearing
+  with it. All four settings start empty, and empty means nothing changes.
+- **Added**: on a task document the ⋯ button opens **Obsidian's own file
+  menu** — *Move file to…*, *Rename…*, and whatever else your setup puts there.
+  A task document is a file, and a file is moved the way you already move files.
+- **Added**: a task document behaves like a task. **Tick it off, start it or
+  cancel it** from the card and the wheel writes your own word into your own
+  property — name the four your vault uses (`todo`, `doing`, `done`,
+  `cancelled` to begin with) under *The status of a task document*. Pressing the
+  same button again takes the status back off. A status the wheel does not
+  recognise, such as `backlog` or `on hold`, reads as open and is never written
+  away by itself.
+- **Added**: **renaming** a task document from the card. Its title is its file
+  name, so this is Obsidian renaming the file, with the links following along.
+- **Changed**: a task document offers no deferring and no priority — the wheel
+  reads neither from front matter, and writing one would invent a convention for
+  vaults that have none. It offers no carrying either: carrying moves task
+  *lines* out of a note, which would empty the very document you meant to move.
+
 ## [0.1.22]
 
 One file is now also available under the MIT licence.

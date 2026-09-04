@@ -121,7 +121,16 @@ function standsFor(tree: WheelTree, scope: WheelScope): string | null {
 		// where the folder holds nothing else — both carry the note's path, so
 		// neither needs a case here.
 		for (const node of nodes(tree)) {
-			if (node.kind === "project" && node.source?.path === scope.path) {
+			// Whatever kind the note's own node has: a ring, a wedge of its own,
+			// or — since BC_E3_S130 — a task, because the note declared itself
+			// one. `raw === null` is what says "this node is that whole note",
+			// and asking the kind instead left the reader landing nowhere when
+			// they stepped out of a task document's wheel.
+			if (
+				(node.kind === "project" || node.kind === "task") &&
+				node.source?.path === scope.path &&
+				node.source.raw === null
+			) {
 				return node.id;
 			}
 		}

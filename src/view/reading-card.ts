@@ -105,6 +105,26 @@ export interface CardActions {
 	 * (owner, 17 aug 2026).
 	 */
 	carry?: CarryActions;
+	/**
+	 * Obsidian's own file menu for the note this item *is* (BC_E3_S131).
+	 *
+	 * Only on a task document, where the item is a file rather than a line.
+	 * Moving one is file management, and Obsidian already does that everywhere
+	 * else in the app — so the wheel opens that menu instead of growing a folder
+	 * picker of its own. One way to move a file in the whole vault, and the
+	 * reader knows it already (eigenaar, 4 sep 2026).
+	 */
+	file?: (event: MouseEvent) => void;
+	/**
+	 * Rewrite the title, where that is not an outline edit (BC_E3_S132).
+	 *
+	 * A task on a line is renamed by rewriting that line, which is why renaming
+	 * has always lived in `outline`. A task document has no line: its title is
+	 * its file name, and renaming it is Obsidian renaming a file with the links
+	 * following along. Same gesture on the card, different act underneath — so it
+	 * is handed in beside the outline rather than pretended into it.
+	 */
+	rename?: (text: string) => void;
 }
 
 export interface CarryActions {
@@ -345,10 +365,14 @@ function renderTitle(
 	actions: CardActions,
 ): (() => void) | null {
 	const outline = actions.outline;
-	const editable = outline !== undefined && focus.node.fields !== undefined;
+	// Two ways a title can be rewritten, and the card does not care which: the
+	// outline's, for a task on a line, or the plain one a task document brings.
+	const rename = outline?.rename ?? actions.rename;
+	const editable = rename !== undefined && focus.node.fields !== undefined;
 	const refuse = editable ? undefined : actions.onTitleRefused;
 
-	const opensTasks = editable && titleOpens(outline) === "tasks";
+	const opensTasks =
+		editable && outline !== undefined && titleOpens(outline) === "tasks";
 
 	const title = parent.createEl("p", {
 		// An array, never a space-separated string: `cls` is handed to the class
@@ -366,7 +390,7 @@ function renderTitle(
 	renderLabel(title, focus, actions);
 	offerToUnfold(parent, title);
 
-	if (!editable || outline === undefined) {
+	if (!editable || rename === undefined) {
 		// The card is see-through to the hand, so a title that answers nothing
 		// let the tap fall onto the drawing behind it (BC_E3_S118). It takes the
 		// tap now, and says why there is nothing to rewrite here — a tap that
@@ -410,7 +434,7 @@ function renderTitle(
 			const value = input.value;
 			input.replaceWith(title);
 			parent.removeClass("is-renaming");
-			if (keep) outline.rename(value);
+			if (keep) rename(value);
 		};
 
 		input.addEventListener("keydown", (event) => {
@@ -434,9 +458,8 @@ function renderTitle(
 	// rather than keeping a route of its own: pressing Enter on a title is the
 	// same act as clicking it, and two answers to one act is how a surface
 	// starts to feel arbitrary.
-	const open = opensTasks && outline.editInTasks !== undefined
-		? outline.editInTasks
-		: edit;
+	const open =
+		opensTasks && outline?.editInTasks !== undefined ? outline.editInTasks : edit;
 
 	title.addEventListener("click", (event) => {
 		event.preventDefault();
@@ -813,17 +836,25 @@ function renderActions(
 
 	if (isTask && outline !== undefined) {
 		action(foot, "ellipsis", "Edit this outline", (event) => {
-			openOutlineMenu(event, outline, carry);
+			openOutlineMenu(event, outline, carry, actions.file);
 		});
 	} else if (!isTask && section !== undefined) {
 		action(foot, "ellipsis", "Edit this heading", (event) => {
-			openSectionMenu(event, section, carry);
+			openSectionMenu(event, section, carry, actions.file);
 		});
 	} else if (carry !== undefined) {
 		action(foot, "ellipsis", "Send this to another note", (event) => {
 			const menu = new Menu();
-			addCarry(menu, carry, false);
+			addCarry(menu, carry, false, actions.file);
 			menu.showAtMouseEvent(event);
+		});
+	} else if (actions.file !== undefined) {
+		// A task that is a whole note: nothing here is a line, so the menu is
+		// the file's own. Without this branch the card had no ⋯ at all
+		// (eigenaar, 4 sep 2026).
+		const file = actions.file;
+		action(foot, "ellipsis", "Move or rename this file", (event) => {
+			file(event);
 		});
 	}
 
@@ -885,6 +916,7 @@ function openOutlineMenu(
 	event: MouseEvent,
 	outline: OutlineActions,
 	carry?: CarryActions,
+	file?: (event: MouseEvent) => void,
 ): void {
 	const menu = new Menu();
 
@@ -939,7 +971,7 @@ function openOutlineMenu(
 			.setIcon("indent")
 			.onClick(() => outline.moveUnder()),
 	);
-	addCarry(menu, carry);
+	addCarry(menu, carry, true, file);
 
 	menu.showAtMouseEvent(event);
 }
@@ -952,7 +984,12 @@ function openOutlineMenu(
  * wanted most often — pulling something onto your list should not quietly take
  * it out of the document it was explaining something in.
  */
-function addCarry(menu: Menu, carry?: CarryActions, separate = true): void {
+function addCarry(
+	menu: Menu,
+	carry?: CarryActions,
+	separate = true,
+	file?: (event: MouseEvent) => void,
+): void {
 	if (carry === undefined) return;
 
 	if (separate) menu.addSeparator();
@@ -981,6 +1018,20 @@ function addCarry(menu: Menu, carry?: CarryActions, separate = true): void {
 			.setIcon("file-output")
 			.onClick(() => carry.move()),
 	);
+
+	// Two different moves, side by side, named apart (BC_E3_S131). The one above
+	// lifts the task *lines* out of a note; this one moves the **file**. Both are
+	// things a reviewer means, and neither is a substitute for the other — so
+	// they are named so plainly that nobody has to guess which is which.
+	if (file !== undefined) {
+		menu.addSeparator();
+		menu.addItem((item) =>
+			item
+				.setTitle("Move or rename this file…")
+				.setIcon("folder-tree")
+				.onClick((event) => file(event as MouseEvent)),
+		);
+	}
 }
 
 /**
@@ -993,6 +1044,7 @@ function openSectionMenu(
 	event: MouseEvent,
 	section: SectionActions,
 	carry?: CarryActions,
+	file?: (event: MouseEvent) => void,
 ): void {
 	const menu = new Menu();
 
@@ -1038,7 +1090,7 @@ function openSectionMenu(
 			.setIcon("folder-input")
 			.onClick(() => section.moveUnder()),
 	);
-	addCarry(menu, carry);
+	addCarry(menu, carry, true, file);
 
 	menu.showAtMouseEvent(event);
 }

@@ -16,6 +16,7 @@ import {
 	outward,
 	type Priority,
 	scopeKey,
+	type TaskState,
 	scopeLabel,
 	VAULT_SCOPE,
 	type TaskFilter,
@@ -28,6 +29,8 @@ import {
 	type LineAnchor,
 	type LineRef,
 	editThroughTasks,
+	renameNoteTask,
+	writeNoteStatus,
 	editsThroughTasks,
 	writeDone,
 	writeInsertAfter,
@@ -66,6 +69,7 @@ import {
 import { aWeekOut, today } from "../model/dates";
 import {
 	activates,
+	isNoteTask,
 	isRefused,
 	type NoRename,
 	type NoScope,
@@ -1896,7 +1900,15 @@ export class TaskWheelView extends ItemView {
 
 		const ref = lineRefOf(laid);
 		if (ref === null) {
-			new Notice("Task wheel: that task has no line to edit.");
+			// A task note is the one task with a whole file behind it, so the
+			// sentence says where its text lives rather than that there is none
+			// (BC_E3_S130). Every refusal has a reason and every reason has a
+			// sentence the reader can act on.
+			new Notice(
+				isNoteTask(laid.node)
+					? "Task wheel: this task is a note — open it to edit its text."
+					: "Task wheel: that task has no line to edit.",
+			);
 			return;
 		}
 
@@ -1934,6 +1946,14 @@ export class TaskWheelView extends ItemView {
 		const state = laid.node.fields?.state;
 
 		const on = ADVANCING;
+
+		// A task document is a task, so it does what a task does — it just does it
+		// in front matter rather than between brackets (BC_E3_S132). The three
+		// status actions and renaming are handed in here instead of the line
+		// versions below; deferring and priority are not, because the wheel reads
+		// no date or priority from a note's front matter and writing one would be
+		// inventing a convention for vaults that have none.
+		if (isNoteTask(laid.node)) return this.noteTaskActions(laid, state, on);
 
 		return {
 			done:
@@ -2066,8 +2086,35 @@ export class TaskWheelView extends ItemView {
 			// Both wheels, unlike the two above. A task you come across while
 			// reviewing the whole vault is exactly the one you want to pull onto
 			// your list, and where you came across it is the vault wheel.
+			// Not on a note that is itself a task (BC_E3_S130). Carrying lifts the
+			// task *lines* out of a note and leaves the file behind — on a task
+			// document that empties the very thing the reader asked to move,
+			// which is the surprise the owner hit on 4 sep 2026. A file is moved
+			// in the file list, not by the wheel; the row is absent rather than
+			// present-and-refusing, the way every other impossible action here is.
+			// Where carrying cannot mean anything, moving the file can. Obsidian's
+			// own menu rather than a folder picker of ours (BC_E3_S131).
+			// Only on a task document, where there is no other way to move the
+			// thing the wheel is pointing at. It was briefly offered on every
+			// note ring as well, and the owner's first use of it created a
+			// duplicate folder tree: Android's file system is case-sensitive, so
+			// a folder typed with the wrong capital is a *new* folder, and
+			// Obsidian's dialog said nothing (4 sep 2026).
+			//
+			// The dialog is Obsidian's and the hazard is the file system's, but
+			// the invitation was ours: reviewing is quick and half-attentive,
+			// and making folders is not. On a note ring the same menu is one
+			// right-click away in the file list, so the convenience was not
+			// worth the tap. Here it is the only way, so it stays.
+			file: isNoteTask(laid.node)
+				? (event: MouseEvent) => {
+						this.openFileMenu(laid.node.source?.path ?? "", event);
+					}
+				: undefined,
 			carry:
-				laid.node.source === undefined || laid.node.kind === "root"
+				laid.node.source === undefined ||
+				laid.node.kind === "root" ||
+				isNoteTask(laid.node)
 					? undefined
 					: {
 							copy: () => this.carryTo(laid, "copy"),
@@ -2079,6 +2126,150 @@ export class TaskWheelView extends ItemView {
 							})),
 						},
 		};
+	}
+
+	/**
+	 * What the card may do with a task that is a whole note (BC_E3_S132).
+	 *
+	 * The same four gestures as on a line — tick, start, cancel, rename — writing
+	 * the reader's own words into the reader's own property. Pressing the status
+	 * a document already carries takes it off again, exactly as it does for a
+	 * checkbox: on a phone that is the only way back from a mis-tap.
+	 *
+	 * What it cannot give back is a status the wheel does not know. A document
+	 * that read `on hold` and is ticked off becomes `done`, and un-ticking it
+	 * writes the open word rather than `on hold` — the wheel never saw that word
+	 * and cannot invent it back. The same loss a checkbox has always had, and the
+	 * reason the four words are settings: the fewer of your statuses fall outside
+	 * them, the less there is to lose.
+	 */
+	private noteTaskActions(
+		laid: LaidOutNode,
+		state: TaskState | undefined,
+		on: AfterWrite,
+	): CardActions {
+		const path = laid.node.source?.path ?? "";
+		const settings = this.plugin.settings;
+		const property = settings.taskNoteDoneProperty;
+
+		const set = (value: string, after: AfterWrite = {}): void => {
+			void this.writeNoteStatus(path, property, value, after);
+		};
+
+		return {
+			done: () =>
+				set(
+					state === "done" ? settings.taskNoteOpenValue : settings.taskNoteDoneValue,
+					on,
+				),
+			start: () =>
+				set(
+					state === "in-progress"
+						? settings.taskNoteOpenValue
+						: settings.taskNoteDoingValue,
+				),
+			cancel: () =>
+				set(
+					state === "cancelled"
+						? settings.taskNoteOpenValue
+						: settings.taskNoteCancelledValue,
+					on,
+				),
+			rename: (text: string) => {
+				void this.renameNoteTask(path, text);
+			},
+			suggestLinks: (field) => attachLinkSuggest(this.app, field),
+			file: (event: MouseEvent) => {
+				this.openFileMenu(path, event);
+			},
+			open: laid.node.source === undefined ? undefined : () => this.openNote(laid),
+			follow: (target, external, event) =>
+				this.follow(laid, target, external, event),
+			fold: (id) => this.toggleFold(id),
+			alongRing: (delta) => this.stepFromCard(delta),
+		};
+	}
+
+	/** Write a task document's status, and say so when nothing happened. */
+	private async writeNoteStatus(
+		path: string,
+		property: string,
+		value: string,
+		after: AfterWrite,
+	): Promise<void> {
+		if (property.trim() === "" || value.trim() === "") {
+			new Notice(
+				"Task wheel: there is no status word set for that — see the settings.",
+			);
+			return;
+		}
+
+		let outcome: WriteOutcome;
+		try {
+			outcome = await writeNoteStatus(this.app, path, property, value);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			new Notice(`Task wheel: could not write to ${path} — ${message}`);
+			return;
+		}
+
+		if (outcome === "missing") {
+			new Notice(`Task wheel: ${path} is gone. Rescanned.`);
+		} else if (outcome === "unchanged") {
+			new Notice("Task wheel: it already says that.");
+			return;
+		}
+		await this.refreshCarrying(after);
+	}
+
+	/** Rename the note a task document is, links and all. */
+	private async renameNoteTask(path: string, title: string): Promise<void> {
+		let outcome: WriteOutcome;
+		try {
+			outcome = await renameNoteTask(this.app, path, title);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			new Notice(`Task wheel: could not rename ${path} — ${message}`);
+			return;
+		}
+
+		if (outcome === "refused") {
+			// The characters a file name cannot hold. Said out loud rather than
+			// stripped: a title quietly missing its slash is a rename the reader
+			// did not ask for.
+			new Notice(
+				'Task wheel: a note name cannot hold \\ / : * ? " < > | # ^ [ ].',
+			);
+			return;
+		}
+		if (outcome === "missing") {
+			new Notice(`Task wheel: ${path} is gone. Rescanned.`);
+		} else if (outcome === "unchanged") {
+			return;
+		}
+		await this.refreshCarrying();
+	}
+
+	/**
+	 * Obsidian's own menu for a file, opened on a task that is a whole note.
+	 *
+	 * `file-menu` is the event every part of Obsidian uses to build that menu —
+	 * the file explorer, a tab header, a link. Triggering it hands us *Move file
+	 * to…*, *Rename…* and the rest as the reader knows them, kept in step with
+	 * their Obsidian version and whatever their other plugins add. Building a
+	 * folder picker here would be a second way to do a thing the app already
+	 * does well, and a worse one (eigenaar, 4 sep 2026).
+	 */
+	private openFileMenu(path: string, event: MouseEvent): void {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) {
+			new Notice("Task wheel: that note is no longer in the vault.");
+			return;
+		}
+
+		const menu = new Menu();
+		this.app.workspace.trigger("file-menu", menu, file, "task-wheel-card");
+		menu.showAtMouseEvent(event);
 	}
 
 	/**
@@ -2839,11 +3030,20 @@ function anchorAt(lines: readonly string[], line: number): LineAnchor {
 	return { line, raw: lines[line] ?? "" };
 }
 
-/** Where a task's line sits, if this item is a task at all. */
+/**
+ * Where a task's line sits, if this item is a task on a line at all.
+ *
+ * A task note is a task without a line (BC_E3_S130): it has fields, because its
+ * tags and its status are real, but nothing to quote and nothing to write back
+ * to. `source.raw === null` is what says so — the same signal a note ring has
+ * always carried — and every edit path funnels through here, so testing it once
+ * keeps a rewrite off line 0 of somebody's note.
+ */
 function lineRefOf(laid: LaidOutNode): LineRef | null {
 	const source = laid.node.source;
 	const raw = laid.node.fields?.raw;
 	if (source === undefined || raw === undefined) return null;
+	if (source.raw === null) return null;
 
 	return { path: source.path, line: source.line, raw };
 }

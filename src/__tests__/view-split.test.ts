@@ -44,7 +44,15 @@ describe("whatTravels — what a carry actually takes", () => {
 			"- [ ] Iets anders",
 		];
 
-		const carry = whatTravels(lines, at("Reis.md", 0), DEFAULT_PARSE_OPTIONS, "task");
+		// A task carries the line it sits on. Since BC_E3_S130 that is what tells
+		// a task on a line apart from a task that *is* a note, so the fixture has
+		// to be as honest about it as the parser is.
+		const carry = whatTravels(
+			lines,
+			at("Reis.md", 0, lines[0]),
+			DEFAULT_PARSE_OPTIONS,
+			"task",
+		);
 
 		expect(carry?.blocks).toHaveLength(1);
 		expect(carry?.blocks[0].raw).toEqual(lines.slice(0, 3));
@@ -109,9 +117,15 @@ describe("whatTravels — what a carry actually takes", () => {
 
 	it("refuses a line the note no longer has", () => {
 		expect(
-			whatTravels(["- [ ] Een"], at("Reis.md", 9), DEFAULT_PARSE_OPTIONS, "task"),
+			whatTravels(
+				["- [ ] Een"],
+				at("Reis.md", 9, "- [ ] Een"),
+				DEFAULT_PARSE_OPTIONS,
+				"task",
+			),
 		).toBeNull();
 	});
+
 });
 
 describe("nothingToCarry — two very different empties", () => {
