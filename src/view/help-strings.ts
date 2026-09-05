@@ -200,7 +200,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 			"One click stop per task and per stump — turning never rests on a heading. The wheel never free-spins, which is what makes “all the way round” a fact.",
 		keyFlat: "The flat round order — the walk that cannot skip anything.",
 		keyEnds: "The first and the last stop.",
-		keySideways: "Sideways, one item at a time. Shift walks the other ring.",
+		keySideways:
+			"Sideways. Forwards it takes you to the next item this round has not been past, wherever on the circle that is; back is always one step. Shift walks the other ring.",
 		keySidewaysTouch:
 			"Sideways, staying on the ring — the two buttons on the card's edges.",
 		keyOut: "A ring outwards, to a child.",
@@ -293,7 +294,8 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 			"Eén klikstand per taak en per stomp — draaien landt nooit op een kop. Het wiel spint nooit vrij door, en dat is wat “helemaal rond geweest” een feit maakt.",
 		keyFlat: "De platte ronde-volgorde — de wandeling die niets kan overslaan.",
 		keyEnds: "De eerste en de laatste stop.",
-		keySideways: "Opzij, één item tegelijk. Shift loopt de andere ring.",
+		keySideways:
+			"Opzij. Vooruit brengt hij je naar het volgende item dat deze ronde nog niet langskwam, waar op de cirkel dat ook is; terug is altijd één stap. Shift loopt de andere ring.",
 		keySidewaysTouch:
 			"Opzij, op dezelfde ring — de twee knoppen op de randen van de kaart.",
 		keyOut: "Een ring naar buiten, naar een kind.",

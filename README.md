@@ -107,6 +107,15 @@ one. They do what ← → do — sideways along the ring you are reading — so 
 place your eye is on stays put. Turning is where the guarantee lives: it walks
 the flat order, and that is the walk that cannot skip anything.
 
+Sideways **takes you to the next thing this round has not been past**, wherever
+on the circle that is: reviewing the same task twice is time spent for nothing,
+and after sorting for an hour most of a ring is behind you — including, once you
+have moved work about, the stragglers. Only forwards. Back is always a single
+step, because coming to rest on something marks it seen, so a backwards step
+that skipped what it had seen could never take you back to where you came from.
+Turning is untouched, and PageUp / PageDown still walk the flat order without
+skipping anything.
+
 **What sideways steps through is yours to choose**, under *What the arrows step
 through*:
 
@@ -183,18 +192,22 @@ brings finished work back for that round whatever *Include finished tasks*
 says: asking for it in the filter is asking for it. The hub then counts what it
 is showing rather than what is open, and says `shown` instead of `open`.
 
-**Dates** are all reckoned from today — overdue, due soon, has a date, has no
-date — except one. **Due between two dates** takes a window of its own, and both
-ends count as inside it: *up to the 22nd* includes the 22nd. It is also the only
-rule that lets you say **which** date it means: the deadline (📅), the scheduled
-date (⏳) or the start date (🛫). The others are always about the deadline,
-because that is what *overdue* and *due soon* mean. Leave an end empty
-and the window is open at that end, which is how you ask for "everything from
-September onwards" or "anything that was already due before this week". A task
-without a due date is in no window at all — for those there is *has no date*,
-one line up. A window that ends before it starts holds nothing, and the line
-under the wheel says so rather than leaving you with an empty wheel and no
-reason.
+**Dates** are all reckoned from today — *today or earlier*, *soon*, *has a
+date*, *has no date* — except the window. Each of them then asks **which** date
+it means, on the line right below: the deadline (📅), the scheduled date (⏳) or
+the start date (🛫). Tasks carries all three, and "what did I mean to pick up
+this week" is as ordinary a question as "what has to be finished this week". The
+rules are named for the shape of the question rather than for one of the dates,
+so the name stays true whichever you point them at, and the line under the wheel
+says which one it was.
+
+**Between two dates** takes a window of its own, and both ends count as inside
+it: *up to the 22nd* includes the 22nd. Leave an end empty and the window is
+open at that end, which is how you ask for "everything from September onwards"
+or "anything that was already due before this week". A task without the date you
+picked is in no window at all — for those there is *has no date*, one line up. A
+window that ends before it starts holds nothing, and the line under the wheel
+says so rather than leaving you with an empty wheel and no reason.
 
 There is no "deferred" among the statuses, because Tasks has no status
 character for it: putting something off is a *date*. So that lives with the

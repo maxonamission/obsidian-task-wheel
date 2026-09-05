@@ -105,31 +105,12 @@ export function buildTreeFrom(
 	for (const { note, tasks: outlined } of ordered) {
 		if (isExcluded(note, options)) continue;
 
-		// A note that says it is itself a task (BC_E3_S130). Worked out before
-		// anything is built, because it changes what the note's own node *is*.
-		const asNoteTask = noteTaskOf(note, options, showsFinished);
-		if (asNoteTask !== undefined && asNoteTask.filteredOut) filteredOut += 1;
-		const asTask = asNoteTask?.task;
-
 		// The document's own outline, on the wheels where the wheel *is* that
-		// outline (BC_E3_S85). Before everything else, including the early exit
-		// below: a note whose every heading is empty is exactly the case this is
-		// for, and it must still draw its frame.
+		// outline (BC_E3_S85). Before everything else: a note whose every heading
+		// is empty is exactly the case this is for, and it must still draw its
+		// frame.
 		for (const group of outlineGroups(note, options)) {
 			ensureContainers(root, byId, note, group, options);
-		}
-
-		// A task note is work whether or not anybody wrote a checkbox in it, so
-		// its node is made before the two "nothing here" exits below. Without
-		// this a one-line task note — the ordinary case — would be a note with
-		// no tasks, and the wheel would drop the very thing it stands for.
-		if (asTask !== undefined) {
-			ensureContainers(root, byId, note, noteGroup(note, options), options, asTask);
-		}
-
-		if (outlined.length === 0) {
-			if (asTask === undefined) emptyNotes.push(note.path);
-			continue;
 		}
 
 		// Checkboxes under a heading that names a checklist are not work on
@@ -159,6 +140,22 @@ export function buildTreeFrom(
 		const kept = selectFiltered(open, note, options);
 		filteredOut +=
 			countRoundItems(open, showsFinished) - countRoundItems(kept, showsFinished);
+
+		// A note that says it is itself a task (BC_E3_S130). Decided *here*,
+		// after the tasks inside it are known, because the answer depends on
+		// them: a document the round leaves out still has to be drawn while open
+		// work hangs inside it, or that work would have nothing to hang from.
+		const asNoteTask = noteTaskOf(note, options, showsFinished, kept.length > 0);
+		if (asNoteTask?.filteredOut === true) filteredOut += 1;
+		const asTask = asNoteTask?.task;
+
+		// A task note is work whether or not anybody wrote a checkbox in it, so
+		// its node is made before the "nothing here" exit below. Without this a
+		// one-line task note — the ordinary case — would be a note with no tasks,
+		// and the wheel would drop the very thing it stands for.
+		if (asTask !== undefined) {
+			ensureContainers(root, byId, note, noteGroup(note, options), options, asTask);
+		}
 
 		if (kept.length === 0) {
 			if (asTask === undefined) emptyNotes.push(note.path);
@@ -409,27 +406,43 @@ function noteTaskOf(
 	note: NoteInput,
 	options: ParseOptions,
 	showsFinished: boolean,
+	carries: boolean,
 ): { task?: NoteTask; filteredOut: boolean } | undefined {
 	if (!isTaskNote(note, options)) return undefined;
 	if (options.scope.kind === "note" || options.scope.kind === "section") {
 		return undefined;
 	}
 
-	const state = taskNoteState(note, options);
-	const finished = state === "done" || state === "cancelled";
-	if (finished && !showsFinished) return { filteredOut: false };
-
 	const label = taskNoteLabel(note);
+	const state = taskNoteState(note, options);
 	const fields = noteFields(note, label, state);
+	const task: NoteTask = { label, fields };
+
+	// Both cases below are the **carrier** rule the tasks one level down already
+	// follow (`selectTasks`, `selectFiltered`): a parent the round is not about
+	// stays on the wheel while work it holds is, because hiding it would leave
+	// that work with nothing to hang from — and a carrier is *shown*, so it is
+	// not counted as left out either.
+	//
+	// It used to fall back to being a plain note ring instead, which was wrong
+	// twice over: the document stayed on screen under the same name while the
+	// badge said one item had been filtered away, and a node quietly changed
+	// kind because of a filter (eigenaar, 4 sep 2026).
+
+	// Finished work is not part of an ordinary round. `isRoundItem` reads that
+	// off the state, so a finished carrier costs the count nothing.
+	if ((state === "done" || state === "cancelled") && !showsFinished) {
+		return carries ? { task, filteredOut: false } : { filteredOut: false };
+	}
 
 	if (
 		isFiltering(options.filter) &&
 		!matches(fields, options.filter, options.today, note.path)
 	) {
-		return { filteredOut: true };
+		return carries ? { task, filteredOut: false } : { filteredOut: true };
 	}
 
-	return { task: { label, fields }, filteredOut: false };
+	return { task, filteredOut: false };
 }
 
 /**

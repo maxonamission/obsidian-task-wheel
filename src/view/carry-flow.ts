@@ -1,6 +1,6 @@
 import { type App, Notice, TFile } from "obsidian";
 import type { LaidOutNode } from "../layout/radial";
-import type { AfterWrite } from "../model/carry";
+import type { AfterWrite, Moved } from "../model/carry";
 import type {
 	CarryHow,
 	CarryPreset,
@@ -182,6 +182,43 @@ export function carryToPreset(
 }
 
 /**
+ * What travelled, so the round's marks can follow it (BC_E3_S137).
+ *
+ * Only for a move to another note. A copy leaves the original in place and the
+ * mark belongs there; a move within the same note never changed the pair that
+ * identifies a node, so neither needs a hint.
+ *
+ * The labels are read back off the very lines that travelled — the same text
+ * `build-tree` will label the new nodes with — rather than from the tree, which
+ * at this point still describes the vault as it was a moment ago.
+ */
+function movedHint(
+	mode: CarryMode,
+	from: string,
+	to: string,
+	blocks: readonly Extracted[],
+): Moved | undefined {
+	if (mode !== "move" || from === to) return undefined;
+
+	const labels: string[] = [];
+	for (const block of blocks) {
+		for (const line of block.raw) {
+			const task = parseTaskLine(line.trim());
+			if (task !== null) {
+				if (task.fields.description.length > 0) labels.push(task.fields.description);
+				continue;
+			}
+			// A section travels as a heading plus what hangs under it, and the
+			// heading is a node of its own with the round's marks on it.
+			const heading = /^#{1,6}[ \t]+(.*\S)/.exec(line.trim());
+			if (heading !== null) labels.push(heading[1]);
+		}
+	}
+
+	return labels.length === 0 ? undefined : { from, to, labels };
+}
+
+/**
  * Ask the two questions once, and keep the answers.
  *
  * Deliberately the *same* two pickers the ordinary carry uses, in the same
@@ -193,6 +230,46 @@ export async function definePreset(
 	app: App,
 	how: CarryHow,
 ): Promise<CarryPreset | null> {
+	const target = await pickTarget(app);
+	if (target === null) return null;
+
+	const name = await promptForText(
+		app,
+		`Name for this destination (${target.basename})`,
+		{ field: "Name", placeholder: "Do this week" },
+	);
+	if (name === null || name.trim().length === 0) return null;
+
+	return {
+		name: name.trim(),
+		notePath: target.notePath,
+		headingPath: target.headingPath,
+		how,
+	};
+}
+
+/** Where a destination points: a note, and a place in it. */
+export interface PresetTarget {
+	notePath: string;
+	headingPath: string[] | null;
+	/** The note's own name, for a sentence about it. */
+	basename: string;
+}
+
+/**
+ * Ask which note and where in it — the two questions a destination *is*.
+ *
+ * Split out of `definePreset` so the settings tab can ask them again on a
+ * destination that already exists (BC_E3_S135). Changing where one points used
+ * to mean deleting it and making a new one, which threw away its name, its
+ * move-or-copy and the hotkey bound to it — for a note that had simply been
+ * renamed or moved.
+ *
+ * Still the pickers rather than a text box, and that is the whole reason this is
+ * a function instead of two fields in the settings: a path you *type* can point
+ * at a note that is not there, and one you *choose* cannot.
+ */
+export async function pickTarget(app: App): Promise<PresetTarget | null> {
 	const chosen = await pickNote(app, "");
 	if (chosen === null) return null;
 
@@ -211,14 +288,7 @@ export async function definePreset(
 				? choice.heading.path
 				: splitPath(choice.title);
 
-	const name = await promptForText(
-		app,
-		`Name for this destination (${target.basename})`,
-		{ field: "Name", placeholder: "Do this week" },
-	);
-	if (name === null || name.trim().length === 0) return null;
-
-	return { name: name.trim(), notePath: target.path, headingPath, how };
+	return { notePath: target.path, headingPath, basename: target.basename };
 }
 
 async function carrying(
@@ -376,5 +446,8 @@ async function finish(
 		return;
 	}
 
-	await host.refreshCarrying(after);
+	await host.refreshCarrying({
+		...after,
+		moved: movedHint(mode, source.path, target.path, blocks),
+	});
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildTree } from "../parse/build-tree";
+import { moveToSection } from "../parse/outline-edit";
 import { carryFocus, carrySeen, landAfter } from "../model/carry";
 import {
 	DEFAULT_PARSE_OPTIONS,
@@ -92,6 +93,22 @@ describe("a task that moved to another heading", () => {
 		const seen = [idOf(before, "Bellen")];
 		expect(labelsSeen(after, carrySeen(before, after, seen))).toEqual(["Bellen"]);
 	});
+
+	it("keeps it through the write that actually does the move", () => {
+		// The same claim, but measured against `moveToSection` rather than two
+		// trees typed out by hand — the second tree is where a wrong assumption
+		// hides (eigenaar, 4 sep 2026: does a heading move lose the mark?).
+		const lines = ["## Een", "- [ ] Bellen", "- [ ] Mailen", "## Twee"];
+		const moved = moveToSection(lines, 1, 3);
+		if (moved === null) throw new Error("the move did not happen");
+
+		const from = tree(lines.join("\n"));
+		const to = tree(moved.join("\n"));
+
+		expect(carrySeen(from, to, [idOf(from, "Bellen")])).toEqual([
+			idOf(to, "Bellen"),
+		]);
+	});
 });
 
 describe("a whole section that moved", () => {
@@ -132,6 +149,96 @@ describe("a whole section that moved", () => {
 		const seen = [heading?.[0] ?? ""];
 		expect(labelsSeen(after, carrySeen(before, after, seen))).toEqual([
 			"Deeltaken",
+		]);
+	});
+});
+
+/* ------------------------------------------------------------------ */
+/* A task carried to another note (BC_E3_S137)                         */
+/* ------------------------------------------------------------------ */
+
+/** Two notes on one wheel, which is what a carry needs to be visible at all. */
+function vault(notes: Record<string, string>): WheelTree {
+	const input: NoteInput[] = Object.entries(notes).map(([path, content]) => ({
+		path,
+		content,
+	}));
+	return buildTree(input, DEFAULT_PARSE_OPTIONS);
+}
+
+/** The id of the task with these words in this note. */
+function idIn(of: WheelTree, path: string, label: string): string {
+	for (const [id, node] of of.byId) {
+		if (node.kind === "task" && node.label === label && node.source?.path === path) {
+			return id;
+		}
+	}
+	throw new Error(`no task called ${label} in ${path}`);
+}
+
+describe("a task carried to another note", () => {
+	const before = vault({
+		"Werk/Nu.md": "- [ ] Bellen\n- [ ] Mailen",
+		"Werk/Later.md": "# Later",
+	});
+	const after = vault({
+		"Werk/Nu.md": "- [ ] Mailen",
+		"Werk/Later.md": "# Later\n- [ ] Bellen",
+	});
+	const moved = {
+		from: "Werk/Nu.md",
+		to: "Werk/Later.md",
+		labels: ["Bellen"],
+	};
+
+	it("takes its seen-mark with it", () => {
+		// Without the hint the task is met a second time in the same round, in the
+		// wedge you moved it to — the one action the wheel is most used for.
+		const seen = [idIn(before, "Werk/Nu.md", "Bellen")];
+		const carried = carrySeen(before, after, seen, undefined, moved);
+		expect(carried).toEqual([idIn(after, "Werk/Later.md", "Bellen")]);
+	});
+
+	it("loses the mark when nothing says it travelled", () => {
+		// The same two trees, no hint: this is the defect, kept as a test so the
+		// fix cannot quietly be undone.
+		const seen = [idIn(before, "Werk/Nu.md", "Bellen")];
+		expect(labelsSeen(after, carrySeen(before, after, seen))).toEqual([]);
+	});
+
+	it("keeps the reading wedge on it", () => {
+		const was = idIn(before, "Werk/Nu.md", "Bellen");
+		expect(carryFocus(before, after, was, undefined, moved)).toBe(
+			idIn(after, "Werk/Later.md", "Bellen"),
+		);
+	});
+
+	it("leaves what stayed behind alone", () => {
+		const seen = [
+			idIn(before, "Werk/Nu.md", "Bellen"),
+			idIn(before, "Werk/Nu.md", "Mailen"),
+		];
+		expect(labelsSeen(after, carrySeen(before, after, seen, undefined, moved))).toEqual(
+			["Bellen", "Mailen"],
+		);
+	});
+
+	it("does not touch a task with the same words in a note it never left", () => {
+		// Only the note the carry came out of is remapped, so a namesake elsewhere
+		// keeps its own mark and its own place.
+		const from = vault({
+			"Werk/Nu.md": "- [ ] Bellen",
+			"Thuis/Lijst.md": "- [ ] Bellen",
+			"Werk/Later.md": "# Later",
+		});
+		const to = vault({
+			"Werk/Nu.md": "",
+			"Thuis/Lijst.md": "- [ ] Bellen",
+			"Werk/Later.md": "# Later\n- [ ] Bellen",
+		});
+		const seen = [idIn(from, "Thuis/Lijst.md", "Bellen")];
+		expect(carrySeen(from, to, seen, undefined, moved)).toEqual([
+			idIn(to, "Thuis/Lijst.md", "Bellen"),
 		]);
 	});
 });

@@ -988,7 +988,7 @@ export class TaskWheelView extends ItemView {
 	 * one note never disturbs a round's memory of another.
 	 */
 	private async refreshCarrying(after: AfterWrite = {}): Promise<void> {
-		const { rename } = after;
+		const { rename, moved } = after;
 		const before = this.tree;
 
 		// Worked out from the tree as it was, before the write is read back —
@@ -1005,7 +1005,7 @@ export class TaskWheelView extends ItemView {
 		if (before === null || grown === null) return;
 
 		const state = stateFor(this.plugin.settings, this.wheelScope);
-		state.seen = carrySeen(before, grown, state.seen, rename);
+		state.seen = carrySeen(before, grown, state.seen, rename, moved);
 		this.plugin.persist();
 
 		// The item this action was aimed past, if it is still on the wheel. It
@@ -1013,7 +1013,7 @@ export class TaskWheelView extends ItemView {
 		// leave that item behind.
 		const wanted = landAfter(
 			land,
-			carryFocus(before, grown, this.focusId, rename),
+			carryFocus(before, grown, this.focusId, rename, moved),
 			(id) => grown.byId.has(id),
 		);
 
@@ -2675,12 +2675,19 @@ export class TaskWheelView extends ItemView {
 			forced ??
 			(other ? (chosen === "tasks" ? "ring" : "tasks") : chosen);
 
+		// What this round has already been past is stepped over rather than
+		// stopped on (BC_E3_S138). Read fresh on every press: the round is being
+		// written to as the reader walks, and a set captured earlier would be
+		// one item behind by the time the arrow is let go.
+		const round = new Set(stateFor(this.plugin.settings, this.wheelScope).seen);
+
 		const to = sidewaysFrom(
 			tree.root,
 			layout.budgets.map((budget) => budget.domain),
 			from,
 			delta,
 			along,
+			(id) => round.has(id),
 		);
 		if (to === null || to === from) return false;
 

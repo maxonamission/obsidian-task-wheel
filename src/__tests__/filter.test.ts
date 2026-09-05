@@ -574,3 +574,72 @@ group("maxPriority — de bovengrens naast de ondergrens (BC_E3_S18)", () => {
 		expect(describe(band("normal", "normal"))).toContain("normal only");
 	});
 });
+
+/* ------------------------------------------------------------------ */
+/* Every rule reads the date the reader chose (BC_E3_S140)             */
+/* ------------------------------------------------------------------ */
+
+group("which of the three dates a rule reads", () => {
+	// A task put off until next month, with a deadline that has already gone by.
+	// The two dates disagree on purpose: that is what tells the rules apart.
+	const both = fields("- [ ] Aangifte 📅 2026-08-10 🛫 2026-09-15");
+	// And one carrying nothing but a start date — the case that used to answer
+	// "no date" while plainly having one (eigenaar, 4 sep 2026).
+	const startOnly = fields("- [ ] Ooit beginnen 🛫 2026-08-15");
+
+	const on = (over: Partial<TaskFilter>): TaskFilter => filter(over);
+
+	it("reads the deadline unless told otherwise", () => {
+		expect(matches(both, on({ due: "overdue" }), TODAY)).toBe(true);
+	});
+
+	it("reads the start date when that is what was asked about", () => {
+		// Its 🛫 is a month out, so by that question it is not for now.
+		expect(
+			matches(both, on({ due: "overdue", dateField: "start" }), TODAY),
+		).toBe(false);
+	});
+
+	it("no longer calls a task with only a 🛫 undated", () => {
+		expect(matches(startOnly, on({ due: "dated", dateField: "start" }), TODAY)).toBe(
+			true,
+		);
+		expect(
+			matches(startOnly, on({ due: "undated", dateField: "start" }), TODAY),
+		).toBe(false);
+
+		// Asked about the deadline it still has none, and that is the right
+		// answer to that question rather than a leftover of the old one.
+		expect(matches(startOnly, on({ due: "undated" }), TODAY)).toBe(true);
+	});
+
+	it("counts a window of days from the chosen date", () => {
+		const soonByStart = on({ due: "soon", horizon: 7, dateField: "start" });
+		expect(matches(both, soonByStart, TODAY)).toBe(false);
+		expect(matches(startOnly, soonByStart, TODAY)).toBe(true);
+	});
+
+	it("leaves parked and ready alone, whatever field is set", () => {
+		// Those two ask about 🛫 and ⏳ against today by definition; pointing them
+		// at the deadline would let the rule contradict itself.
+		for (const field of ["due", "scheduled", "start"] as const) {
+			expect(matches(both, on({ due: "parked", dateField: field }), TODAY)).toBe(
+				true,
+			);
+			expect(matches(both, on({ due: "ready", dateField: field }), TODAY)).toBe(
+				false,
+			);
+		}
+	});
+
+	it("says which date it is about, in the line under the wheel", () => {
+		expect(describe(on({ due: "overdue" }))).toContain("overdue");
+		expect(describe(on({ due: "overdue", dateField: "start" }))).toContain(
+			"start overdue",
+		);
+		expect(describe(on({ due: "undated", dateField: "scheduled" }))).toContain(
+			"no scheduled date",
+		);
+		expect(describe(on({ due: "soon", horizon: 3 }))).toContain("due within 3 days");
+	});
+});

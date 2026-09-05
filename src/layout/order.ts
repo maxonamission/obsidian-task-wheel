@@ -179,10 +179,58 @@ export function taskRing(
  * tasks — the step is measured from the reader's place in the wheel order, so
  * "the next one" still means the next one *after where you are*.
  *
+ * `seen` makes a step **forwards** land on the next item this round has not
+ * been past, wherever on the circle that is (BC_E3_S138, BC_E3_S142): looking at
+ * the same task twice is time spent for nothing, and after an hour of sorting a
+ * day's work most of a ring is behind you. A step backwards stays a single step
+ * — see `nextUnseen` for why the two differ.
+ *
  * Answers `null` when there is nowhere to go: an empty ring, or a ring holding
  * nothing but the reader.
  */
 export type SidewaysAlong = "tasks" | "ring";
+
+/**
+ * The first item this round has not been past, walking forwards from `at`
+ * (BC_E3_S138, BC_E3_S142).
+ *
+ * **Forwards only**, because coming to rest on something *is* having seen it
+ * (`markSeen`). So everything the reader has walked is behind them and marked,
+ * and a backwards step that skipped what it had seen could never return them to
+ * where they came from — it would sail past the whole walk and land on some
+ * item from a wedge they have not reached yet. Measured: stepping back from the
+ * third task of a walked run answered with a task two wedges away. The left
+ * arrow is the "I went one too far" key, so it stays exactly one step.
+ *
+ * **And it goes all the way round.** The first version stopped at the end of
+ * the ring, to keep "the next one I have not seen" from becoming a jump across
+ * the circle. That was the wrong worry, and the owner found the right one
+ * within a day: a round that would not close, stuck at 193 of 194. Moving tasks
+ * about leaves the stragglers *behind* the reader, and with no wrap the key
+ * then fell back to the plain neighbour — one already-seen item per press, a
+ * hundred and ninety times, each press looking like nothing had happened.
+ * Forwards the jump is the whole point: take me to what I have not seen. It is
+ * the backwards step that must not jump, and that one never skips at all.
+ *
+ * One lap, and never the item the reader is standing on: that one is marked the
+ * moment they land, so a wrap that offered it back would answer the key with
+ * "you are already here". A ring with nothing unseen left answers `null` and the
+ * caller takes the plain neighbour, so the key is never dead.
+ */
+function nextUnseen(
+	ring: readonly WheelNode[],
+	at: number,
+	delta: number,
+	seen: (id: string) => boolean,
+): WheelNode | null {
+	if (delta <= 0) return null;
+
+	for (let step = Math.max(delta, 1); step < ring.length; step++) {
+		const node = ring[(at + step) % ring.length];
+		if (node !== undefined && !seen(node.id)) return node;
+	}
+	return null;
+}
 
 export function sidewaysFrom(
 	root: WheelNode,
@@ -190,6 +238,8 @@ export function sidewaysFrom(
 	id: string,
 	delta: number,
 	along: SidewaysAlong = "ring",
+	/** Whether this round has already been past an item. */
+	seen?: (id: string) => boolean,
 ): string | null {
 	const order = wheelOrder(root, domains);
 	const here = order.findIndex((node) => node.id === id);
@@ -204,8 +254,8 @@ export function sidewaysFrom(
 	const at = ring.findIndex((node) => node.id === id);
 	if (at >= 0) {
 		if (ring.length <= 1) return null;
-		const next = ring[(((at + delta) % ring.length) + ring.length) % ring.length];
-		return next.id;
+		const plain = ring[(((at + delta) % ring.length) + ring.length) % ring.length];
+		return (seen === undefined ? null : nextUnseen(ring, at, delta, seen))?.id ?? plain.id;
 	}
 
 	// Not on this ring at all: step to the nearest member in the direction of

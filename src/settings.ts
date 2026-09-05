@@ -1,10 +1,17 @@
 import {
 	App,
+	Notice,
 	PluginSettingTab,
 	type SettingDefinitionItem,
 	type SettingGroupItem,
 } from "obsidian";
 import { today } from "./model/dates";
+import {
+	DATE_FIELD_LABELS,
+	DUE_LABELS,
+	picksADate,
+	STATUS_LABELS,
+} from "./view/filter-labels";
 import {
 	DEFAULT_PALETTE,
 	type PaletteName,
@@ -27,6 +34,7 @@ import {
 	type WheelScope,
 } from "./model/types";
 import type TaskWheelPlugin from "./main";
+import { pickTarget } from "./view/carry-flow";
 import { attachPathSuggest } from "./view/path-suggest";
 import { LANGUAGE_NAMES } from "./view/help-strings";
 
@@ -531,37 +539,6 @@ export function visibleBudgetOf(settings: TaskWheelSettings): number {
 	return DETAIL_BUDGETS[settings.detail] ?? DETAIL_BUDGETS.balanced;
 }
 
-const DATE_FIELD_LABELS: Record<DateField, string> = {
-	due: "Due date (📅)",
-	scheduled: "Scheduled date (⏳)",
-	start: "Start date (🛫)",
-};
-
-const DUE_LABELS: Record<DateRule, string> = {
-	any: "Anything",
-	overdue: "Overdue, or due today",
-	soon: "Due soon",
-	dated: "Dated",
-	undated: "Undated",
-	between: "Due in a date range",
-	parked: "Parked for later (🛫 or ⏳ ahead)",
-	ready: "Ready now (nothing parking it)",
-};
-
-/**
- * The statuses, as a round sees them.
- *
- * Done and cancelled sit together under "finished": the only distinction a
- * review makes is whether there is anything left to look at. There is no
- * "deferred" — Tasks has no status character for it. Putting something off is a
- * date (🛫 or ⏳), which is why it sits in the list above as *parked*.
- */
-const STATUS_LABELS: Record<StatusRule, string> = {
-	any: "Any status",
-	open: "Not started",
-	"in-progress": "In progress",
-	finished: "Finished",
-};
 
 const PRIORITY_OPTIONS: Record<string, string> = {
 	any: "Any priority",
@@ -912,7 +889,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Within how many days",
-						desc: "How far ahead 'due soon' looks. Overdue tasks are always included.",
+						desc: "How far ahead 'soon' looks, counted from the date chosen below. Anything already past is always included.",
 						visible: () => settings.filterDue === "soon",
 						control: {
 							type: "number",
@@ -922,9 +899,9 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Which date the window uses",
-						desc: "A window on the deadline (📅) and a window on when you meant to start (🛫) or pick something up (⏳) are different questions, and Tasks carries all three. Only the window uses this; overdue and due soon are always about the deadline.",
-						visible: () => settings.filterDue === "between",
+						name: "Which date the rule reads",
+						desc: "The deadline (📅), when you meant to pick it up (⏳) or when it may start (🛫) — Tasks carries all three, and \"what did I mean to start this week\" is as ordinary a question as \"what has to be finished this week\". Every rule above reads the one chosen here, except 'parked for later' and 'ready now': those two ask about 🛫 and ⏳ by definition, so there is nothing to point them at.",
+						visible: () => picksADate(settings.filterDue),
 						control: {
 							type: "dropdown",
 							key: "filterDateField",
@@ -1137,12 +1114,17 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 	 * hooks are for.
 	 */
 	/**
-	 * The destinations the reader has named, to rename or remove.
+	 * The destinations the reader has named: rename, repoint, or remove.
 	 *
-	 * Deliberately not a form to *make* one in: a destination is made from the
-	 * wheel, with the same two pickers an ordinary carry uses (command "Add a
-	 * destination to carry work to"). A path typed here could point at a note
-	 * that does not exist; one chosen there cannot.
+	 * Deliberately not a form to *type* one in. A destination is chosen with the
+	 * same two pickers an ordinary carry uses — from the wheel to make one, and
+	 * from the button on the row to send an existing one somewhere else
+	 * (BC_E3_S135). A path typed here could point at a note that is not there;
+	 * one chosen cannot.
+	 *
+	 * Repointing used to mean deleting and making a new one, which threw away
+	 * the name, the move-or-copy and the hotkey bound to it — for a note that had
+	 * simply been renamed or moved (eigenaar, 4 sep 2026).
 	 */
 	private presetList(): SettingDefinitionItem {
 		const presets = this.plugin.settings.presets;
@@ -1151,8 +1133,19 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 			type: "list",
 			heading: "Destinations",
 			emptyState:
-				"None yet. Open a wheel and run the command “Add a destination to carry work to”: it asks which note, where in it, and whether it moves or copies. After that it is one entry on the card — and a command you can give a key.",
-			items: presets.map((preset) => ({
+				"None yet. Add one here, or from a wheel with the command “Add a destination to carry work to”. Either way it asks which note, where in it, and whether it moves or copies — and afterwards it is one entry on the card, and a command you can give a key.",
+			addItem: {
+				name: "Add destination",
+				// The very flow the command runs, called rather than copied. Two
+				// spellings of "make a destination" would be two places to fix the
+				// day the questions change (BC_E3_S136).
+				action: () => {
+					void this.plugin.addPreset().then(() => {
+						this.rerender();
+					});
+				},
+			},
+			items: presets.map((preset, index) => ({
 				name: `${preset.notePath}${preset.headingPath === null ? "" : ` › ${preset.headingPath.join(" › ")}`}`,
 				searchable: false,
 				// Built by hand, because a declared row carries one control and this
@@ -1180,6 +1173,41 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 								this.keepPresets();
 							}),
 					);
+					// Where it goes. The row's own title says where that is now,
+					// and it is the one thing here that could not be changed at
+					// all — a note that moved took its destination with it.
+					setting.addExtraButton((button) =>
+						button
+							.setIcon("folder-input")
+							.setTooltip("Send this destination somewhere else")
+							.onClick(() => {
+								void this.repoint(preset);
+							}),
+					);
+					// The order here is the order on the card, and sorting a day's
+					// work means reaching for the same one over and over — so the
+					// one you use most belongs at the top (BC_E3_S136). Two
+					// buttons rather than dragging: this list is read on a phone
+					// as often as on a desktop, and a drag handle in a settings
+					// row is a poor target for a thumb.
+					setting.addExtraButton((button) =>
+						button
+							.setIcon("arrow-up")
+							.setTooltip("Move up")
+							.setDisabled(index === 0)
+							.onClick(() => {
+								this.reorderPreset(index, -1);
+							}),
+					);
+					setting.addExtraButton((button) =>
+						button
+							.setIcon("arrow-down")
+							.setTooltip("Move down")
+							.setDisabled(index === presets.length - 1)
+							.onClick(() => {
+								this.reorderPreset(index, 1);
+							}),
+					);
 				},
 			})),
 			onDelete: (index: number) => {
@@ -1191,6 +1219,47 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 				void this.plugin.saveSettings().then(() => this.rerender());
 			},
 		};
+	}
+
+	/**
+	 * One destination up or down the list (BC_E3_S136).
+	 *
+	 * `persist` rather than the full save: the order changes what the card offers
+	 * first, and nothing about what the vault holds — so re-reading every note
+	 * would be a scan for a swap of two array entries. The commands keep their
+	 * ids, which are made from the name, so nothing has to be re-registered.
+	 */
+	private reorderPreset(index: number, step: number): void {
+		const presets = this.plugin.settings.presets;
+		const to = index + step;
+		if (to < 0 || to >= presets.length) return;
+
+		const [moved] = presets.splice(index, 1);
+		presets.splice(to, 0, moved);
+
+		this.plugin.persist();
+		this.plugin.redrawViews();
+		this.rerender();
+	}
+
+	/**
+	 * Ask again where a destination points, and keep the answer.
+	 *
+	 * The full save rather than `keepPresets`, because unlike a name or a
+	 * move-or-copy this changes *where work lands* — and the row's own title has
+	 * to be redrawn to say so, or the settings would go on naming the old note.
+	 */
+	private async repoint(preset: CarryPreset): Promise<void> {
+		const target = await pickTarget(this.app);
+		if (target === null) return;
+
+		preset.notePath = target.notePath;
+		preset.headingPath = target.headingPath;
+
+		await this.plugin.saveSettings();
+		this.plugin.redrawViews();
+		this.rerender();
+		new Notice(`Task wheel: “${preset.name}” now goes to ${target.basename}.`);
 	}
 
 	/**

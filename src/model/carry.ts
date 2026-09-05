@@ -29,6 +29,32 @@ export interface Rename {
 }
 
 /**
+ * What a carry moved, so the round's marks travel with it (BC_E3_S137).
+ *
+ * The gap this closes: the pair that survives an edit is *(which note, what it
+ * says)*, and carrying to another note changes the first half. So the one action
+ * the wheel is most used for — sorting a day's work into four notes — was the
+ * one that dropped its own seen-marks. You reviewed a task in one wedge, moved
+ * it, and met it again unreviewed in the wedge you moved it to; the round asked
+ * you to do the same task twice (eigenaar, 4 sep 2026).
+ *
+ * Only for a **move**. A copy leaves the original where it is, and there the
+ * mark belongs to the original — the new one is genuinely new work in another
+ * note, and it should be met.
+ *
+ * `labels` names what travelled rather than remapping the whole note: moving one
+ * task out of a note that holds ten must not re-key the nine that stayed.
+ */
+export interface Moved {
+	/** The note the block came out of. */
+	from: string;
+	/** The note it landed in. */
+	to: string;
+	/** What travelled, as the wheel labels it. */
+	labels: readonly string[];
+}
+
+/**
  * What a write that has just landed asks of the wheel.
  *
  * Carried by the write itself rather than remembered on the view. `advance` —
@@ -41,6 +67,7 @@ export interface Rename {
  */
 export interface AfterWrite {
 	rename?: Rename;
+	moved?: Moved;
 	advance?: boolean;
 }
 
@@ -56,8 +83,9 @@ export function mapIds(
 	before: WheelTree,
 	after: WheelTree,
 	rename?: Rename,
+	moved?: Moved,
 ): Map<string, string> {
-	const was = group(before, rename);
+	const was = group(before, rename, moved);
 	const now = group(after);
 	const mapping = new Map<string, string>();
 
@@ -79,8 +107,9 @@ export function carrySeen(
 	after: WheelTree,
 	seen: readonly string[],
 	rename?: Rename,
+	moved?: Moved,
 ): string[] {
-	const mapping = mapIds(before, after, rename);
+	const mapping = mapIds(before, after, rename, moved);
 	const carried = new Set<string>();
 
 	for (const id of seen) {
@@ -120,9 +149,10 @@ export function carryFocus(
 	after: WheelTree,
 	id: string | null,
 	rename?: Rename,
+	moved?: Moved,
 ): string | null {
 	if (id === null) return null;
-	return mapIds(before, after, rename).get(id) ?? id;
+	return mapIds(before, after, rename, moved).get(id) ?? id;
 }
 
 /**
@@ -131,13 +161,17 @@ export function carryFocus(
  * Order within a key is by where the node sits in its note, so pairing up
  * duplicates is at least stable from one rebuild to the next.
  */
-function group(tree: WheelTree, rename?: Rename): Map<string, string[]> {
+function group(
+	tree: WheelTree,
+	rename?: Rename,
+	moved?: Moved,
+): Map<string, string[]> {
 	const rows: Array<{ key: string; line: number; id: string }> = [];
 
 	for (const [id, node] of tree.byId) {
 		if (node.kind === "root") continue;
 		rows.push({
-			key: keyOf(node, rename),
+			key: keyOf(node, rename, moved),
 			line: node.source?.line ?? -1,
 			id,
 		});
@@ -155,14 +189,27 @@ function group(tree: WheelTree, rename?: Rename): Map<string, string[]> {
 	return grouped;
 }
 
-function keyOf(node: WheelNode, rename?: Rename): string {
+function keyOf(node: WheelNode, rename?: Rename, moved?: Moved): string {
 	const path = node.source?.path ?? "";
 	const label =
 		rename !== undefined && path === rename.path && node.label === rename.from
 			? rename.to
 			: node.label;
 
-	return `${node.kind}${SEP}${path}${SEP}${label}`;
+	// A node that travelled is keyed by where it *landed*, so the tree before the
+	// carry and the tree after it agree about which node is which. Applied to the
+	// old tree only, exactly like the rename hint.
+	//
+	// A label that matches but did not travel — a heading with the same words as
+	// the task beside it — keys to a note where nothing of that kind answers, so
+	// it simply finds no partner and keeps the mark it had. Over-matching costs
+	// nothing; under-matching would cost the round.
+	const at =
+		moved !== undefined && path === moved.from && moved.labels.includes(label)
+			? moved.to
+			: path;
+
+	return `${node.kind}${SEP}${at}${SEP}${label}`;
 }
 
 function compare(a: string, b: string): number {

@@ -365,7 +365,15 @@ describe("moving on to the next item", () => {
 		carryTo(hostRecording(seen), nodeFor("Bellen"), "move", { advance: true });
 		for (let i = 0; i < 20; i++) await Promise.resolve();
 
-		expect(seen).toEqual([{ advance: true }]);
+		// The aim, plus what travelled — a move to another note takes the round's
+		// marks with it, or the task is met a second time in the same round
+		// (BC_E3_S137).
+		expect(seen).toEqual([
+			{
+				advance: true,
+				moved: { from: NOTE, to: "Werk/Later.md", labels: ["Bellen"] },
+			},
+		]);
 		expect(notes.get("Werk/Later.md")).toContain("- [ ] Bellen");
 	});
 

@@ -1,5 +1,11 @@
 import { putIcon } from "./icon";
 import { describe, isFiltering } from "../parse/filter";
+import {
+	DATE_FIELD_LABELS,
+	DUE_LABELS,
+	picksADate,
+	STATUS_LABELS,
+} from "./filter-labels";
 import { PRIORITY_LADDER } from "../layout/colour";
 import {
 	NO_FILTER,
@@ -24,39 +30,6 @@ import type { TaskWheelSettings } from "../settings";
  * closed panel that hides an active filter would be the quiet hiding the wheel
  * is not allowed to do (kaderdocument §3.3).
  */
-
-const DUE_LABELS: Record<DateRule, string> = {
-	any: "Anything",
-	overdue: "Overdue or due today",
-	soon: "Due soon",
-	dated: "Has a date",
-	undated: "Has no date",
-	between: "Due between two dates",
-	parked: "Parked for later (🛫 or ⏳ ahead)",
-	ready: "Ready now (nothing parking it)",
-};
-
-/** Which of a task's dates a window is measured against. */
-const DATE_FIELD_LABELS: Record<DateField, string> = {
-	due: "Due date (📅)",
-	scheduled: "Scheduled date (⏳)",
-	start: "Start date (🛫)",
-};
-
-/**
- * The statuses, as a round sees them.
- *
- * Done and cancelled sit together under "finished" because that is the only
- * distinction a review makes: is there anything left to look at. And there is
- * no "deferred" here — Tasks has no status character for it. Putting something
- * off is a date (🛫 or ⏳), which is why it lives in the list above as *parked*.
- */
-const STATUS_LABELS: Record<StatusRule, string> = {
-	any: "Any status",
-	open: "Not started",
-	"in-progress": "In progress",
-	finished: "Finished",
-};
 
 export interface FilterPanelOptions {
 	/**
@@ -158,22 +131,25 @@ export function renderFilterPanel(
 		change({ due: value as DateRule });
 	});
 
+	// Straight under the rule, because it finishes the sentence the rule starts:
+	// "today or earlier" — of what? Hidden for the rules that read no date, and
+	// for the two that read 🛫 and ⏳ by definition (BC_E3_S140).
+	if (picksADate(filter.due)) {
+		dropdown(body, "Date", DATE_FIELD_LABELS, filter.dateField, (value) => {
+			change({ dateField: value as DateField });
+		});
+	}
+
 	if (filter.due === "soon") {
 		number(body, "Within days", filter.horizon, (value) => {
 			change({ horizon: value });
 		});
 	}
 
-	// Only under the rule they belong to, like "Within days" above: two date
-	// fields that mean nothing seven-eighths of the time are two rows of noise
-	// in a panel that has to stay readable on a phone.
+	// The two ends, only under the rule they belong to, like "Within days"
+	// above: rows that mean nothing seven-eighths of the time are noise in a
+	// panel that has to stay readable on a phone.
 	if (filter.due === "between") {
-		// Which date, before the two ends: a window on the deadline and a window
-		// on when you meant to start are different questions, and Tasks carries
-		// both (eigenaar, 3 sep 2026).
-		dropdown(body, "Date", DATE_FIELD_LABELS, filter.dateField, (value) => {
-			change({ dateField: value as DateField });
-		});
 		date(body, "From", filter.from, (value) => change({ from: value }));
 		date(body, "Up to", filter.until, (value) => change({ until: value }));
 	}

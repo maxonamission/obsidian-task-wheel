@@ -249,3 +249,79 @@ describe("a long branch ending in three", () => {
 		expect(taskRing(tree.root, domains).some((task) => task.id === on)).toBe(true);
 	});
 });
+
+/* ------------------------------------------------------------------ */
+/* Stepping over what the round has already been past (BC_E3_S138)     */
+/* ------------------------------------------------------------------ */
+
+describe("the arrow steps over what this round has seen", () => {
+	const NOTES: NoteInput[] = [
+		{ path: "werk/plat.md", content: "# Werk\n\n- [ ] w1\n- [ ] w2\n- [ ] w3\n- [ ] w4\n" },
+		{ path: "thuis/plat.md", content: "# Thuis\n\n- [ ] t1\n- [ ] t2\n" },
+	];
+
+	const tree = buildTree(NOTES, DEFAULT_PARSE_OPTIONS);
+	const first = idOf(tree, "w1");
+	const domains = layoutWheel(tree, { focusId: first }).budgets.map(
+		(budget) => budget.domain,
+	);
+	const label = (id: string | null): string | undefined =>
+		id === null ? undefined : tree.byId.get(id)?.label;
+
+	/** Step along the task ring, with these labels already behind the reader. */
+	const walk = (from: string, delta: number, ...behind: string[]): string | undefined => {
+		const marks = new Set(
+			[...tree.byId.values()]
+				.filter((node) => behind.includes(node.label))
+				.map((node) => node.id),
+		);
+		return label(
+			sidewaysFrom(tree.root, domains, from, delta, "tasks", (id) => marks.has(id)),
+		);
+	};
+
+	it("passes over a run of items it has already been past", () => {
+		// Looking at the same task twice is time spent for nothing, and after an
+		// hour of sorting most of a ring is behind you (eigenaar, 4 sep 2026).
+		expect(walk(first, 1, "w2", "w3")).toBe("w4");
+	});
+
+	it("stops on the very next one when that one is new", () => {
+		expect(walk(first, 1, "w3")).toBe("w2");
+	});
+
+	it("steps back exactly one, even though the one behind is seen", () => {
+		// Coming to rest on something is having seen it, so everything the reader
+		// has walked is behind them and marked. A backwards step that skipped
+		// what it had seen could never return them to where they came from.
+		// Measured before this rule existed: stepping back from here answered
+		// with a task two wedges away.
+		const w3 = idOf(tree, "w3");
+		expect(walk(w3, -1, "w1", "w2")).toBe("w2");
+	});
+
+	it("walks on as it always did once everything is seen", () => {
+		// The end of a round must not leave the key dead.
+		expect(walk(first, 1, "w2", "w3", "w4", "t1", "t2")).toBe("w2");
+	});
+
+	it("reaches a straggler that is behind the reader", () => {
+		// The round that would not close (eigenaar, 5 sep 2026: stuck at 193 of
+		// 194). Moving tasks about leaves the last unseen ones *behind* you, and
+		// the first version stopped searching at the end of the ring — so the key
+		// fell back to the plain neighbour, one already-seen item per press, a
+		// hundred and ninety times. Each press looked like nothing happened.
+		const w4 = idOf(tree, "w4");
+		expect(walk(w4, 1, "w2", "w3", "w4", "t1", "t2")).toBe("w1");
+	});
+
+	it("does not offer the item the reader is standing on", () => {
+		// It is marked the moment they land, so a lap that offered it back would
+		// answer the key with "you are already here".
+		expect(walk(first, 1, "w2", "w3", "w4", "t1", "t2")).toBe("w2");
+	});
+
+	it("does not skip when the round is not offered", () => {
+		expect(label(sidewaysFrom(tree.root, domains, first, 1, "tasks"))).toBe("w2");
+	});
+});

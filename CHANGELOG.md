@@ -4,7 +4,56 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
-## [Unreleased]
+## [0.1.24]
+
+Destinations you can keep, a round that keeps its place, and a wheel that does
+not show you the same task twice.
+
+- **Added**: a destination can be sent somewhere else. Its note and the heading
+  in it were fixed from the moment you made it, so a note you later renamed or
+  moved left the destination pointing at nothing — and the only way out was to
+  delete it and make a new one, losing its name, its move-or-copy and the hotkey
+  you had bound to it. The row in the settings now has a button that asks the two
+  questions again, with the same pickers: still chosen, never typed.
+- **Added**: destinations can be **made and reordered** in the settings. Making
+  one runs the same flow the command does, so it asks the same questions with the
+  same pickers. The order there is the order on the card, and sorting a day's
+  work means reaching for the same destination over and over — so the one you use
+  most can sit at the top.
+- **Added**: every date rule now reads **the date you choose** — the deadline
+  (📅), when you meant to pick it up (⏳) or when it may start (🛫). That choice
+  used to exist only for the window, so "what did I mean to start this week" was
+  a question the filter could not be asked. The rules are named for the shape of
+  the question rather than for one of the dates — *today or earlier*, *soon*,
+  *has a date* — so the name stays true whichever you point them at, and the line
+  under the wheel says which one it was. *Parked for later* and *ready now* are
+  unchanged: those ask about 🛫 and ⏳ against today by definition.
+- **Fixed**: a task carrying only a 🛫 or ⏳ is no longer called undated. It has a
+  date; it just is not a deadline. Ask about the start date and it counts as
+  dated, ask about the deadline and it still has none — two questions, two
+  honest answers.
+- **Added**: stepping sideways now **takes you to the next thing this round has
+  not been past**, wherever on the circle that is. Reviewing the same task twice is time spent for nothing, and after
+  an hour of sorting most of a ring is behind you. Only forwards: coming to rest
+  on something marks it seen, so a backwards step that skipped what it had seen
+  could never take you back to where you came from — back stays a single step.
+  Turning is untouched, because that is where the guarantee lives, and PageUp /
+  PageDown still walk the flat order without skipping anything.
+- **Fixed**: a task you carry to another note keeps its place in the round.
+  A node is remembered as *(which note, what it says)*, and carrying changed the
+  first half — so sorting a day's work into four notes, the thing the wheel is
+  most used for, was exactly what dropped its own marks: you reviewed a task in
+  one wedge and met it again, unreviewed, in the wedge you moved it to. Moving
+  now takes the mark with it, and the reading wedge stays on the task if you were
+  standing on it. Copying does not: the original keeps the mark and the copy is
+  new work somewhere else.
+- **Fixed**: a task document the filter leaves out no longer sits on the wheel
+  *and* counts as filtered away at the same time. It used to fall back to being
+  an ordinary note ring — same name, same place, its checkboxes still under it —
+  while the filter panel said one item had gone. It now stays as a **carrier**,
+  the way a parent task with kept work under it always has: shown, and therefore
+  not counted as left out. With nothing left inside it, it goes and is counted.
+  The same rule now covers a finished task document with open work inside it.
 
 ## [0.1.23]
 

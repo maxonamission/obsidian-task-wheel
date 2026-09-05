@@ -50,10 +50,18 @@ export function describe(filter: TaskFilter): string {
 	else if (filter.status === "in-progress") parts.push("in progress");
 	else if (filter.status === "finished") parts.push("finished");
 
-	if (filter.due === "overdue") parts.push("overdue");
-	else if (filter.due === "soon") parts.push(`due within ${filter.horizon} days`);
-	else if (filter.due === "dated") parts.push("has a date");
-	else if (filter.due === "undated") parts.push("no date");
+	// The word only when it is not the deadline, the same rule the window has
+	// used all along: "overdue" is the ordinary case and needs no explaining,
+	// "scheduled overdue" does. Saying nothing at all would hide which of the
+	// three dates the round is about, and the line under the wheel exists so
+	// that nothing is hidden (kaderdocument §3.3, BC_E3_S140).
+	const what = filter.dateField === "due" ? "" : `${filter.dateField} `;
+
+	if (filter.due === "overdue") parts.push(`${what}overdue`);
+	else if (filter.due === "soon") {
+		parts.push(`${what === "" ? "due " : what}within ${filter.horizon} days`);
+	} else if (filter.due === "dated") parts.push(`has a ${what}date`);
+	else if (filter.due === "undated") parts.push(`no ${what}date`);
 	else if (filter.due === "parked") parts.push("parked for later");
 	else if (filter.due === "ready") parts.push("ready now");
 	else if (filter.due === "between") parts.push(describeWindow(filter));
@@ -212,43 +220,52 @@ function matchesStatus(fields: TaskFields, rule: StatusRule): boolean {
 /**
  * Whether the date rule keeps this task.
  *
- * `parked` is the one rule that does not look at the due date. Obsidian Tasks
- * has no status character for "deferred": postponing something is a *date* — a
- * start date (🛫) or a scheduled date (⏳) that has not arrived yet — and the
- * due date can sit anywhere relative to it. So "parked" asks the question the
- * dates actually answer: is this yours to look at yet?
+ * Every rule but two reads **the date the reader chose** — deadline (📅), when
+ * they meant to pick it up (⏳) or when it may start (🛫). The rules are named
+ * for the shape of the question ("today or earlier"), not for one of the three
+ * dates, so that the name stays true whichever is picked (BC_E3_S140).
+ *
+ * `parked` and `ready` are the two, and they are not an oversight. Obsidian
+ * Tasks has no status character for "deferred": postponing something is a
+ * *date* — a 🛫 or ⏳ that has not arrived yet — and the deadline can sit
+ * anywhere relative to it. Those two ask exactly that question, so a field to
+ * point them at would only let them contradict themselves.
  */
 function matchesDue(
 	fields: TaskFields,
 	filter: TaskFilter,
 	today: string,
 ): boolean {
-	const due = fields.due;
+	// Whichever of the three dates the reader is asking about (BC_E3_S140). It
+	// used to be the deadline for every rule but the window, which made "has no
+	// date" answer *no* for a task carrying nothing but a 🛫 — a task that plainly
+	// has one. "What did I mean to pick up this week" is as ordinary a question
+	// as "what has to be finished this week", and Tasks carries both dates.
+	const on = dateOf(fields, filter.dateField);
 
 	switch (filter.due) {
 		case "any":
 			return true;
 		case "dated":
-			return isIsoDate(due);
+			return isIsoDate(on);
 		case "undated":
-			return !isIsoDate(due);
+			return !isIsoDate(on);
 		case "overdue":
-			// Today counts as due: a task due today is work for this round, not
-			// for the next one.
-			return isIsoDate(due) && due <= today;
+			// Today counts: a task that comes due today is work for this round,
+			// not for the next one.
+			return isIsoDate(on) && on <= today;
 		case "soon":
-			return isIsoDate(due) && due <= addDays(today, Math.max(filter.horizon, 0));
+			return isIsoDate(on) && on <= addDays(today, Math.max(filter.horizon, 0));
+		// The two that ask their own question. Parked *is* "🛫 or ⏳ still ahead",
+		// so letting it read a chosen field would let the rule contradict itself:
+		// pointed at the deadline it would answer about something else entirely.
 		case "parked":
 			return isParked(fields, today);
 		case "ready":
 			return !isParked(fields, today);
 		case "between": {
-			// Not necessarily the deadline: a window is as often a question about
-			// when you meant to *pick something up* as about when it is due, and
-			// Tasks carries both dates (eigenaar, 3 sep 2026).
-			const on = dateOf(fields, filter.dateField);
 			// A task without that date lies between nothing. Someone hunting for
-			// those has a rule of their own, two cases up.
+			// those has a rule of their own, further up.
 			if (!isIsoDate(on)) return false;
 			// ISO dates compare as text, which is the whole reason the format is
 			// worth insisting on. Both ends inclusive; an empty end is open.

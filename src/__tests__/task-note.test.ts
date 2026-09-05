@@ -256,41 +256,55 @@ describe("a finished task note", () => {
 		expect(labels(tree.root)).toEqual([]);
 	});
 
-	it("still shows the work left open inside it", () => {
-		// The rule that keeps §2.3 intact: dropping the note whole would take
-		// open checkboxes off the wheel without saying so. It falls back to being
-		// the note it was, and the open work stays where it was.
+	it("stays as a carrier while open work hangs inside it", () => {
+		// §2.3: dropping the note whole would take open checkboxes off the wheel
+		// without saying so. It stays a task — the same carrier rule a finished
+		// *parent task* follows — and being finished, it costs the round nothing.
 		const done = note(
 			"Werk/Af.md",
 			"# Af\n\n- [x] Gedaan\n- [ ] Nog niet\n",
 			{ type: "task", status: "done" },
 		);
 		const tree = buildTree([done], MARKED);
+		const carrier = find(tree.root, "Af");
 
-		expect(labels(tree.root)).toEqual(["Nog niet"]);
-		expect(find(tree.root, "Af")?.kind).toBe("project");
+		expect(carrier?.kind).toBe("task");
+		expect(carrier?.fields?.state).toBe("done");
+		expect(labels(tree.root)).toEqual(["Af", "Nog niet"]);
+		// One item of the round: the open checkbox. The carrier is not one.
+		expect(tree.root.shownTaskCount).toBe(1);
 	});
 });
 
 describe("a task note the filter leaves out", () => {
-	it("goes back to being a note, and is counted as left out", () => {
-		const doc = note(
-			"Werk/Migratie.md",
-			"# Migratie\n\n- [ ] Ask the DBA #urgent\n",
-			{ type: "task" },
-			["klant"],
-		);
-		const options: ParseOptions = {
-			...MARKED,
-			filter: { ...NO_FILTER, withTags: ["urgent"] },
-		};
-		const tree = buildTree([doc], options);
+	const doc = (body: string): NoteInput =>
+		note("Werk/Migratie.md", `# Migratie\n\n${body}`, { type: "task" }, ["klant"]);
 
-		// The task inside it matches and stays; the note itself does not, and
-		// its own tasks are judged on their own merits — exactly as before this
-		// note ever claimed to be one.
-		expect(labels(tree.root)).toEqual(["Ask the DBA"]);
-		expect(tree.filteredOut).toBe(1);
+	const withUrgent: ParseOptions = {
+		...MARKED,
+		filter: { ...NO_FILTER, withTags: ["urgent"] },
+	};
+
+	it("stays as a carrier when work inside it is kept, and is not counted", () => {
+		// The defect this closes (eigenaar, 4 sep 2026): the document used to
+		// fall back to being a plain note ring — same name, same place, subtasks
+		// still under it — *and* was counted as filtered away. So it sat on
+		// screen while the badge said one item had gone. A carrier is shown, so
+		// it is not left out; that is the rule the tasks one level down follow.
+		const tree = buildTree([doc("- [ ] Ask the DBA #urgent\n")], withUrgent);
+		const carrier = find(tree.root, "Migratie");
+
+		expect(carrier?.kind).toBe("task");
+		expect(labels(tree.root)).toEqual(["Migratie", "Ask the DBA"]);
+		expect(tree.filteredOut).toBe(0);
+	});
+
+	it("is dropped and counted when nothing inside it survives", () => {
+		const tree = buildTree([doc("- [ ] Ask the DBA\n")], withUrgent);
+
+		expect(find(tree.root, "Migratie")).toBeNull();
+		// The document itself, plus the task inside it: two items left out.
+		expect(tree.filteredOut).toBe(2);
 	});
 });
 
@@ -330,5 +344,68 @@ describe("what a task note may not do", () => {
 		expect(
 			isNoteTask({ kind: "group", source: undefined }),
 		).toBe(false);
+	});
+});
+
+describe("what the filter reaches on a task document", () => {
+	/**
+	 * Measured rather than reasoned (eigenaar, 4 sep 2026: *"kan dat voor alle
+	 * kenmerken gecheckt worden?"*). Pinned here because the answer is not
+	 * obvious from the code: a task document's fields are built from its front
+	 * matter, and which of them the wheel actually reads decides what the filter
+	 * can say about it.
+	 *
+	 * The last two are pinned as they *are*, not as they should be — see
+	 * BC_E3_S133. When that story lands these expectations change, and that is
+	 * the point: the fix should have to walk past this test.
+	 */
+	const doc = note(
+		"Werk/Migratie.md",
+		"Bel de DBA over de migratie.\n",
+		{ type: "task", status: "doing", due: "2026-09-05", priority: "high" },
+		["werk", "klant"],
+	);
+
+	const shows = (filter: Partial<typeof NO_FILTER>): boolean => {
+		const tree = buildTree([doc], {
+			...MARKED,
+			today: "2026-09-04",
+			filter: { ...NO_FILTER, ...filter },
+		});
+		return find(tree.root, "Migratie")?.kind === "task";
+	};
+
+	it("reaches its tags, both ways", () => {
+		expect(shows({ withTags: ["werk"] })).toBe(true);
+		expect(shows({ withTags: ["thuis"] })).toBe(false);
+		expect(shows({ withoutTags: ["werk"] })).toBe(false);
+	});
+
+	it("reaches its status", () => {
+		expect(shows({ status: "in-progress" })).toBe(true);
+		expect(shows({ status: "open" })).toBe(false);
+	});
+
+	it("searches its title, not its body", () => {
+		// The same rule a task line follows — a line is searched, not the note
+		// around it — so this is consistent rather than missing. Whether it
+		// *should* read the body is part of BC_E3_S133.
+		expect(shows({ text: "Migratie" })).toBe(true);
+		expect(shows({ text: "DBA" })).toBe(false);
+	});
+
+	it("does not yet read its date, and says undated — which is wrong", () => {
+		// BC_E3_S133. The note carries `due: 2026-09-05`; the wheel does not read
+		// it, so `soon` drops the document (counted as filtered out, so at least
+		// visible) and `undated` *shows* it. That second one is a confident wrong
+		// answer to the very question the reader asked.
+		expect(shows({ due: "soon" })).toBe(false);
+		expect(shows({ due: "undated" })).toBe(true);
+	});
+
+	it("does not yet read its priority", () => {
+		// Carries `priority: high`, reads as normal.
+		expect(shows({ minPriority: "high" })).toBe(false);
+		expect(shows({ minPriority: "normal" })).toBe(true);
 	});
 });
