@@ -1,7 +1,7 @@
 {
 	"id": "task-wheel",
 	"name": "Task Wheel",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"minAppVersion": "1.13.0",
 	"description": "See every open task once, on purpose. Task Wheel is a visual overview for reviewing tasks: each one is a stop on a wheel you turn, so nothing hides at the bottom of a long list.",
 	"author": "Max Kloosterman",

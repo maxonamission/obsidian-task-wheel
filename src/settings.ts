@@ -1001,22 +1001,35 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 				"Werk",
 				"includeFolders",
 			),
+			this.folderList(
+				"Excluded folders",
+				"Skipped even when they sit inside a folder above. Keeps templates, archives or an inbox off the wheel. Pick a folder or start typing its name. Open a wheel on one of these from its own context menu and you still get it: naming a folder is asking for it, and only the one you named steps out of the rule.",
+				"Add folder",
+				"Archive/2025",
+				"excludeFolders",
+			),
 			{
 				type: "group",
-				heading: "Not every checkbox is a task",
+				heading: "Notes to skip",
 				items: [
 					{
 						name: "Skip notes of these types",
-						desc: "Comma-separated, matched against the note's own front-matter 'type'. A vault that keeps a document standard already says which notes are stories, templates or review forms — and their checkboxes are the document's own checklist, not work on your plate. Nothing has to be tagged by hand. A '*' stands for the rest of the word: 'review*' covers 'review' and 'review-actie'.",
+						desc: "Comma-separated, matched against the note's own front-matter 'type'. A vault that keeps a document standard already says which notes are stories, templates or review forms — and their checkboxes are the document's own checklist, not work on your plate. Nothing has to be tagged by hand. A '*' stands for the rest of the word: 'review*' covers 'review' and 'review-actie'. This and the two folder lists above are one question — which notes the wheel reads at all — and none of them is a wall: point the wheel at a skipped note or folder from its own context menu and you get it, because naming it is asking for it.",
 						control: {
 							type: "text",
 							key: "excludeNoteTypes",
 							placeholder: "story, review*",
 						},
 					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Not every checkbox is a task",
+				items: [
 					{
 						name: "Skip checkboxes under these headings",
-						desc: "Comma-separated. For a note that holds both: checkboxes under a heading named here belong to the document's own checklist, while a real task elsewhere in the same note still counts. Matched on the heading text, ignoring case. A '*' stands for any run of characters, so 'accepta*' covers 'Acceptatiecriteria' and 'Acceptance criteria'; without one, the whole heading has to match.",
+						desc: "Comma-separated. A different question from the three above: those decide which notes the wheel reads, this one decides what counts as a task inside a note it does read. For a note that holds both: checkboxes under a heading named here belong to the document's own checklist, while a real task elsewhere in the same note still counts. Matched on the heading text, ignoring case. A '*' stands for any run of characters, so 'accepta*' covers 'Acceptatiecriteria' and 'Acceptance criteria'; without one, the whole heading has to match.",
 						control: {
 							type: "text",
 							key: "excludeHeadings",
@@ -1109,13 +1122,6 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 				],
 			},
-			this.folderList(
-				"Excluded folders",
-				"Skipped even when they sit inside a folder above. Keeps templates, archives or an inbox off the wheel. Pick a folder or start typing its name.",
-				"Add folder",
-				"Archive/2025",
-				"excludeFolders",
-			),
 		];
 	}
 

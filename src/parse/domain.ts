@@ -317,17 +317,41 @@ export function projectLabel(path: string): string {
 
 /** True when the note sits under one of the excluded folder prefixes. */
 export function isExcluded(note: NoteInput, options: ParseOptions): boolean {
-	// The scope comes first, and an exclusion still applies inside it: "never
-	// review this folder" does not stop being true because you zoomed in on it.
 	if (!inScope(note.path, options.scope)) return true;
 
-	// A whole class of document at once. A story file, a review form and a
-	// meeting template all hold checkboxes by the hundred, and none of those are
-	// work on your plate — they are a document's own checklist. Judged on the
-	// front matter the note already carries, so nothing has to be tagged by hand.
-	if (isExcludedType(note.frontmatterType, options)) return true;
+	// **What you pointed the wheel at is what you get** (BC_E3_S151). A skip
+	// rule is a default for the wheels you did not ask for, not a wall around a
+	// note you named out loud.
+	//
+	// The old rule was the opposite — "never review this folder does not stop
+	// being true because you zoomed in on it" — and read on its own that is
+	// sound. It only ever bites in one place, though, and measuring that place
+	// settles it: a skipped note is drawn nowhere, so there is no wedge to zoom
+	// into and no ring to tap. The single way to a wheel over it is the file
+	// menu or the command, which is a reader naming it. Under the old rule that
+	// act answered with an empty circle and not a word (eigenaar, 6 sep 2026).
+	//
+	// The exemption covers **the subject you named and nothing else**: open a
+	// checklist and you get that checklist; open a skipped folder and you get
+	// its notes — but a checklist inside it stays out, because you asked for the
+	// folder and not for that note.
+	if (!isTheSubject(note.path, options.scope)) {
+		// A whole class of document at once. A story file, a review form and a
+		// meeting template all hold checkboxes by the hundred, and none of those
+		// are work on your plate — they are a document's own checklist. Judged on
+		// the front matter the note already carries, so nothing has to be tagged
+		// by hand.
+		if (isExcludedType(note.frontmatterType, options)) return true;
+	}
 
-	return isExcludedFolder(note.path, options);
+	return isExcludedFolder(note.path, options, options.scope);
+}
+
+/** Whether this note is the very thing the wheel was pointed at. */
+function isTheSubject(path: string, scope: WheelScope): boolean {
+	return (
+		(scope.kind === "note" || scope.kind === "section") && path === scope.path
+	);
 }
 
 /**
@@ -338,7 +362,12 @@ export function isExcluded(note: NoteInput, options: ParseOptions): boolean {
  * excluded folder is not "a document whose checkboxes are its own checklist",
  * it is a note this wheel was never about.
  */
-export function isExcludedFolder(path: string, options: ParseOptions): boolean {
+export function isExcludedFolder(
+	path: string,
+	options: ParseOptions,
+	/** The wheel this is for, so a folder it was pointed at is exempt. */
+	scope?: WheelScope,
+): boolean {
 	// An include list narrows the vault before anything else is considered.
 	// Empty means the whole vault, so the setting costs nothing until it is used.
 	const included = options.includeFolders.filter(
@@ -348,7 +377,24 @@ export function isExcludedFolder(path: string, options: ParseOptions): boolean {
 		return true;
 	}
 
-	return options.excludeFolders.some((folder) => under(path, folder));
+	return options.excludeFolders.some(
+		(folder) => under(path, folder) && !named(folder, scope),
+	);
+}
+
+/**
+ * Whether this skip entry is the folder the wheel was pointed at.
+ *
+ * Only the entry that covers the scope itself steps aside; a folder skipped
+ * *inside* the one you opened stays skipped, because that one you did not name
+ * (BC_E3_S151).
+ */
+function named(folder: string, scope: WheelScope | undefined): boolean {
+	if (scope === undefined) return false;
+	if (scope.kind !== "folder" && scope.kind !== "note" && scope.kind !== "section") {
+		return false;
+	}
+	return under(scope.path, folder);
 }
 
 /** Whether the note's front-matter `type` puts it out of scope. */

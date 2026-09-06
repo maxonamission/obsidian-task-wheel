@@ -63,7 +63,7 @@ export function concernsWheel(
 	scope: WheelScope,
 	options: ParseOptions,
 ): boolean {
-	return inScope(path, scope) && !isExcludedFolder(path, options);
+	return inScope(path, scope) && !isExcludedFolder(path, options, scope);
 }
 
 /**

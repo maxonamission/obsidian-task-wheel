@@ -392,8 +392,11 @@ export default class TaskWheelPlugin extends Plugin {
 	/**
 	 * Add "Open task wheel here" to a folder's or note's context menu.
 	 *
-	 * Only where there is something to review: a wheel over a note without a
-	 * single task would be a menu entry that opens an empty circle.
+	 * Offered for every note and folder, the skipped ones included: naming one
+	 * here *is* the explicit act the skip lists step aside for (BC_E3_S151). The
+	 * docblock used to claim this only appeared "where there is something to
+	 * review", which the code never checked — and while a skipped note answered
+	 * with an empty circle, that claim was the only thing saying otherwise.
 	 */
 	private offerLocalWheel(menu: Menu, file: TAbstractFile): void {
 		const scope = scopeOf(file);

@@ -534,8 +534,19 @@ in the note — which is what *open the note* is for.
   single wedge span several notes.
 - **Detail** — how many items may be drawn at once (compact 120, balanced 240,
   dense 400).
-- **Folders to read / Excluded folders** — in a large vault, naming the four
-  folders that hold your tasks beats naming the ninety that do not.
+- **Which notes the wheel reads** — *Folders to read*, *Excluded folders* and
+  *Notes to skip*, in that order and next to each other, because they answer one
+  question. In a large vault, naming the four folders that hold your tasks beats
+  naming the ninety that do not; *Notes to skip* reads the note's own
+  front-matter `type`, so a vault that already marks its templates and review
+  forms needs no tagging by hand. None of the three is a wall: point the wheel at
+  a skipped note or folder from its own context menu and you get it, because
+  naming it is asking for it. Only the thing you named is exempt — a skipped note
+  *inside* a folder you opened stays out.
+- **What counts as a task inside those notes** — a different question, and the
+  next three groups: checkboxes under a checklist heading are the document's own
+  list, a note carrying the property you name is itself a task, and its status
+  says when it is finished.
 - **Filter** — date, priority and tags. Always visible when it is on.
 
 ## Install

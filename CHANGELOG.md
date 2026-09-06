@@ -4,6 +4,24 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.1]
+
+Two questions kept apart, and a skip rule that steps aside when you name what it
+skips.
+
+- **Fixed**: opening a wheel over a note or folder you skip no longer gives an
+  empty circle. A skip rule is a default for the wheels you did not ask for, not
+  a wall around something you named out loud — and naming it from its own
+  context menu was the only way to reach it at all, since a skipped note is
+  drawn nowhere. Only the thing you named steps out of the rule: a skipped note
+  inside a folder you opened stays out, and so does a skipped folder deeper in.
+- **Changed**: the settings now keep two questions apart instead of interleaving
+  them. *Which notes the wheel reads* — folders to read, excluded folders, notes
+  to skip by type — stand together; *what counts as a task inside them* — the
+  checklist headings, the note that is itself a task, and its status — follow
+  after. Nothing was added or removed; the mirrors simply sit next to each other
+  now, and each group says which of the two questions it answers.
+
 ## [0.2.0]
 
 A second axis. Until now the angle of the wheel came from where a task was
