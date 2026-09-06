@@ -20,12 +20,13 @@
  * question for `vault/writeback` — not for this module.
  */
 
-import { headingsOf, type NoteHeading } from "./outline";
+import { HEADING, headingsOf, type NoteHeading } from "./outline";
 import {
 	baseIndent,
 	fold,
 	nearestHeadingAbove,
 	ownBody,
+	relevel,
 	separatesHeadings,
 	subLevel,
 } from "./sections";
@@ -459,17 +460,12 @@ function placeSection(
 	forced?: number,
 ): Pasted {
 	const headings = headingsOf(lines);
-	const own = /^(#{1,6})([ \t].*)?$/.exec(block[0] ?? "");
+	const own = HEADING.exec(block[0] ?? "");
 	const level =
 		forced ?? (parent === null ? commonLevel(headings) : subLevel(headings, parent));
 	const shift = level - (own === null ? level : own[1].length);
 
-	const shifted = block.map((line) => {
-		const match = /^(#{1,6})([ \t].*)?$/.exec(line);
-		if (match === null) return line;
-		const wanted = Math.min(6, Math.max(1, match[1].length + shift));
-		return `${"#".repeat(wanted)}${match[2] ?? ""}`;
-	});
+	const shifted = relevel(block, shift);
 
 	// After everything the parent already holds, so it is the last of its
 	// sections; at the end of the note when it landed under nothing.

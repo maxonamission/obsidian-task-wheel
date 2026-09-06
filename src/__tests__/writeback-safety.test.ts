@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spliceLine, spliceNote } from "../parse/splice";
 import { addDays, isIsoDate, today } from "../model/dates";
 import { setDone } from "../parse/edit-line";
-import { moveBlock } from "../parse/outline-edit";
+import { moveBlock, moveToSection } from "../parse/outline-edit";
 
 /**
  * The three defects the security review of BC_E3_S6 turned up, each with the
@@ -125,6 +125,34 @@ describe("spliceNote — the same guard, for edits that move lines", () => {
 			["# Werk", "", "- [ ] Mailen", "- [ ] Bellen", ""].join("\r\n"),
 		);
 		expect(result.data.includes("\n\n")).toBe(false);
+	});
+
+	it("keeps the endings when the edit stands on the last line", () => {
+		// A note split on "\n" gives its last line no carriage return, so a CRLF
+		// note without a closing newline read as an LF note whenever the action
+		// was on its last task: the note came back with both kinds of ending
+		// mixed and a stray "\r" at the end of the file, and headings went
+		// unrecognised inside the callback (found by audit, 6 sep 2026).
+		const open = ["# Werk", "- [ ] Bellen", "- [ ] Mailen"].join("\r\n");
+		const result = spliceNote(open, 2, "- [ ] Mailen", (lines) =>
+			moveBlock(lines, 2, "up"),
+		);
+		expect(result.outcome).toBe("written");
+		expect(result.data).toBe(
+			["# Werk", "- [ ] Mailen", "- [ ] Bellen"].join("\r\n"),
+		);
+		expect(result.data.endsWith("\r")).toBe(false);
+	});
+
+	it("still sees a heading when the edit stands on the last line", () => {
+		const open = ["## Later", "## Nu", "- [ ] Bellen"].join("\r\n");
+		const result = spliceNote(open, 2, "- [ ] Bellen", (lines) =>
+			moveToSection(lines, 2, 0),
+		);
+		expect(result.outcome).toBe("written");
+		expect(result.data).toBe(
+			["## Later", "- [ ] Bellen", "## Nu"].join("\r\n"),
+		);
 	});
 
 	it("says nothing changed when the edit declines", () => {

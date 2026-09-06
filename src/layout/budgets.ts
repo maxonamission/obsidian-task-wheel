@@ -168,7 +168,12 @@ function weightedShares(
 	if (domains.length === 0 || free <= 0) return shares;
 
 	const equal = free / domains.length;
-	const floor = Math.min(Math.max(division.minimum, MIN_BUDGET), equal);
+	// Guarded like every weight below it. The minimum comes straight off a
+	// number control, and an unreadable one carried NaN through every
+	// comparison here to a wheel whose wedges all had `NaN` degrees — nothing
+	// drawn, nothing said (found by audit, 6 sep 2026).
+	const wanted = Number.isFinite(division.minimum) ? division.minimum : MIN_BUDGET;
+	const floor = Math.min(Math.max(wanted, MIN_BUDGET), equal);
 
 	const weightOf = (domain: string): number => {
 		const value = division.weights[domain];

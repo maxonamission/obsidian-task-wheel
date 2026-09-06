@@ -37,8 +37,16 @@ export interface OutlinedTask {
 	fields: TaskFields;
 }
 
-const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*#*$/;
-const FENCE = /^[ \t]*(```+|~~~+)/;
+/**
+ * What counts as a heading line, and what opens a fence.
+ *
+ * Exported because re-levelling a block has to agree with reading one: a
+ * pattern of its own let `# comment` inside a shell example be re-levelled as
+ * though it were a section (found by audit, 6 sep 2026). One definition, asked
+ * by everybody — see `relevel` in `sections.ts`.
+ */
+export const HEADING = /^(#{1,6})[ \t]+(.*?)[ \t]*#*$/;
+export const FENCE = /^[ \t]*(```+|~~~+)/;
 const FRONT_MATTER_DELIM = /^---[ \t]*$/;
 
 /**

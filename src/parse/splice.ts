@@ -97,6 +97,28 @@ export function spliceLine(
 }
 
 /**
+ * Which ending this note is written with, read from the note as a whole.
+ *
+ * Asked of every line rather than of the one being edited. A note split on
+ * `\n` gives its **last** line no `\r`, so a CRLF note without a closing
+ * newline looked like an LF note whenever the edit stood on its last line: the
+ * ending came out empty, the other lines kept their `\r` into the callback —
+ * where `^…$` then matched no heading at all — and the note was written back
+ * with the two kinds mixed and a stray `\r` at the end of the file (found by
+ * audit, 6 sep 2026).
+ */
+function endingOf(raw: readonly string[]): string {
+	return raw.some((line) => line.endsWith("\r")) ? "\r" : "";
+}
+
+/** The same lines with that ending taken off, so an edit sees bare text. */
+function withoutEndings(raw: readonly string[], ending: string): string[] {
+	return ending === ""
+		? [...raw]
+		: raw.map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
+}
+
+/**
  * Rewrite a whole note, having first checked that one line is still itself.
  *
  * Moving a task or adding one below it changes more than the line the reader
@@ -134,11 +156,8 @@ export function spliceNote(
 		return { outcome: "stale", data };
 	}
 
-	const ending = current.endsWith("\r") ? "\r" : "";
-	const bare =
-		ending === ""
-			? raw
-			: raw.map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
+	const ending = endingOf(raw);
+	const bare = withoutEndings(raw, ending);
 
 	const next = edit(bare);
 	if (next === null) return { outcome: "unchanged", data };
@@ -166,11 +185,8 @@ export function reshapeNote(
 ): SpliceResult {
 	const mark = bomOf(data);
 	const raw = withoutBom(data).split("\n");
-	const ending = raw.some((line) => line.endsWith("\r")) ? "\r" : "";
-	const bare =
-		ending === ""
-			? raw
-			: raw.map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
+	const ending = endingOf(raw);
+	const bare = withoutEndings(raw, ending);
 
 	const next = edit(bare);
 	if (next === null) return { outcome: "unchanged", data };

@@ -14,7 +14,7 @@
  * module is the fix.
  */
 
-import type { NoteHeading } from "./outline";
+import { FENCE, HEADING, type NoteHeading } from "./outline";
 import { indentWidth, TASK_LINE } from "./task-line";
 
 /** Case- and space-insensitive, which is how headings are compared throughout. */
@@ -121,4 +121,40 @@ export function baseIndent(lines: readonly string[], body: OwnBody): string {
 	}
 
 	return best ?? "";
+}
+
+/**
+ * Shift every heading in a block by `shift` levels, and nothing else.
+ *
+ * "Every heading" as `headingsOf` means it, which is the whole point: the two
+ * copies this replaces used a pattern of their own that skipped no fences and
+ * asked for no space after the hashes, so moving a section that held a shell
+ * example re-levelled `# comment in code` to `## comment in code` and turned a
+ * bare `#` into `##` — inside somebody else's note, with a notice saying all
+ * had gone well (found by audit, 6 sep 2026). A block always starts at its own
+ * heading, so the fence state at its first line is "outside".
+ *
+ * Levels are clamped to the six markdown has, for the reason in `subLevel`.
+ */
+export function relevel(block: readonly string[], shift: number): string[] {
+	let fence: string | null = null;
+
+	return block.map((line) => {
+		if (fence !== null) {
+			if (line.trimStart().startsWith(fence)) fence = null;
+			return line;
+		}
+
+		const fenceMatch = FENCE.exec(line);
+		if (fenceMatch !== null) {
+			fence = fenceMatch[1];
+			return line;
+		}
+
+		const match = HEADING.exec(line);
+		if (match === null) return line;
+
+		const wanted = Math.min(6, Math.max(1, match[1].length + shift));
+		return `${"#".repeat(wanted)}${line.slice(match[1].length)}`;
+	});
 }

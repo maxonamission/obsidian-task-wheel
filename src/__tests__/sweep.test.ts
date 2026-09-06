@@ -105,6 +105,45 @@ describe("sweepSpans", () => {
 		expect(sweepSpans(layout, whole).some((span) => wide(span, note))).toBe(true);
 	});
 
+	it("is not held open by a heading that holds nothing of the round", () => {
+		// An empty heading (BC_E3_S85) is never covered — it has nothing to be
+		// covered *by* — and `every` let that one child keep its parent's whole
+		// slice uncoloured however often the reader had been round it: the gap
+		// BC_E3_S67 closed, reopened from below (found by audit, 6 sep 2026).
+		const withEmpty = buildTree(
+			[
+				{
+					path: "Werk/Plan.md",
+					content: [
+						"## Fase 1",
+						"- [ ] Bellen",
+						"### Detail",
+						"## Fase 2",
+						"- [ ] Mailen",
+					].join("\n"),
+				},
+			],
+			{
+				...DEFAULT_PARSE_OPTIONS,
+				// A wheel over one note: there the outline *is* the wheel, so an
+				// empty heading is drawn (BC_E3_S85) and can hold its parent open.
+				scope: { kind: "note", path: "Werk/Plan.md" },
+			},
+		);
+		const laidOut = layoutWheel(withEmpty);
+		const tasks = laidOut.nodes.filter((laid) => laid.node.kind === "task");
+		const phase = laidOut.nodes.find((laid) => laid.node.label === "Fase 1");
+		expect(phase).toBeDefined();
+
+		// Only the task under Fase 1, so no neighbouring arc can merge into it
+		// and make the slice look wide for the wrong reason.
+		const first = tasks.find((laid) => laid.node.label === "Bellen");
+		expect(first).toBeDefined();
+
+		const spans = sweepSpans(laidOut, new Set([first?.id ?? ""]));
+		expect(spans.some((span) => wide(span, phase))).toBe(true);
+	});
+
 	it("does not colour a container for one task read inside it", () => {
 		// The old marking would have: a wedge is the widest slice on the wheel,
 		// and one task is not the wedge.

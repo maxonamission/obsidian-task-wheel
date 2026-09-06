@@ -129,13 +129,25 @@ export async function moveSectionUnder(
 	const source = laid.node.source;
 	if (source === undefined) return;
 
+	// Said out loud and rescanned, exactly as `actOnSection` does below. Both
+	// used to return in silence here, so a note that had shifted since the scan
+	// made "Move under another heading" do nothing at all and say nothing about
+	// it — while the same two conditions seven lines further on produced a
+	// notice (found by audit, 6 sep 2026). §3.3: nothing silent.
 	const file = host.app.vault.getAbstractFileByPath(source.path);
-	if (!(file instanceof TFile)) return;
+	if (!(file instanceof TFile)) {
+		new Notice(`Task wheel: ${source.path} is gone.`);
+		return;
+	}
 
 	const lines = linesOf(await host.app.vault.cachedRead(file));
 	const headings = headingsOf(lines);
 	const self = headings.find((heading) => heading.line === source.line);
-	if (self === undefined) return;
+	if (self === undefined) {
+		new Notice("Task wheel: that heading has moved since the scan. Rescanned.");
+		await host.refresh();
+		return;
+	}
 
 	const targets = sectionTargets(headings, self);
 	if (targets.length === 0) {

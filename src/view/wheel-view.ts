@@ -980,7 +980,16 @@ export class TaskWheelView extends ItemView {
 		// node's id is its place plus its text. Carrying the round's marks — and
 		// the reading wedge — across is what keeps an edit from quietly undoing
 		// part of a round (kaderdocument §5).
-		if (outcome !== "unchanged") await this.refreshCarrying(after);
+		//
+		// Only a write that happened may aim. A refusal rescans and stops there:
+		// `after` still held `advance`, so a "stale" outcome moved the wheel on
+		// and marked the next item **seen** without anything having been written
+		// and without the reader ever turning there — V3 of the audit of 23 aug
+		// 2026, through the outcome instead of through a picker (found by audit,
+		// 6 sep 2026).
+		if (outcome !== "unchanged") {
+			await this.refreshCarrying(outcome === "written" ? after : {});
+		}
 	}
 
 	/**
@@ -2266,7 +2275,8 @@ export class TaskWheelView extends ItemView {
 			new Notice("Task wheel: it already says that.");
 			return;
 		}
-		await this.refreshCarrying(after);
+		// Same rule as in `act`: a write that did not happen may not aim.
+		await this.refreshCarrying(outcome === "written" ? after : {});
 	}
 
 	/** Rename the note a task document is, links and all. */
@@ -2809,10 +2819,16 @@ export class TaskWheelView extends ItemView {
 		// A local wheel is far more likely to be empty than the vault wheel, and
 		// then the reader needs to know *where* nothing was found — otherwise an
 		// empty circle reads as "the plugin is broken".
+		//
+		// Named through `scopeLabel`, the one place that knows all five kinds of
+		// blikveld. Reading `.path` straight off worked for a folder and a note
+		// and for nothing else: a heading wheel opened from the vault has an
+		// empty path, so the sentence read "No open tasks found in ." — the
+		// two-way branch on a five-way value, again (found by audit, 6 sep 2026).
 		const where =
 			this.wheelScope.kind === "vault"
 				? "in this vault"
-				: `in ${this.wheelScope.path}`;
+				: `in ${scopeLabel(this.wheelScope)}`;
 
 		// With a filter on, "nothing found" almost always means the filter, not
 		// an empty vault — and saying the wrong one sends the reader hunting in

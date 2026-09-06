@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildTree } from "../parse/build-tree";
+import { isExcluded } from "../parse/domain";
 import {
 	DEFAULT_PARSE_OPTIONS,
 	type NoteInput,
@@ -82,6 +83,44 @@ describe("the wheel you pointed at something", () => {
 		});
 
 		expect(work(tree)).toEqual(["Nog dieper"]);
+	});
+
+	it("keeps the exemption on every rung of the ladder, headings included", () => {
+		// Asked of `isExcluded` rather than of a drawn tree, because a heading
+		// wheel also narrows to its own heading and that would answer for the
+		// wrong reason.
+		//
+		// It did not keep it: the exemption held on a folder wheel, fell away on
+		// a heading wheel inside that folder, and came back on the note wheel one
+		// rung lower. `named` listed three of the five kinds of scope and the
+		// heading rung of BC_E3_S146 sat in the silent else, so a reader who
+		// opened a skipped folder and tapped a wedge got the empty circle
+		// BC_E3_S151 removed, one tap further on (found by audit, 6 sep 2026).
+		const note = NOTES[2];
+		const rungs: [string, ParseOptions["scope"]][] = [
+			["folder", { kind: "folder", path: "Archief" }],
+			["heading", { kind: "heading", heading: "Nu", path: "Archief" }],
+			["note", { kind: "note", path: "Archief/Oud.md" }],
+			["section", { kind: "section", path: "Archief/Oud.md", heading: ["Nu"] }],
+		];
+
+		for (const [name, scope] of rungs) {
+			expect(isExcluded(note, { ...SKIPPING, scope }), `rung ${name}`).toBe(false);
+		}
+
+		// And the vault, which named nothing, still holds the rule.
+		expect(isExcluded(note, { ...SKIPPING, scope: { kind: "vault" } })).toBe(true);
+	});
+
+	it("names nothing on a heading wheel opened from the vault", () => {
+		// Its path is empty, so the reader never said a folder out loud and the
+		// skip list still holds: the exemption is for what you pointed at.
+		expect(
+			isExcluded(NOTES[2], {
+				...SKIPPING,
+				scope: { kind: "heading", heading: "Nu", path: "" },
+			}),
+		).toBe(true);
 	});
 
 	it("still keeps out what lies outside the scope entirely", () => {

@@ -96,7 +96,15 @@ function covered(
 	if (isRoundItem(node, showsFinished)) return seen.has(node.id);
 	if (node.shownTaskCount === 0) return false;
 
-	return node.children.every((child) => covered(child, seen, showsFinished));
+	// Children that hold nothing of the round are skipped rather than answered
+	// for. An empty heading (BC_E3_S85) has `shownTaskCount === 0` and so is
+	// never covered, and `every` let that one child keep its parent's whole
+	// slice uncoloured however often the reader had been round it — the gap
+	// BC_E3_S67 set out to close, reopened from below (found by audit, 6 sep
+	// 2026).
+	return node.children
+		.filter((child) => child.shownTaskCount > 0)
+		.every((child) => covered(child, seen, showsFinished));
 }
 
 /** How many of the round's items have been under the reading wedge. */

@@ -4,6 +4,51 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.2]
+
+A round of audit fixes, most of them in what the wheel writes back to your
+notes. Nothing changes in how it looks or what it can do.
+
+- **Fixed**: on a note written with Windows line endings and no closing
+  newline, acting on its *last* task wrote the file back with both kinds of
+  line ending mixed and a stray carriage return at the end. The same defect
+  made every heading-based edit on that line refuse silently, with "nothing to
+  change on that line" about a line that was perfectly fine.
+- **Fixed**: moving a section that held a fenced code block re-levelled the
+  `#` lines inside the fence, so a `# comment` in a shell example became
+  `## comment` in your note. The wheel now reads a heading the same way when it
+  writes one as when it reads one.
+- **Fixed**: with the *under heading* filter on, carrying a branch or a note
+  carried nothing at all and said "nothing to carry" about work the wheel was
+  showing.
+- **Fixed**: a filtered-out task stayed on the wheel as a carrier for work that
+  was not below it but under the next heading, and counted towards the round.
+- **Fixed**: an action the wheel refused — because the line had changed since
+  the scan, or the note was gone — still moved on to the next task and marked
+  it as seen. Only a write that happened moves the wheel on now.
+- **Fixed**: when carrying work to another note failed while emptying the
+  *source*, the message named the target, the file that had in fact been
+  written. It now reports the outcome it has always had a name for: the work
+  arrived, and it is still in both places.
+- **Fixed**: *Move under another heading* did nothing and said nothing when the
+  note had shifted since the last scan, where every other edit says so and
+  rescans.
+- **Fixed**: a note renamed *out of* the wheel's scope, or into an excluded
+  folder, left its tasks standing on the wheel — which then claimed a complete
+  round over work it was no longer reading.
+- **Fixed**: on a folder wheel with the domain taken from a tag or a
+  front-matter property, tapping a subfolder wedge refused with "a tag is not a
+  folder" about a folder that was right there.
+- **Fixed**: the skip lists now step aside on every rung. Opening a folder you
+  skip and then tapping a wedge gave the empty circle 0.2.1 had just removed.
+- **Fixed**: a heading holding no tasks of its own kept its parent's sweep arc
+  uncoloured however often you had been round it.
+- **Fixed**: "No open tasks found in ." on a wheel over a heading, and the
+  note's name instead of the section's on a wheel over one section.
+- **Changed**: the two date lenses in the ⋯ menu and in the command palette now
+  carry the same names as the filter panel, so they no longer say "due soon"
+  when the rule is pointed at a start date.
+
 ## [0.2.1]
 
 Two questions kept apart, and a skip rule that steps aside when you name what it

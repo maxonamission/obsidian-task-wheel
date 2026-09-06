@@ -35,6 +35,7 @@ import {
 	fold,
 	nearestHeadingAbove,
 	ownBody,
+	relevel,
 	separatesHeadings,
 	subLevel,
 } from "./sections";
@@ -570,12 +571,7 @@ export function moveHeadingUnder(
 	const level = subLevel(headings, target);
 	const shift = level - self.level;
 
-	const block = lines.slice(self.line, self.end + 1).map((line) => {
-		const match = /^(#{1,6})([ \t].*)?$/.exec(line);
-		if (match === null) return line;
-		const wanted = Math.min(6, Math.max(1, match[1].length + shift));
-		return `${"#".repeat(wanted)}${match[2] ?? ""}`;
-	});
+	const block = relevel(lines.slice(self.line, self.end + 1), shift);
 
 	const rest = [
 		...lines.slice(0, self.line),

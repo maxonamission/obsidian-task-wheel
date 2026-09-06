@@ -299,6 +299,52 @@ describe("carrying a branch while the filter shows only finished work", () => {
 	});
 });
 
+describe("carrying while the filter names a heading (BC_E3_S147)", () => {
+	/**
+	 * `inRound` dropped the heading path on its way to `matches`, so the `under`
+	 * rule failed for every task there while passing in `build-tree`. The wheel
+	 * showed the branch and the carry said "nothing to carry" about it — the
+	 * same broken promise as carrying too much, running the other way (found by
+	 * audit, 6 sep 2026).
+	 */
+	const underTuin: ParseOptions = {
+		...DEFAULT_PARSE_OPTIONS,
+		filter: { ...NO_FILTER, heading: "Tuin" },
+	};
+
+	it("carries the work the wheel is showing under that heading", async () => {
+		notes.set(
+			"Klussen.md",
+			["## Tuin", "- [ ] Terras vegen", "- [ ] Haag snoeien", ""].join("\n"),
+		);
+
+		await carry("Tuin", underTuin);
+
+		expect(landed()).toContain("Terras vegen");
+		expect(landed()).toContain("Haag snoeien");
+		expect(left()).not.toContain("Terras vegen");
+	});
+
+	it("still leaves behind what the heading rule sets aside", async () => {
+		notes.set(
+			"Klussen.md",
+			[
+				"## Tuin",
+				"- [ ] Terras vegen",
+				"## Zolder",
+				"- [ ] Dozen sorteren",
+				"",
+			].join("\n"),
+		);
+
+		await carry("Tuin", underTuin);
+
+		expect(landed()).toContain("Terras vegen");
+		expect(landed()).not.toContain("Dozen sorteren");
+		expect(left()).toContain("Dozen sorteren");
+	});
+});
+
 describe("a named destination (BC_E3_S18)", () => {
 	const later: CarryPreset = {
 		name: "LaterMaybe",

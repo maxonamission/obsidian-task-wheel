@@ -94,8 +94,21 @@ export function watchVault(host: WatchHost): void {
 	host.own(host.app.vault.on("modify", touched));
 	host.own(host.app.vault.on("create", touched));
 	host.own(host.app.vault.on("delete", touched));
-	// A rename changes a path, which can move a note into or out of scope.
-	host.own(host.app.vault.on("rename", (file) => touched(file)));
+	// A rename changes a path, which can move a note into or out of scope. Both
+	// halves: the new path decides whether it concerns this wheel *now*, the old
+	// one whether it did a moment ago. Only the first was asked, so a note moved
+	// out of the scope (or into an excluded folder) left its tasks standing on
+	// the wheel, which then claimed a complete round over work it was no longer
+	// reading (found by audit, 6 sep 2026).
+	host.own(
+		host.app.vault.on("rename", (file, oldPath) => {
+			touched(file);
+			if (!(file instanceof TFile) || file.extension !== "md") return;
+			if (!concernsWheel(oldPath, host.scope(), host.options())) return;
+			host.markStale();
+			settle();
+		}),
+	);
 
 	// Coming back to the tab is when a wheel that stayed behind has to catch
 	// up, and it is the only moment a background wheel gets.

@@ -122,7 +122,12 @@ export function renameRefusal(
 		if (within.kind === "note" || within.kind === "section") {
 			return { refused: "heading" };
 		}
-		return domainSource === "folder"
+		// On a folder wheel the wedge *is* a subfolder whatever the domain
+		// source says — `resolveWedge` puts the scope before the setting there
+		// ("a folder wheel asks about folders"). Asking the setting instead told
+		// the reader "this wedge comes from a tag" about a folder on disk
+		// (found by audit, 6 sep 2026).
+		return domainSource === "folder" || within.kind === "folder"
 			? { refused: "folder" }
 			: { refused: "wedge", source: domainSource };
 	}
@@ -199,7 +204,13 @@ export function scopeFor(
 		// front-matter property both cut *across* the folders — that is what
 		// they are for — so there is no folder of that name to open, and
 		// pretending otherwise sends the wheel after one that is not there.
-		if (domainSource !== "folder") {
+		//
+		// Except on a folder wheel, where the wedge is a subfolder no matter
+		// which source is set: `resolveWedge` decides that with the scope, not
+		// with the setting. Refusing here stopped the ladder on the very wedge
+		// the reader had just chosen, with a sentence that was untrue there
+		// (found by audit, 6 sep 2026).
+		if (domainSource !== "folder" && within.kind !== "folder") {
 			return { refused: "not-a-folder", source: domainSource };
 		}
 

@@ -70,6 +70,19 @@ describe("what a second tap opens", () => {
 		expect(answer).toEqual({ refused: "not-a-folder", source: "property" });
 	});
 
+	it("opens a subfolder wedge on a folder wheel whatever the source is", () => {
+		// A folder wheel cuts its wedges from subfolders no matter which domain
+		// source is set (`resolveWedge`: "a folder wheel asks about folders").
+		// Asking the setting here stopped the ladder on the wedge the reader had
+		// just chosen, and said "a tag is not a folder" about a folder that was
+		// right there on disk (found by audit, 6 sep 2026).
+		for (const source of ["tag", "property"] as const) {
+			expect(scopeFor(WEDGE, { kind: "folder", path: "Projecten" }, source)).toEqual(
+				{ kind: "folder", path: "Projecten/Work" },
+			);
+		}
+	});
+
 	it("makes a note wheel of anything carrying a source", () => {
 		expect(scopeFor(TASK, VAULT_SCOPE, "folder")).toEqual({
 			kind: "note",

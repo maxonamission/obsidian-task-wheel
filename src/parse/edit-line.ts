@@ -20,7 +20,7 @@ import {
 	type SignifierKind,
 	TASK_LINE,
 } from "./task-line";
-import type { Priority } from "../model/types";
+import type { DateField, Priority } from "../model/types";
 
 /** The glyph we write for each priority. Reading still accepts the others. */
 export const PRIORITY_GLYPH: Readonly<Record<Priority, string>> = {
@@ -33,7 +33,10 @@ export const PRIORITY_GLYPH: Readonly<Record<Priority, string>> = {
 };
 
 /** The date fields a review action may set. */
-export type DateField = "due" | "scheduled" | "start";
+// Re-exported rather than re-declared: two identical unions in two files is
+// one definition waiting to grow a fourth date in only one of them (found by
+// audit, 6 sep 2026).
+export type { DateField } from "../model/types";
 
 const DATE_GLYPH: Readonly<Record<DateField, string>> = {
 	due: "📅",

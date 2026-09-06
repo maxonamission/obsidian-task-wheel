@@ -51,5 +51,10 @@ export function inRound(
 ): boolean {
 	if (isExcludedHeading(headingPath, options)) return false;
 	if (!showsFinishedWork(options) && isFinished(fields)) return false;
-	return matches(fields, options.filter, options.today, notePath);
+	// The heading path goes to `matches` as well, not only to the skip rules.
+	// Without it every task failed the `under` rule of BC_E3_S147 here while
+	// passing it in `build-tree` — so with a heading filter on, a branch or a
+	// note carried nothing at all and said "nothing to carry" about work the
+	// wheel was showing (found by audit, 6 sep 2026).
+	return matches(fields, options.filter, options.today, notePath, headingPath);
 }

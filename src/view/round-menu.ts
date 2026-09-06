@@ -1,3 +1,4 @@
+import { DUE_LABELS } from "./filter-labels";
 import type { DateRule, DomainSource } from "../model/types";
 
 /**
@@ -138,15 +139,20 @@ export function roundMenu(state: RoundMenuState): MenuRow[] {
 
 	// The two date lenses, ticked when they are the one that is on. Picking a
 	// ticked one turns it off, which is what the tick promises.
+	//
+	// Named from `DUE_LABELS`, the same source the panel and the settings tab
+	// read. Spelling them out here meant the menu said "Due soon" while the
+	// reader had pointed the rule at 🛫 — the very lie BC_E3_S140 renamed them
+	// to avoid, left behind in two places (found by audit, 6 sep 2026).
 	rows.push({
 		action: "overdue",
-		title: "Only overdue",
+		title: DUE_LABELS.overdue,
 		icon: "alarm-clock",
 		checked: state.due === "overdue",
 	});
 	rows.push({
 		action: "soon",
-		title: "Due soon",
+		title: DUE_LABELS.soon,
 		icon: "calendar-clock",
 		checked: state.due === "soon",
 	});

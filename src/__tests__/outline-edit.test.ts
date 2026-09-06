@@ -297,6 +297,31 @@ describe("moving a task to another heading", () => {
 		expect(headingsOf(lines).map((heading) => heading.line)).toEqual([0, 5]);
 		expect(moveToSection(lines, 1, 3)).toBeNull();
 	});
+
+	it("re-levels a moved section without touching what a fence holds", () => {
+		// Reading a heading and re-levelling one had a pattern each, and only the
+		// reading one skipped fences and asked for a space after the hashes. So
+		// moving a section that held a shell example rewrote `# comment` and a
+		// bare `#` inside it, in somebody else's note, with a notice saying all
+		// had gone well (found by audit, 6 sep 2026).
+		const lines = [
+			"## Doel",
+			"## Bron",
+			"```sh",
+			"# comment in code",
+			"#",
+			"```",
+		];
+
+		expect(moveHeadingUnder(lines, 1, 0)).toEqual([
+			"## Doel",
+			"### Bron",
+			"```sh",
+			"# comment in code",
+			"#",
+			"```",
+		]);
+	});
 });
 
 describe("moving a task to a heading that does not exist yet", () => {

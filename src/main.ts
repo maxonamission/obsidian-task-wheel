@@ -34,6 +34,7 @@ import {
 	setFilter,
 } from "./settings";
 import { readNotes, ScanCache } from "./vault/scan";
+import { DUE_LABELS } from "./view/filter-labels";
 import { DuplicateReportModal } from "./view/duplicate-report-modal";
 import { SkipReportModal } from "./view/skip-report-modal";
 import {
@@ -200,7 +201,7 @@ export default class TaskWheelPlugin extends Plugin {
 		// lens you switch on and off during reviewing wants to be one.
 		this.addCommand({
 			id: "filter-overdue",
-			name: "Filter: only overdue",
+			name: `Filter: ${DUE_LABELS.overdue.toLowerCase()}`,
 			callback: () => {
 				void this.setDueFilter("overdue");
 			},
@@ -208,7 +209,7 @@ export default class TaskWheelPlugin extends Plugin {
 
 		this.addCommand({
 			id: "filter-soon",
-			name: "Filter: due soon",
+			name: `Filter: ${DUE_LABELS.soon.toLowerCase()}`,
 			callback: () => {
 				void this.setDueFilter("soon");
 			},

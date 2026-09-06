@@ -349,7 +349,14 @@ function selectFiltered(
 	return tasks.filter((task, index) => {
 		if (wanted[index]) return true;
 
+		const section = task.headingPath.join("");
 		for (let i = index + 1; i < tasks.length; i++) {
+			// Indentation only counts inside one section, exactly as in
+			// `hasOpenDescendant` below: a deeper-indented task under the next
+			// heading is not a child of the last task under this one, and reading
+			// it as one kept a filtered-out task on the wheel as a carrier for
+			// work that is not below it (found by audit, 6 sep 2026).
+			if (tasks[i].headingPath.join("") !== section) break;
 			if (tasks[i].indent <= task.indent) break;
 			if (wanted[i]) return true;
 		}

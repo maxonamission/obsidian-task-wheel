@@ -423,7 +423,21 @@ export async function writeCarry(
 	if (mode === "copy") return { kind: "copied", ...amount };
 
 	// Only now, and only if the source still holds exactly what we carried.
-	const removed = await reshape(app, ref, (fresh) => removeBlocks(fresh, blocks));
+	//
+	// A throw here counts as "twice" like any other way the source refuses. It
+	// used to travel out of this function, where the caller's catch said *"could
+	// not write to <target>"* — naming the file that had in fact been written,
+	// about work that now stood in two notes, and skipping the redraw (found by
+	// audit, 6 sep 2026). The target is written; from here on the only honest
+	// answers are "moved" and "twice".
+	let removed: WriteOutcome;
+	try {
+		removed = await reshape(app, ref, (fresh) => removeBlocks(fresh, blocks));
+	} catch (error) {
+		console.error("Task wheel: the source of a carry could not be emptied", error);
+		removed = "stale";
+	}
+
 	return removed === "written"
 		? { kind: "moved", ...amount }
 		: { kind: "twice", ...amount };

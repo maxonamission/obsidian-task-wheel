@@ -390,11 +390,28 @@ export function isExcludedFolder(
  * (BC_E3_S151).
  */
 function named(folder: string, scope: WheelScope | undefined): boolean {
-	if (scope === undefined) return false;
-	if (scope.kind !== "folder" && scope.kind !== "note" && scope.kind !== "section") {
-		return false;
-	}
-	return under(scope.path, folder);
+	const path = namedPath(scope);
+	return path !== null && under(path, folder);
+}
+
+/**
+ * The path the reader pointed at when this wheel was opened, if any.
+ *
+ * Asked of the scope as a whole rather than of three of its five kinds. A
+ * folder names its own path, a note and a section the note's, and a heading
+ * the folder it stays inside (BC_E3_S146) — that last rung was the one the
+ * first version of `named` left out, so the exemption vanished on a heading
+ * wheel and came back on the note wheel below it. Measured over the whole
+ * ladder: folder exempt, heading not, note exempt again, which is a shape no
+ * rule produces (found by audit, 6 sep 2026).
+ *
+ * The vault names nothing, and neither does a heading wheel opened from the
+ * vault: its path is empty, and a reader who never said a folder out loud is
+ * not asking for the ones the skip list holds back.
+ */
+function namedPath(scope: WheelScope | undefined): string | null {
+	if (scope === undefined || scope.kind === "vault") return null;
+	return scope.path === "" ? null : scope.path;
 }
 
 /** Whether the note's front-matter `type` puts it out of scope. */
