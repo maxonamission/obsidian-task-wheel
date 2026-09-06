@@ -12,6 +12,7 @@ import {
 import { putIcon } from "./icon";
 import {
 	type CarryPreset,
+	type DomainSource,
 	NO_FILTER,
 	outward,
 	type Priority,
@@ -90,6 +91,7 @@ import {
 	whyNotMoved,
 } from "../parse/outline-edit";
 import {
+	everyState,
 	filterOf,
 	parseOptionsOf,
 	setFilter,
@@ -1235,6 +1237,32 @@ export class TaskWheelView extends ItemView {
 	}
 
 	/** What the menu has to know about this wheel to read correctly. */
+	/**
+	 * Change what the angle is made of, from the wheel rather than the settings
+	 * (BC_E3_S148).
+	 *
+	 * The same write the settings tab does, and the same round boundary with it:
+	 * a different source does not re-deal the same wedges, it replaces them, so
+	 * the frozen order of the old set has to go or the wheel would keep dealing
+	 * wedges of a set that no longer exists (BC_E3_S82).
+	 *
+	 * Every wheel is redrawn, not only this one: the source is one setting for
+	 * the whole plugin, and a second wheel left on the old angle would be a lie
+	 * about what the setting says.
+	 */
+	private async changeAngle(source: DomainSource): Promise<void> {
+		if (this.plugin.settings.domainSource === source) return;
+
+		this.plugin.settings.domainSource = source;
+		for (const state of everyState(this.plugin.settings)) {
+			state.roundWeights = null;
+			state.roundDomains = null;
+		}
+		// `saveSettings` re-reads every open wheel, which is exactly the redraw
+		// this needs: a new angle is a new tree, not a new drawing of the old one.
+		await this.plugin.saveSettings();
+	}
+
 	private roundMenuState(): RoundMenuState {
 		const { seen, total } = progressOf(this.roundHost());
 		const filter = filterOf(this.plugin.settings, this.wheelScope);
@@ -1245,6 +1273,7 @@ export class TaskWheelView extends ItemView {
 			filtering: isFiltering(filter),
 			filterText: describe(filter),
 			due: filter.due,
+			angle: this.plugin.settings.domainSource,
 			folded: stateFor(this.plugin.settings, this.wheelScope).collapsed.length,
 			stale: this.stale,
 			outward: wider === null ? null : scopeLabel(wider),
@@ -1339,6 +1368,18 @@ export class TaskWheelView extends ItemView {
 				return;
 			case "clear-filter":
 				void this.changeFilter({ ...NO_FILTER });
+				return;
+			case "angle-folder":
+				void this.changeAngle("folder");
+				return;
+			case "angle-tag":
+				void this.changeAngle("tag");
+				return;
+			case "angle-property":
+				void this.changeAngle("property");
+				return;
+			case "angle-heading":
+				void this.changeAngle("heading");
 				return;
 			// This wheel's folds, not every wheel's: the row counts what is folded
 			// here, so it has to undo exactly that. The command in the palette is
@@ -1708,6 +1749,12 @@ export class TaskWheelView extends ItemView {
 			{
 				open: this.plugin.settings.filterPanelOpen,
 				left: this.tree?.filteredOut ?? 0,
+				// Only when it is narrower than the vault: on the vault wheel the
+				// answer would be "everything", which is not worth a row.
+				scope:
+					this.wheelScope.kind === "vault"
+						? null
+						: scopeLabel(this.wheelScope),
 				onToggleOpen: (open: boolean) => {
 					this.plugin.settings.filterPanelOpen = open;
 					this.plugin.persist();
@@ -2996,6 +3043,12 @@ export function readScope(state: unknown): WheelScope | null {
 	) {
 		return { kind, path, heading };
 	}
+	// A heading wheel: one name, and the folder it stays inside — empty for the
+	// whole vault (BC_E3_S146). Read back exactly as strictly as the rest: a
+	// state that does not say both is no state at all.
+	if (kind === "heading" && typeof heading === "string" && typeof path === "string") {
+		return { kind, heading, path };
+	}
 	return null;
 }
 
@@ -3076,9 +3129,13 @@ function refusalText(refusal: NoScope): string {
 		case "no-section":
 			return "these tasks sit above the first heading — there is no section to open for them.";
 		case "not-a-folder":
+			// One arm per source, because a two-way ternary here quietly called a
+			// heading wedge a property when the fourth source arrived (BC_E3_S144).
 			return refusal.source === "tag"
 				? "a tag domain is not a folder, so there is no wheel to open for it."
-				: "this wedge comes from a note property, not from a folder, so there is no folder to open for it.";
+				: refusal.source === "heading"
+					? "this wedge is a heading, not a folder, so there is no folder to open for it."
+					: "this wedge comes from a note property, not from a folder, so there is no folder to open for it.";
 		case "no-source":
 			return "nothing on this item says which note it came from.";
 	}
@@ -3103,7 +3160,9 @@ function noRenameText(refusal: NoRename): string {
 		case "wedge":
 			return refusal.source === "tag"
 				? "this wedge comes from a tag, so there is no name written down to change."
-				: "this wedge comes from a note property, so there is no name written down to change.";
+				: refusal.source === "heading"
+					? "this wedge is a heading in several notes at once, so there is no one name to change. Rename it in a note, and the wheel follows."
+					: "this wedge comes from a note property, so there is no name written down to change.";
 		case "nameless":
 			return "there is nothing here to rename.";
 	}

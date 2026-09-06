@@ -12,7 +12,8 @@ import type { WheelNode, WheelScope, WheelTree } from "./types";
  * do (eigenaar, 2 sep 2026):
  *
  *  - **Stepping out.** Backspace, the button in the corner and the command all
- *    walk the ladder — vault → folder → note → section — and the wider wheel
+ *    walk the ladder — vault → folder → note → section, plus a heading wheel
+ *    where the domain comes from headings — and the wider wheel
  *    contains everything the narrower one did. So the answer is not "the
  *    blikveld you left" but the plainer one: **stay on what you were reading**,
  *    now seen from further out. Landing on the branch that item hangs from
@@ -131,6 +132,18 @@ function standsFor(tree: WheelTree, scope: WheelScope): string | null {
 				node.source?.path === scope.path &&
 				node.source.raw === null
 			) {
+				return node.id;
+			}
+		}
+		return null;
+	}
+
+	// A heading is a wedge one level up, under its own name (BC_E3_S146). Same
+	// shape as the folder case below, and the reason is the same: stepping out
+	// should put the reader back on the thing they stepped into.
+	if (scope.kind === "heading") {
+		for (const node of nodes(tree)) {
+			if (node.kind === "domain" && node.depth === 1 && node.label === scope.heading) {
 				return node.id;
 			}
 		}

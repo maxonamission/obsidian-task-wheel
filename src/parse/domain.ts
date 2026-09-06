@@ -19,21 +19,45 @@ export interface DomainCandidates {
 	taskTags: string[];
 	/** The note's front matter, for the property source to read from. */
 	frontmatter?: Readonly<Record<string, unknown>>;
+	/**
+	 * The headings above this task, outermost first, for the heading source.
+	 *
+	 * Absent for a note that has no task line to stand on — a note that is
+	 * itself a task, or one being drawn as an empty frame. Nothing is above
+	 * those, so in heading mode they land in the fallback.
+	 */
+	headingPath?: readonly string[];
 }
 
 /**
  * Resolve the domain for one task.
  *
  * Tag mode looks at the task's own tags first and falls back to the note's
- * front matter, so a single note can feed more than one wedge. Folder mode and
- * property mode are strictly per note. Whichever is chosen, an unresolvable
- * task lands in the configured fallback domain rather than disappearing —
- * nothing may vanish (§2.3).
+ * front matter, so a single note can feed more than one wedge. Heading mode
+ * reads the outermost heading above the task, which lets one note feed several
+ * wedges too — and lets one wedge span several notes. Folder mode and property
+ * mode are strictly per note. Whichever is chosen, an unresolvable task lands in
+ * the configured fallback domain rather than disappearing — nothing may vanish
+ * (§2.3).
  */
 export function resolveDomain(
 	candidates: DomainCandidates,
 	options: ParseOptions,
 ): string {
+	// The outermost heading a task sits under, whatever note that is in
+	// (BC_E3_S143). For a vault that splits its work by horizon — one note for
+	// today, one for this week, one for someday — the folder says nothing about
+	// what a task is *about*, and the heading says everything. It collects the
+	// "Thuis" of three notes into one wedge, with the three notes side by side
+	// inside it — so one turn of that wedge walks the same subject across every
+	// horizon.
+	if (options.domainSource === "heading") {
+		const outermost = candidates.headingPath?.[0];
+		return outermost !== undefined && outermost.trim().length > 0
+			? outermost
+			: options.fallbackDomain;
+	}
+
 	if (options.domainSource === "property") {
 		return domainFromProperty(candidates.frontmatter, options.domainProperty)
 			?? options.fallbackDomain;
@@ -63,6 +87,18 @@ export interface Wedge {
 	key: string;
 	/** The wedge *is* this note, so there is no note ring under it. */
 	note: boolean;
+	/**
+	 * How many steps of the heading path this wedge used up (BC_E3_S144).
+	 *
+	 * The heading rings start here, so a heading that became the wedge is not
+	 * drawn again as the ring right under itself. Carried on the wedge rather
+	 * than worked out a second time where the rings are made: those two used to
+	 * derive it apart, and on a folder wheel in heading mode they disagreed —
+	 * the wedge came from the folder while the rings still skipped a step, so
+	 * the outermost heading was drawn nowhere and two different sections with
+	 * the same subheading merged into one node.
+	 */
+	headingSteps: number;
 }
 
 /**
@@ -89,9 +125,41 @@ export function resolveWedge(
 	candidates: DomainCandidates,
 	options: ParseOptions,
 ): Wedge {
+	// Inside a wheel over one heading, that heading is spent — it is what this
+	// wheel is *about* — so the notes it lives in become the angle (BC_E3_S146).
+	// The same move the note wheel makes when the folder runs out: whatever is
+	// left that can carry meaning takes over the axis (kaderdocument §4.1).
+	if (options.scope.kind === "heading") {
+		return {
+			label: projectLabel(candidates.notePath),
+			key: `n:${candidates.notePath}`,
+			note: true,
+			// The scope ate the outermost heading, so the rings start below it.
+			headingSteps: 1,
+		};
+	}
+
+	// Heading mode holds on a folder wheel too (BC_E3_S145). The rule above —
+	// scope beats setting — was written when the alternatives were tags and
+	// properties, and there it is right: those answer *a different question*
+	// than the one the reader just asked by right-clicking a folder. The heading
+	// is not a different question. It is the reader having said what a domain
+	// *is* in this vault, and narrowing to a folder narrows the scope, not the
+	// meaning of the angle. Measured on the owner's vault: a folder of
+	// horizon-notes drew wedges called "Nu" and "Ooit", which is the axis he had
+	// just set the wheel up to stop using.
+	//
+	// A note or section wheel still wins, because there the heading already *is*
+	// the axis and nothing changes.
+	if (options.domainSource === "heading" && options.scope.kind === "folder") {
+		return headingsWedge(candidates, options);
+	}
+
 	if (options.scope.kind === "folder") {
 		const inside = topFolder(below(candidates.notePath, options.scope.path));
-		if (inside !== null) return { label: inside, key: `f:${inside}`, note: false };
+		if (inside !== null) {
+			return { label: inside, key: `f:${inside}`, note: false, headingSteps: 0 };
+		}
 
 		return {
 			label: projectLabel(candidates.notePath),
@@ -100,11 +168,29 @@ export function resolveWedge(
 			// staying true.
 			key: `n:${candidates.notePath}`,
 			note: true,
+			headingSteps: 0,
 		};
 	}
 
+	if (options.domainSource === "heading") return headingsWedge(candidates, options);
+
 	const label = resolveDomain(candidates, options);
-	return { label, key: `d:${label}`, note: false };
+	return { label, key: `d:${label}`, note: false, headingSteps: 0 };
+}
+
+/**
+ * The wedge a task's outermost heading names.
+ *
+ * `headingSteps` says how much of the path it ate, and only when the heading is
+ * what actually named it: a task under no heading falls back, and a fallback
+ * wedge has eaten no heading — so its own (empty) path still starts at the
+ * beginning.
+ */
+function headingsWedge(candidates: DomainCandidates, options: ParseOptions): Wedge {
+	const label = resolveDomain(candidates, options);
+	const named = (candidates.headingPath?.[0]?.trim().length ?? 0) > 0;
+
+	return { label, key: `d:${label}`, note: false, headingSteps: named ? 1 : 0 };
 }
 
 /**
@@ -206,6 +292,12 @@ export function inScope(path: string, scope: WheelScope): boolean {
 	// decided in `build-tree`, where the heading paths are known.
 	if (scope.kind === "note" || scope.kind === "section") {
 		return path === scope.path;
+	}
+	// A heading wheel keeps to the folder it was opened from — which notes hold
+	// that heading is decided in `build-tree`, where the paths are known. An
+	// empty path is the whole vault.
+	if (scope.kind === "heading") {
+		return scope.path.length === 0 || under(path, scope.path);
 	}
 	return under(path, scope.path);
 }

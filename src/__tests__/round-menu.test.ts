@@ -20,6 +20,7 @@ const wheel = (over: Partial<RoundMenuState> = {}): RoundMenuState => ({
 	total: 40,
 	filtering: false,
 	filterText: "",
+	angle: "folder",
 	due: "any",
 	folded: 0,
 	stale: false,
@@ -60,9 +61,25 @@ describe("roundMenu — the round's own actions", () => {
 				"skip-report",
 				"duplicate-report",
 				"add-preset",
+				"angle-folder",
+				"angle-tag",
+				"angle-property",
+				"angle-heading",
 			]),
 		);
 		expect(actions).toHaveLength(new Set(actions).size);
+	});
+
+	it("ticks the angle that is on, and offers the other three", () => {
+		// The setting a reader changes while looking at the wheel, so it lives
+		// beside the lenses rather than three taps into a settings tab
+		// (BC_E3_S148).
+		const rows = roundMenu(wheel({ angle: "heading" }));
+
+		expect(find(rows, "angle-heading").checked).toBe(true);
+		expect(find(rows, "angle-folder").checked).toBe(false);
+		expect(find(rows, "angle-tag").checked).toBe(false);
+		expect(find(rows, "angle-property").checked).toBe(false);
 	});
 
 	it("offers the way out, and names where it goes", () => {

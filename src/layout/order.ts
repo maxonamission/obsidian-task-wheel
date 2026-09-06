@@ -260,8 +260,16 @@ export function sidewaysFrom(
 
 	// Not on this ring at all: step to the nearest member in the direction of
 	// travel, so the walk carries on from where the reader stands rather than
-	// from wherever they last were on it.
-	const seek = delta >= 0 ? ring.find((node) => order.indexOf(node) > here) : null;
+	// from wherever they last were on it. Forwards that still means the nearest
+	// one this round has not been past — otherwise the first press off a heading
+	// lands on something already reviewed and only the second one starts
+	// skipping (BC_E3_S144).
+	const ahead = delta >= 0 ? ring.filter((node) => order.indexOf(node) > here) : [];
+	const seek =
+		delta >= 0
+			? (seen !== undefined ? ahead.find((node) => !seen(node.id)) : undefined) ??
+				ahead[0]
+			: null;
 	if (seek !== undefined && seek !== null) return seek.id;
 
 	if (delta < 0) {

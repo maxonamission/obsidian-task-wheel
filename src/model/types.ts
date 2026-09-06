@@ -293,7 +293,7 @@ export interface NoteInput {
  * another is how you turn it off, and `folder` remains the default — so a
  * reader who never opens the setting sees no change at all.
  */
-export type DomainSource = "folder" | "tag" | "property";
+export type DomainSource = "folder" | "tag" | "property" | "heading";
 
 /** Everything the parser needs to know about user preferences. */
 /**
@@ -317,7 +317,20 @@ export type WheelScope =
 	 * so this scope inherits exactly the tree's own identity semantics —
 	 * no new ambiguity is introduced here.
 	 */
-	| { kind: "section"; path: string; heading: string[] };
+	| { kind: "section"; path: string; heading: string[] }
+	/**
+	 * One heading, across every note that has it — the rung the heading wedge
+	 * needed (BC_E3_S146).
+	 *
+	 * With the domain coming from headings a wedge is not a folder and not a
+	 * note, so there was nothing to open for it: the one axis the reader had
+	 * just chosen was the one place the ladder stopped. This is that step in.
+	 *
+	 * `path` is the folder it stays inside, empty for the whole vault, so
+	 * zooming in from a folder wheel does not quietly widen back out to
+	 * everything. Going out again returns to exactly that.
+	 */
+	| { kind: "heading"; heading: string; path: string };
 
 export const VAULT_SCOPE: WheelScope = { kind: "vault" };
 
@@ -327,6 +340,7 @@ export function scopeKey(scope: WheelScope): string {
 	if (scope.kind === "section") {
 		return `section:${scope.path}#${scope.heading.join("#")}`;
 	}
+	if (scope.kind === "heading") return `heading:${scope.path}#${scope.heading}`;
 	return `${scope.kind}:${scope.path}`;
 }
 
@@ -336,6 +350,7 @@ export function scopeLabel(scope: WheelScope): string {
 	if (scope.kind === "section") {
 		return scope.heading[scope.heading.length - 1] ?? scope.path;
 	}
+	if (scope.kind === "heading") return scope.heading;
 
 	const base = scope.path.slice(scope.path.lastIndexOf("/") + 1);
 	return scope.kind === "note" ? base.replace(/\.md$/i, "") : base;
@@ -359,6 +374,12 @@ export function outward(scope: WheelScope): WheelScope | null {
 	// A section goes out to its note — one rung, not straight to the folder:
 	// the ladder is climbed the way it was descended.
 	if (scope.kind === "section") return { kind: "note", path: scope.path };
+
+	// And a heading goes back to whatever it was opened from: the folder it
+	// stayed inside, or the whole vault. Same rule, one rung back.
+	if (scope.kind === "heading") {
+		return scope.path.length === 0 ? VAULT_SCOPE : { kind: "folder", path: scope.path };
+	}
 
 	const cut = scope.path.lastIndexOf("/");
 	if (cut <= 0) return VAULT_SCOPE;
@@ -434,6 +455,23 @@ export interface TaskFilter {
 	 * that has to stay readable on a phone cannot afford the second.
 	 */
 	dateField: DateField;
+	/**
+	 * The heading the work has to stand under, or empty for any (BC_E3_S147).
+	 *
+	 * *"Everything in this scope that stands under heading X"* is a question a
+	 * reader asks out loud (eigenaar, 5 sep 2026), and it is a **filter** rather
+	 * than a wheel of its own: the scope stays what it was and the round narrows
+	 * inside it — exactly the line the wheel already draws between a blikveld and
+	 * a lens. It works whatever the domain comes from, and it combines with the
+	 * rest, so "this subject, high priority, this week" is one question and not
+	 * three wheels.
+	 *
+	 * Matched on the **outermost** heading, the same step the wedge is made of,
+	 * so what you filter on is what you see on the rim. A `*` widens it, exactly
+	 * as it does in the skip lists — one spelling of "a name with a star" for the
+	 * whole plugin.
+	 */
+	heading: string;
 	/** Which statuses count. */
 	status: StatusRule;
 	/** Lowest priority that still counts, or `any`. */
@@ -459,6 +497,7 @@ export const NO_FILTER: TaskFilter = {
 	from: "",
 	until: "",
 	dateField: "due",
+	heading: "",
 	status: "any",
 	minPriority: "any",
 	maxPriority: "any",

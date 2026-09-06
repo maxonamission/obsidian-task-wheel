@@ -1,5 +1,5 @@
 import { addDays, isIsoDate } from "../model/dates";
-import { projectLabel } from "./domain";
+import { matchesPattern, projectLabel } from "./domain";
 import { describeQuery, isEmpty, matchesQuery, parseQuery } from "./query";
 import {
 	type DateField,
@@ -31,12 +31,29 @@ export function isFiltering(filter: TaskFilter): boolean {
 	return (
 		!isEmpty(parseQuery(filter.text)) ||
 		filter.due !== "any" ||
+		filter.heading.trim().length > 0 ||
 		filter.status !== "any" ||
 		filter.minPriority !== "any" ||
 		filter.maxPriority !== "any" ||
 		clean(filter.withTags).length > 0 ||
 		clean(filter.withoutTags).length > 0
 	);
+}
+
+/**
+ * The name of the date a rule reads, or nothing when it is the deadline.
+ *
+ * "overdue" is the ordinary case and needs no explaining; "scheduled overdue"
+ * does. Saying nothing at all would hide which of the three dates the round is
+ * about, and the line under the wheel exists so that nothing is hidden
+ * (kaderdocument §3.3, BC_E3_S140).
+ *
+ * One function because the whole line and the window used to spell this rule
+ * out separately, in two shapes that then needed patching together where they
+ * met (BC_E3_S144). Trailing space included: every caller is building a phrase.
+ */
+function fieldWord(filter: TaskFilter): string {
+	return filter.dateField === "due" ? "" : `${filter.dateField} `;
 }
 
 /** What the filter says, in words, for the line that has to show it. */
@@ -46,16 +63,14 @@ export function describe(filter: TaskFilter): string {
 	const query = parseQuery(filter.text);
 	if (!isEmpty(query)) parts.push(describeQuery(query));
 
+	const heading = filter.heading.trim();
+	if (heading.length > 0) parts.push(`under ${heading}`);
+
 	if (filter.status === "open") parts.push("not started");
 	else if (filter.status === "in-progress") parts.push("in progress");
 	else if (filter.status === "finished") parts.push("finished");
 
-	// The word only when it is not the deadline, the same rule the window has
-	// used all along: "overdue" is the ordinary case and needs no explaining,
-	// "scheduled overdue" does. Saying nothing at all would hide which of the
-	// three dates the round is about, and the line under the wheel exists so
-	// that nothing is hidden (kaderdocument §3.3, BC_E3_S140).
-	const what = filter.dateField === "due" ? "" : `${filter.dateField} `;
+	const what = fieldWord(filter);
 
 	if (filter.due === "overdue") parts.push(`${what}overdue`);
 	else if (filter.due === "soon") {
@@ -103,8 +118,11 @@ export function matches(
 	filter: TaskFilter,
 	today: string,
 	notePath = "",
+	/** The headings above this task, outermost first (BC_E3_S147). */
+	headingPath: readonly string[] = [],
 ): boolean {
 	if (!matchesText(fields, filter.text, notePath)) return false;
+	if (!matchesHeading(headingPath, filter.heading)) return false;
 	if (!matchesStatus(fields, filter.status)) return false;
 	if (!matchesDue(fields, filter, today)) return false;
 
@@ -180,9 +198,8 @@ function describeWindow(filter: TaskFilter): string {
 	const from = isIsoDate(filter.from) ? filter.from : "";
 	const until = isIsoDate(filter.until) ? filter.until : "";
 
-	// The word only when it is not the deadline: "due 15 – 22" is the ordinary
-	// case and does not need explaining, "scheduled" does.
-	const what = filter.dateField === "due" ? "due" : filter.dateField;
+	// "due 15 – 22" is the ordinary case; a window on another date says which.
+	const what = fieldWord(filter).trim() || "due";
 
 	if (from !== "" && until !== "") {
 		// A window that ends before it begins holds nothing, and a reader who
@@ -194,6 +211,29 @@ function describeWindow(filter: TaskFilter): string {
 	if (from !== "") return `${what} from ${from}`;
 	if (until !== "") return `${what} up to ${until}`;
 	return filter.dateField === "due" ? "has a date" : `has a ${what} date`;
+}
+
+/**
+ * Whether the task stands under the heading the reader asked for.
+ *
+ * The **outermost** heading only — the same step the wedge is made of, so what
+ * you filter on is what you read on the rim. A deeper heading of the same name
+ * belongs to its own branch and answers a different question.
+ *
+ * `matchesPattern` is the skip lists' rule, borrowed whole: an exact name by
+ * default, `Project*` where the reader wants everything like it. Two spellings of
+ * "a name with a star" in one plugin would be one too many.
+ */
+function matchesHeading(
+	headingPath: readonly string[],
+	wanted: string,
+): boolean {
+	if (wanted.trim().length === 0) return true;
+
+	const outermost = headingPath[0];
+	if (outermost === undefined) return false;
+
+	return matchesPattern(outermost.trim().toLowerCase(), wanted);
 }
 
 /**

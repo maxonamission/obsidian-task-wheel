@@ -4,6 +4,79 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.0]
+
+A second axis. Until now the angle of the wheel came from where a task was
+filed; it can now come from **the heading it sits under**, which is what a vault
+that sorts by horizon — today, this week, someday — writes its subjects in. That
+one setting brings a wedge that spans notes, a wheel you can open over it, a
+filter rule to ask the same question without leaving where you are, and a way to
+switch the whole perspective from the wheel itself.
+
+- **Added**: the wheel's angle can now come from **the heading a task sits
+  under**, next to the top folder, a tag namespace and a front-matter property.
+  It is for a vault that splits its work by *horizon* rather than by subject —
+  one note for today, one for this week, one for someday, each with the same
+  headings inside. The folder then says nothing about what a task is about and
+  the heading says everything, so *Home* in three notes becomes one wedge, with
+  the three notes side by side inside it — one turn of that wedge walks the same
+  subject across every horizon. Only the outermost heading becomes a wedge;
+  deeper ones stay rings, and a task under no heading falls back like any other.
+  Unlike the other three sources this one also holds on a wheel over a **folder**:
+  narrowing to a folder narrows what is drawn, not what the angle means.
+- **Added**: a heading wedge **opens**, like everything else on the wheel. A
+  second tap gives you a wheel over that heading wherever it is written, with the
+  notes it lives in as its wedges — so zooming into *Home* shows today, this week
+  and someday side by side, each with what stands under that heading. It was the
+  one wedge with no way in: not a folder and not a note, so the ladder stopped at
+  exactly the axis you had just chosen. Opened from a folder wheel it stays
+  inside that folder, and stepping back out returns you to it.
+- **Added**: a filter rule **Under heading** — the work that stands under one
+  heading, wherever it is written. It reads the outermost heading, the same step
+  the wedges are made of, so what you filter on is what you read on the rim.
+  Exact by default; `Project*` takes everything that starts with it, as in the
+  skip lists. It works whatever the domain comes from and it combines with the
+  rest, so "this subject, high priority, this week" is one question rather than
+  three wheels — the same subject scattered over a dozen notes in half as many
+  folders is the one question the other rules cannot ask.
+- **Added**: what the angle is made of can be switched **from the wheel** — four
+  rows in the round menu, one per source, ticked on the one that is on. It is
+  still a setting, but it is the setting you change while looking at the wheel,
+  to ask the same work a different question, and three taps into a settings tab
+  is not where that belongs.
+- **Added**: the filter panel says what the wheel is about when that is narrower
+  than the vault, and that stepping out is the way to widen it. A blikveld
+  narrows the wheel and a filter narrows the round, and from the inside those
+  look identical: stepping into a wheel over one heading and then opening the
+  panel to widen it again showed every row empty, with nothing to clear.
+- **Fixed**: stepping into a heading wedge gives back exactly what that wedge
+  held. It used to add task notes the wedge did not contain — a bare one drew a
+  wedge holding only itself, and one whose inner checkboxes stood under that
+  heading brought them along, though on the wider wheel they sit under the note
+  itself. A task note is one task with everything under it, so the headings
+  inside it are its own structure rather than domains of their own; a heading
+  wheel now leaves those notes out, and their work stays where it lives.
+- **Fixed**: a note that is itself a task now sits in **one** wedge, with
+  everything inside it hanging under it. With the domain coming from headings, a
+  task note holding a "Home" and a "Work" heading drew three copies of itself and
+  counted five items for the three it holds — so the round could only close by
+  landing on the same note three times.
+- **Fixed**: on a wheel over one folder, with the domain coming from headings,
+  the outermost heading was drawn nowhere at all — and two different sections
+  that shared a subheading merged into one. The wedge and the rings under it now
+  agree by construction about where the headings start.
+- **Fixed**: carrying one of two identically named tasks out of a note no longer
+  takes the other one's place in the round with it. The mark now follows the
+  *lines* that moved rather than the words on them, so the twin that stayed
+  behind keeps what it had honestly earned.
+- **Fixed**: stepping sideways off a heading lands on the next item this round
+  has not been past, instead of taking one wasted step first.
+- **Changed**: a filter that had its date field set under *between two dates* and
+  its rule changed to something else afterwards now reads that field for the new
+  rule too. That is the point of 0.1.24's change, but for a filter saved before
+  it, the rule can mean something slightly different than it used to. The line
+  under the wheel names the field, so it says which question it is answering.
+
 ## [0.1.24]
 
 Destinations you can keep, a round that keeps its place, and a wheel that does

@@ -42,16 +42,27 @@ export interface Rename {
  * mark belongs to the original — the new one is genuinely new work in another
  * note, and it should be met.
  *
- * `labels` names what travelled rather than remapping the whole note: moving one
- * task out of a note that holds ten must not re-key the nine that stayed.
+ * `lines` says **which lines left**, rather than what they were called
+ * (BC_E3_S144). Naming them was the first attempt and it was wrong in the case
+ * the wheel meets every day: a note holding two tasks called "Bellen", one of
+ * which is carried away. Matching on the label re-keyed both, so the twin that
+ * stayed behind lost the mark it had honestly earned — the round went backwards
+ * for a task nobody touched. Lines are what actually travelled, they are read
+ * off the same block the write took out, and no two of them are alike.
  */
 export interface Moved {
 	/** The note the block came out of. */
 	from: string;
 	/** The note it landed in. */
 	to: string;
-	/** What travelled, as the wheel labels it. */
-	labels: readonly string[];
+	/** The lines that left, as half-open ranges in the note as it was. */
+	lines: readonly LineRange[];
+}
+
+/** A run of lines: `start` included, `end` not. */
+export interface LineRange {
+	start: number;
+	end: number;
 }
 
 /**
@@ -200,16 +211,24 @@ function keyOf(node: WheelNode, rename?: Rename, moved?: Moved): string {
 	// carry and the tree after it agree about which node is which. Applied to the
 	// old tree only, exactly like the rename hint.
 	//
-	// A label that matches but did not travel — a heading with the same words as
-	// the task beside it — keys to a note where nothing of that kind answers, so
-	// it simply finds no partner and keeps the mark it had. Over-matching costs
-	// nothing; under-matching would cost the round.
+	// Whether it travelled is decided by the line it stood on, not by what it is
+	// called: two tasks in one note may read the same, and only one of them left
+	// (BC_E3_S144). A node standing for a whole note has no line of its own —
+	// `raw` is null — so it is never taken along by a block that happens to start
+	// at the top of the file.
+	const line = node.source?.raw === null ? -1 : node.source?.line ?? -1;
 	const at =
-		moved !== undefined && path === moved.from && moved.labels.includes(label)
+		moved !== undefined && path === moved.from && travelled(line, moved)
 			? moved.to
 			: path;
 
 	return `${node.kind}${SEP}${at}${SEP}${label}`;
+}
+
+/** Whether this line was inside one of the blocks that left. */
+function travelled(line: number, moved: Moved): boolean {
+	if (line < 0) return false;
+	return moved.lines.some((range) => line >= range.start && line < range.end);
 }
 
 function compare(a: string, b: string): number {

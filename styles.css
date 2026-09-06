@@ -229,6 +229,14 @@
 	white-space: nowrap;
 }
 
+/* What this wheel is about, when a blikveld — not the filter — is what makes it
+   narrow. Muted: it reports, it does not act (BC_E3_S149). */
+.task-wheel-controls-scope {
+	margin-left: auto;
+	color: var(--text-muted);
+	text-align: right;
+}
+
 .task-wheel-controls-body {
 	display: flex;
 	flex-direction: column;

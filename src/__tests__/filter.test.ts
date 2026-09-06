@@ -643,3 +643,91 @@ group("which of the three dates a rule reads", () => {
 		expect(describe(on({ due: "soon", horizon: 3 }))).toContain("due within 3 days");
 	});
 });
+
+/* ------------------------------------------------------------------ */
+/* Only the work under one heading (BC_E3_S147)                        */
+/* ------------------------------------------------------------------ */
+
+group("under a heading", () => {
+	const task = fields("- [ ] Bellen");
+	const under = (path: string[], wanted: string): boolean =>
+		matches(task, filter({ heading: wanted }), TODAY, "Werk/Plan.md", path);
+
+	it("keeps what stands under that heading", () => {
+		expect(under(["Project"], "Project")).toBe(true);
+		expect(under(["Project", "Deze week"], "Project")).toBe(true);
+	});
+
+	it("leaves out what stands under another", () => {
+		expect(under(["Beheer"], "Project")).toBe(false);
+	});
+
+	it("reads the outermost heading only, like the wedge does", () => {
+		// A deeper heading of the same name belongs to its own branch and
+		// answers a different question.
+		expect(under(["Beheer", "Project"], "Project")).toBe(false);
+	});
+
+	it("leaves out work that stands under no heading at all", () => {
+		expect(under([], "Project")).toBe(false);
+	});
+
+	it("ignores case, and widens on a star like the skip lists do", () => {
+		expect(under(["project"], "Project")).toBe(true);
+		expect(under(["Project 2026"], "Project*")).toBe(true);
+		expect(under(["Project 2026"], "Project")).toBe(false);
+	});
+
+	it("is off when it is empty, whitespace included", () => {
+		expect(isFiltering(filter({ heading: "" }))).toBe(false);
+		expect(isFiltering(filter({ heading: "  " }))).toBe(false);
+		expect(isFiltering(filter({ heading: "Project" }))).toBe(true);
+		expect(under([], "  ")).toBe(true);
+	});
+
+	it("says so in the line under the wheel", () => {
+		expect(describe(filter({ heading: "Project" }))).toContain("under Project");
+	});
+});
+
+group("under a heading, on a whole wheel", () => {
+	const NOTES: NoteInput[] = [
+		{
+			path: "Werk/Vandaag.md",
+			content: ["## Project", "- [ ] Bellen", "## Beheer", "- [ ] Mailen"].join("\n"),
+		},
+		{ path: "Werk/Ooit.md", content: "## Project\n- [ ] Opruimen" },
+		{ path: "Thuis/Los.md", content: "- [ ] Afwas" },
+	];
+
+	function tasksOf(options: ParseOptions): string[] {
+		const tree = buildTree(NOTES, options);
+		const out: string[] = [];
+		for (const node of tree.byId.values()) {
+			if (node.kind === "task") out.push(node.label);
+		}
+		return out.sort();
+	}
+
+	it("collects the same heading across notes, whatever the domain comes from", () => {
+		// The question the owner asked, and the reason this is a filter rather
+		// than a wheel of its own: the scope stays what it was.
+		for (const domainSource of ["folder", "tag", "property", "heading"] as const) {
+			const options: ParseOptions = {
+				...DEFAULT_PARSE_OPTIONS,
+				domainSource,
+				filter: { ...NO_FILTER, withTags: [], withoutTags: [], heading: "Project" },
+			};
+			expect(tasksOf(options)).toEqual(["Bellen", "Opruimen"]);
+		}
+	});
+
+	it("counts what it leaves out rather than dropping it in silence", () => {
+		const tree = buildTree(NOTES, {
+			...DEFAULT_PARSE_OPTIONS,
+			filter: { ...NO_FILTER, withTags: [], withoutTags: [], heading: "Project" },
+		});
+
+		expect(tree.filteredOut).toBe(2);
+	});
+});

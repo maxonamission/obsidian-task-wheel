@@ -48,6 +48,19 @@ export interface FilterPanelOptions {
 	/** How many tasks the filter is leaving out right now. */
 	left: number;
 	/**
+	 * What this wheel is about, when that is narrower than the vault
+	 * (BC_E3_S149).
+	 *
+	 * A blikveld narrows the wheel and a filter narrows the round, and from the
+	 * inside those look identical: the owner stepped into a wheel over one
+	 * heading, saw a fraction of his work, opened this panel to widen it again
+	 * and found every row empty — *"ik zie wel de gefilterde verzameling maar
+	 * het filterpaneel is leeg en ik kan niet clear filter doen"* (5 sep 2026).
+	 * Nothing was broken; nothing said what was going on either, and a wheel
+	 * that leaves work out without saying so is what §3.3 forbids.
+	 */
+	scope: string | null;
+	/**
 	 * Enter in the search box: take me to what I searched for (BC_E3_S121).
 	 *
 	 * The box applies its words on `change` like any other field; this is the
@@ -118,10 +131,28 @@ export function renderFilterPanel(
 
 	const body = parent.createDiv({ cls: "task-wheel-controls-body" });
 
+	// First, above the rules: it is the reason the wheel is narrow that the
+	// rules below cannot explain, and clearing them will not widen it.
+	if (options.scope !== null) {
+		const line = body.createDiv({ cls: "task-wheel-controls-row" });
+		line.createSpan({ cls: "task-wheel-controls-label", text: "This wheel" });
+		line.createSpan({
+			cls: "task-wheel-controls-scope",
+			text: `${options.scope} — step out to widen`,
+		});
+	}
+
 	// First, because it is the one people reach for: type two words and the
 	// round is about those. Applied on change rather than on every keystroke —
 	// a rescan of the vault per letter would be a poor trade.
 	const box = search(body, "Words", filter.text, (value) => change({ text: value }), options);
+
+	// Right after the words, because it answers the same shape of question —
+	// "only the work about this" — and before the date rules, which are about
+	// when rather than about what (BC_E3_S147).
+	text(body, "Under heading", filter.heading, "Project", (value) => {
+		change({ heading: value });
+	});
 
 	dropdown(body, "Status", STATUS_LABELS, filter.status, (value) => {
 		change({ status: value as StatusRule });
@@ -259,6 +290,27 @@ function number(
 		const days = Number.parseInt(input.value, 10);
 		onSet(Number.isFinite(days) ? Math.max(days, 0) : 0);
 	});
+}
+
+/**
+ * A plain text box for a name (BC_E3_S147).
+ *
+ * Applied on `change` rather than per keystroke, like the search box: a rescan
+ * of the vault per letter would be a poor trade for a field you type a heading
+ * into once.
+ */
+function text(
+	parent: HTMLElement,
+	label: string,
+	value: string,
+	placeholder: string,
+	onSet: (value: string) => void,
+): void {
+	const input = row(parent, label).createEl("input", {
+		attr: { type: "text", value, placeholder, "aria-label": label },
+	});
+
+	input.addEventListener("change", () => onSet(input.value.trim()));
 }
 
 /**

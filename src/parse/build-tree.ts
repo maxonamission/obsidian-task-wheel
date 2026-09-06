@@ -105,6 +105,17 @@ export function buildTreeFrom(
 	for (const { note, tasks: outlined } of ordered) {
 		if (isExcluded(note, options)) continue;
 
+		// A wheel over one heading holds what the heading wedge held, and that
+		// wedge never held a task note (BC_E3_S149, herzien BC_E3_S150). A note
+		// that is itself a task hangs in one wedge with everything under it —
+		// its checkboxes are its subtasks, and the headings between them are its
+		// own structure rather than domains of their own (BC_E3_S144). So on the
+		// wider wheel that note and its work sit in *its* wedge, not in the ones
+		// its inner headings name; stepping into a heading must therefore not
+		// hand back work the wedge you tapped did not hold. A boundary like the
+		// scope itself, so nothing here is counted as filtered out.
+		if (options.scope.kind === "heading" && isTaskNote(note, options)) continue;
+
 		// The document's own outline, on the wheels where the wheel *is* that
 		// outline (BC_E3_S85). Before everything else: a note whose every heading
 		// is empty is exactly the case this is for, and it must still draw its
@@ -130,11 +141,15 @@ export function buildTreeFrom(
 
 		// A section wheel is about one subtree of headings: tasks elsewhere in
 		// the note are a boundary like the scope itself, never counted as
-		// filtered out (BC_E3_S64).
+		// filtered out (BC_E3_S64). A heading wheel is the same idea across
+		// notes — everything under that heading, wherever it is written
+		// (BC_E3_S146).
 		const onTopic =
 			options.scope.kind === "section"
 				? withinSection(shaped, options.scope.heading)
-				: shaped;
+				: options.scope.kind === "heading"
+					? underHeading(shaped, options.scope.heading)
+					: shaped;
 
 		const open = selectTasks(onTopic, options);
 		const kept = selectFiltered(open, note, options);
@@ -153,6 +168,7 @@ export function buildTreeFrom(
 		// its node is made before the "nothing here" exit below. Without this a
 		// one-line task note — the ordinary case — would be a note with no tasks,
 		// and the wheel would drop the very thing it stands for.
+		//
 		if (asTask !== undefined) {
 			ensureContainers(root, byId, note, noteGroup(note, options), options, asTask);
 		}
@@ -162,7 +178,20 @@ export function buildTreeFrom(
 			continue;
 		}
 
-		for (const group of groupTasks(kept, note, options)) {
+		// A note that is itself a task hangs in **one** wedge, and everything
+		// inside it hangs under it (BC_E3_S144). Its checkboxes cannot be sorted
+		// into wedges of their own without cloning their parent into each one:
+		// before this, a task note with a "Thuis" and a "Werk" heading drew three
+		// copies of itself and counted five items for the three it holds — so the
+		// round could only close by landing on the same note three times. The
+		// wedge is the one the note itself resolved to, exactly as `noteGroup`
+		// read it.
+		const onePlace =
+			asTask !== undefined && !scopedWheel(options)
+				? noteGroup(note, options).wedge
+				: undefined;
+
+		for (const group of groupTasks(kept, note, options, onePlace)) {
 			const container = ensureContainers(
 				root,
 				byId,
@@ -238,6 +267,21 @@ function withoutTitleHeading(
 }
 
 /**
+ * The tasks whose outermost heading is this one, in whatever note.
+ *
+ * The mirror of `withinSection`: that one is a subtree of one note, this one is
+ * the same name wherever it was written. Matched on the outermost step only,
+ * because that is the step the wedge was made of — a deeper heading of the same
+ * name belongs to its own branch and says something else.
+ */
+function underHeading(
+	tasks: readonly OutlinedTask[],
+	heading: string,
+): OutlinedTask[] {
+	return tasks.filter((task) => task.headingPath[0] === heading);
+}
+
+/**
  * The tasks that sit under a section's heading path, subheadings included.
  *
  * A plain prefix match on titles: the scope's identity is the full path, and
@@ -293,7 +337,13 @@ function selectFiltered(
 	if (!isFiltering(options.filter)) return tasks;
 
 	const wanted = tasks.map((task) =>
-		matches(task.fields, options.filter, options.today, note.path),
+		matches(
+			task.fields,
+			options.filter,
+			options.today,
+			note.path,
+			task.headingPath,
+		),
 	);
 
 	return tasks.filter((task, index) => {
@@ -558,7 +608,7 @@ function outlineGroups(note: NoteInput, options: ParseOptions): TaskGroup[] {
 
 		if (isExcludedHeading(path, options)) continue;
 
-		const wedge = headingWedge(path[base]);
+		const wedge = headingWedge(path[base], base + 1);
 		groups.push({
 			wedge,
 			domain: wedge.label,
@@ -620,6 +670,8 @@ function groupTasks(
 	tasks: OutlinedTask[],
 	note: NoteInput,
 	options: ParseOptions,
+	/** One wedge for the whole note, when the note is itself a task. */
+	fixed?: Wedge,
 ): TaskGroup[] {
 	const groups = new Map<string, TaskGroup>();
 
@@ -631,17 +683,19 @@ function groupTasks(
 		// wheel over one section starts that axis one path deeper: its
 		// subheadings are the wedges (BC_E3_S64).
 		const wedge: Wedge =
-			options.scope.kind === "note" || options.scope.kind === "section"
-				? headingWedge(task.headingPath[base] ?? options.fallbackDomain)
+			fixed ??
+			(options.scope.kind === "note" || options.scope.kind === "section"
+				? headingWedge(task.headingPath[base] ?? options.fallbackDomain, base + 1)
 				: resolveWedge(
 						{
 							notePath: note.path,
 							frontmatterTags: note.frontmatterTags ?? [],
 							taskTags: task.fields.tags,
 							frontmatter: note.frontmatter,
+							headingPath: task.headingPath,
 						},
 						options,
-					);
+					));
 		const headingPath = options.useHeadingsAsGroups ? task.headingPath : [];
 		const headingLines = options.useHeadingsAsGroups ? task.headingLines : [];
 		const headingRaws = options.useHeadingsAsGroups ? task.headingRaws : [];
@@ -765,7 +819,12 @@ function ensureContainers(
 
 	if (!options.useHeadingsAsGroups) return parent;
 
-	const from = scoped ? base + 1 : 0;
+	// Where the heading rings start: exactly where the wedge stopped. Drawing a
+	// heading twice — once as the wedge, once as the ring right under it — would
+	// be a ring that says what the wedge already said, and skipping one that
+	// never became a wedge loses it altogether (BC_E3_S143, BC_E3_S144). The
+	// wedge carries the number so the two cannot be derived apart.
+	const from = group.wedge.headingSteps;
 	for (let i = from; i < group.headingPath.length; i++) {
 		const heading = group.headingPath[i];
 		parent = ensureChild(byId, parent, {
@@ -996,9 +1055,14 @@ function sanitise(text: string): string {
 	return text.split(SEP).join(" ");
 }
 
-/** A wedge that is one of a note's own headings — the note wheel's angular axis. */
-function headingWedge(heading: string): Wedge {
-	return { label: heading, key: `d:${heading}`, note: false };
+/**
+ * A wedge that is one of a note's own headings — the note wheel's angular axis.
+ *
+ * `steps` is how much of the heading path it ate, so the rings under it start
+ * where it stopped and can never be worked out differently (BC_E3_S144).
+ */
+function headingWedge(heading: string, steps: number): Wedge {
+	return { label: heading, key: `d:${heading}`, note: false, headingSteps: steps };
 }
 
 /**
@@ -1008,6 +1072,11 @@ function headingWedge(heading: string): Wedge {
  * section's own heading. Kept as one function so the wedge choice and the
  * ring start can never disagree about where "below" begins.
  */
+/** Whether the wheel is already inside one note — then there is no note ring. */
+function scopedWheel(options: ParseOptions): boolean {
+	return options.scope.kind === "note" || options.scope.kind === "section";
+}
+
 function sectionDepth(options: ParseOptions): number {
 	return options.scope.kind === "section" ? options.scope.heading.length : 0;
 }

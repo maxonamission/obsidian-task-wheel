@@ -371,7 +371,7 @@ describe("moving on to the next item", () => {
 		expect(seen).toEqual([
 			{
 				advance: true,
-				moved: { from: NOTE, to: "Werk/Later.md", labels: ["Bellen"] },
+				moved: { from: NOTE, to: "Werk/Later.md", lines: [{ start: 0, end: 1 }] },
 			},
 		]);
 		expect(notes.get("Werk/Later.md")).toContain("- [ ] Bellen");

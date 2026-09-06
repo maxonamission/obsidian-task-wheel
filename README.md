@@ -59,8 +59,27 @@ character is no reason to drop work from a round.
 
 Hierarchy is read in this order of precedence: indentation under a parent task,
 then headings in the note, then the note as a project, then the folder as a
-domain. The domain can also come from a tag namespace such as `#domein/werk` —
-that is a setting.
+domain. The domain can also come from a tag namespace such as `#domein/werk`,
+from a front-matter property, or from **the heading a task sits under** — that
+is a setting.
+
+That last one is for a vault that splits its work by *horizon* rather than by
+subject: one note for today, one for this week, one for someday, each with the
+same headings inside. The folder then says nothing about what a task is about
+and the heading says everything, so *Home* in three notes becomes one wedge,
+with the three notes side by side inside it — one turn of that wedge walks the
+same subject across every horizon. Only the outermost heading becomes a wedge;
+deeper ones stay rings, and a task under no heading falls back like any other.
+
+Unlike the other three sources, this one also holds on a wheel over a **folder**:
+narrowing to a folder narrows what is drawn, not what the angle means. A wheel
+over one note or one section is the exception — there the headings are already
+the axis.
+
+A heading wedge **opens**, like everything else on the wheel: a second tap gives
+you a wheel over that heading wherever it is written, with the notes as its
+wedges. Opened from a folder wheel it stays inside that folder, and the way back
+out returns you to it.
 
 The Tasks plugin is not required. When it *is* installed, the wheel borrows two
 things from it: ticking a task off goes through it, so recurring tasks roll over
@@ -185,6 +204,18 @@ how much is outside it — even when it is closed.
 the next and they no longer take each other's filter over: the filter belongs to
 what the wheel is looking at, beside the round it defines. Two wheels over the
 *same* thing do share one — they are two windows on one round.
+
+**Under heading** narrows a round to the work that stands under one heading,
+wherever it is written: *"give me everything in this scope that sits under a
+heading Project"*. That is the one question the other rules cannot ask — the
+same subject, scattered over a dozen notes in half as many folders. It reads the
+**outermost** heading, the same step the wedges are made of, so what you filter
+on is what you read on the rim. Exact by default, and `Project*` takes
+everything that starts with it, exactly as the skip lists do. It works whatever
+the domain comes from, and it combines with the rest, so "this subject, high
+priority, this week" is one question rather than three wheels. A task that
+stands under no heading at all is left out while it is set — and counted as
+left out, like anything else the filter removes.
 
 **Status** is *not started*, *in progress* or *finished* — done and cancelled
 together, since a round makes no distinction between them. Picking *finished*
@@ -495,10 +526,12 @@ in the note — which is what *open the note* is for.
 
 ## Settings worth knowing
 
-- **Domain comes from** — the top folder, a tag namespace, or a front-matter
-  property such as `area:`. This decides the angle, so it is the setting with
-  the most visible consequence. Only the tag namespace works per *task*, so it
-  is the one that lets a single note feed several wedges.
+- **Domain comes from** — the top folder, a tag namespace, a front-matter
+  property such as `area:`, or the heading a task sits under. This decides the
+  angle, so it is the setting with the most visible consequence. The tag
+  namespace and the heading work per *task*, so those are the two that let a
+  single note feed several wedges — and the heading is the only one that lets a
+  single wedge span several notes.
 - **Detail** — how many items may be drawn at once (compact 120, balanced 240,
   dense 400).
 - **Folders to read / Excluded folders** — in a large vault, naming the four

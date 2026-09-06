@@ -1,4 +1,4 @@
-import type { DateRule } from "../model/types";
+import type { DateRule, DomainSource } from "../model/types";
 
 /**
  * The round's own actions, as a menu.
@@ -28,7 +28,19 @@ export type RoundAction =
 	| "rescan"
 	| "skip-report"
 	| "duplicate-report"
-	| "add-preset";
+	| "add-preset"
+	| "angle-folder"
+	| "angle-tag"
+	| "angle-property"
+	| "angle-heading";
+
+/** The four angles, in the order the settings tab offers them. */
+const ANGLES: readonly [RoundAction, DomainSource, string][] = [
+	["angle-folder", "folder", "Angle: top folder"],
+	["angle-tag", "tag", "Angle: tag namespace"],
+	["angle-property", "property", "Angle: note property"],
+	["angle-heading", "heading", "Angle: the heading it sits under"],
+];
 
 export interface MenuRow {
 	/** `null` for a separator, and for the line that only reports. */
@@ -53,6 +65,8 @@ export interface RoundMenuState {
 	filterText: string;
 	/** Which date lens is on, so its row can be ticked. */
 	due: DateRule;
+	/** What the angle is made of right now, so its row can be ticked. */
+	angle: DomainSource;
 	/** How many branches are folded away in this wheel. */
 	folded: number;
 	/** The vault changed under this wheel since it last read it. */
@@ -142,6 +156,25 @@ export function roundMenu(state: RoundMenuState): MenuRow[] {
 		icon: "filter-x",
 		disabled: !state.filtering,
 	});
+
+	rows.push(line());
+
+	// What the angle is made of, switchable from here (BC_E3_S148). It is a
+	// setting, and it stays one — but it is the setting a reader changes *while
+	// looking at the wheel*, to ask the same work a different question, and
+	// three taps into a settings tab is not where that belongs. The date lenses
+	// above are ticked the same way and for the same reason.
+	//
+	// Picking the one that is already on does nothing rather than turning it
+	// off: unlike a lens, the wheel cannot be drawn without an angle.
+	for (const [action, source, title] of ANGLES) {
+		rows.push({
+			action,
+			title,
+			icon: "compass",
+			checked: state.angle === source,
+		});
+	}
 
 	rows.push(line());
 

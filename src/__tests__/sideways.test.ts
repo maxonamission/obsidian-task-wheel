@@ -321,6 +321,32 @@ describe("the arrow steps over what this round has seen", () => {
 		expect(walk(first, 1, "w2", "w3", "w4", "t1", "t2")).toBe("w2");
 	});
 
+	it("skips from the very first press when stepping off a heading", () => {
+		// Standing somewhere that is not on the task ring, the step used to take
+		// the nearest task ahead whatever its state — one wasted press before the
+		// skipping began (BC_E3_S144).
+		const heading = [...tree.byId.values()].find(
+			(node) => node.kind === "group" || node.kind === "project",
+		);
+		expect(heading).toBeDefined();
+
+		const marks = new Set(
+			[...tree.byId.values()]
+				.filter((node) => ["t1", "t2", "w1"].includes(node.label))
+				.map((node) => node.id),
+		);
+		const to = sidewaysFrom(
+			tree.root,
+			domains,
+			heading?.id as string,
+			1,
+			"tasks",
+			(id) => marks.has(id),
+		);
+
+		expect(label(to)).toBe("w2");
+	});
+
 	it("does not skip when the round is not offered", () => {
 		expect(label(sidewaysFrom(tree.root, domains, first, 1, "tasks"))).toBe("w2");
 	});

@@ -182,15 +182,17 @@ export function carryToPreset(
 }
 
 /**
- * What travelled, so the round's marks can follow it (BC_E3_S137).
+ * Which lines travelled, so the round's marks can follow them (BC_E3_S137).
  *
  * Only for a move to another note. A copy leaves the original in place and the
  * mark belongs there; a move within the same note never changed the pair that
  * identifies a node, so neither needs a hint.
  *
- * The labels are read back off the very lines that travelled — the same text
- * `build-tree` will label the new nodes with — rather than from the tree, which
- * at this point still describes the vault as it was a moment ago.
+ * Lines rather than labels (BC_E3_S144). The first version named what left and
+ * matched on the name, which re-keyed a same-named task that stayed behind — it
+ * lost a mark for a move it was not part of. The blocks already know exactly
+ * which lines they took, so there is nothing to guess and nothing to parse: no
+ * heading syntax to re-derive, no task whose description is empty to overlook.
  */
 function movedHint(
 	mode: CarryMode,
@@ -200,22 +202,12 @@ function movedHint(
 ): Moved | undefined {
 	if (mode !== "move" || from === to) return undefined;
 
-	const labels: string[] = [];
-	for (const block of blocks) {
-		for (const line of block.raw) {
-			const task = parseTaskLine(line.trim());
-			if (task !== null) {
-				if (task.fields.description.length > 0) labels.push(task.fields.description);
-				continue;
-			}
-			// A section travels as a heading plus what hangs under it, and the
-			// heading is a node of its own with the round's marks on it.
-			const heading = /^#{1,6}[ \t]+(.*\S)/.exec(line.trim());
-			if (heading !== null) labels.push(heading[1]);
-		}
-	}
+	const lines = blocks.map((block) => ({
+		start: block.start,
+		end: block.start + block.length,
+	}));
 
-	return labels.length === 0 ? undefined : { from, to, labels };
+	return lines.length === 0 ? undefined : { from, to, lines };
 }
 
 /**

@@ -181,6 +181,20 @@ export function scopeFor(
 	// A wedge that is a note is handled below, by its source, like any other
 	// note: in a folder wheel the outermost ring holds both (BC_E3_S35).
 	if (node.depth === 1 && node.kind === "domain") {
+		// A heading wedge opens a wheel over that heading, wherever it is
+		// written (BC_E3_S146). It was the one wedge with no way in: not a
+		// folder and not a note, so the ladder stopped at exactly the axis the
+		// reader had just chosen — *"ik kan nu alleen uitzoomen"* (eigenaar,
+		// 5 sep 2026). It keeps to the folder it was opened from, so stepping in
+		// never quietly widens the view back out to the whole vault.
+		if (domainSource === "heading") {
+			return {
+				kind: "heading",
+				heading: node.label,
+				path: within.kind === "folder" ? within.path : "",
+			};
+		}
+
 		// Only a folder domain names a folder. A tag namespace and a
 		// front-matter property both cut *across* the folders — that is what
 		// they are for — so there is no folder of that name to open, and

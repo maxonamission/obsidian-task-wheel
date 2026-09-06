@@ -185,10 +185,11 @@ describe("a task carried to another note", () => {
 		"Werk/Nu.md": "- [ ] Mailen",
 		"Werk/Later.md": "# Later\n- [ ] Bellen",
 	});
+	// "Bellen" stood on line 0 of Nu.md and left; the range says so.
 	const moved = {
 		from: "Werk/Nu.md",
 		to: "Werk/Later.md",
-		labels: ["Bellen"],
+		lines: [{ start: 0, end: 1 }],
 	};
 
 	it("takes its seen-mark with it", () => {
@@ -221,6 +222,59 @@ describe("a task carried to another note", () => {
 		expect(labelsSeen(after, carrySeen(before, after, seen, undefined, moved))).toEqual(
 			["Bellen", "Mailen"],
 		);
+	});
+
+	it("leaves the twin that stayed behind with its own mark", () => {
+		// The case that broke when the hint named labels instead of lines
+		// (BC_E3_S144): one of two identical tasks is carried away, and matching
+		// on the words re-keyed both — so the twin nobody touched came back
+		// unseen and the round went backwards.
+		const from = vault({
+			"Werk/Nu.md": "- [ ] Bellen\n- [ ] Bellen",
+			"Werk/Later.md": "# Later",
+		});
+		const to = vault({
+			"Werk/Nu.md": "- [ ] Bellen",
+			"Werk/Later.md": "# Later\n- [ ] Bellen",
+		});
+		const seen = [...from.byId]
+			.filter(([, node]) => node.kind === "task" && node.label === "Bellen")
+			.map(([id]) => id);
+		expect(seen).toHaveLength(2);
+
+		const carried = carrySeen(from, to, seen, undefined, {
+			from: "Werk/Nu.md",
+			to: "Werk/Later.md",
+			// Only the first of the two left.
+			lines: [{ start: 0, end: 1 }],
+		});
+
+		expect(labelsSeen(to, carried)).toEqual(["Bellen", "Bellen"]);
+	});
+
+	it("does not take the note's own node along with a block from its first line", () => {
+		// A node standing for a whole note sits on line 0 with no line of its own.
+		// A task carried off line 0 must not drag the note with it.
+		const from = vault({
+			"Werk/Nu.md": "- [ ] Bellen",
+			"Werk/Later.md": "# Later",
+		});
+		const to = vault({
+			"Werk/Nu.md": "- [ ] Mailen",
+			"Werk/Later.md": "# Later\n- [ ] Bellen",
+		});
+		const note = [...from.byId].find(
+			([, node]) => node.kind === "project" && node.label === "Nu",
+		);
+		expect(note).toBeDefined();
+
+		const carried = carrySeen(from, to, [note?.[0] as string], undefined, {
+			from: "Werk/Nu.md",
+			to: "Werk/Later.md",
+			lines: [{ start: 0, end: 1 }],
+		});
+
+		expect(to.byId.get(carried[0])?.label).toBe("Nu");
 	});
 
 	it("does not touch a task with the same words in a note it never left", () => {

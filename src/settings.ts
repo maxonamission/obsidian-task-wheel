@@ -149,6 +149,8 @@ export interface TaskWheelSettings
 	filterFrom: string;
 	filterUntil: string;
 	filterDateField: DateField;
+	/** The heading work has to stand under, or empty for any (BC_E3_S147). */
+	filterHeading: string;
 	filterStatus: StatusRule;
 	filterMinPriority: Priority | "any";
 	filterMaxPriority: Priority | "any";
@@ -332,6 +334,7 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	filterFrom: NO_FILTER.from,
 	filterUntil: NO_FILTER.until,
 	filterDateField: NO_FILTER.dateField,
+	filterHeading: NO_FILTER.heading,
 	filterStatus: NO_FILTER.status,
 	filterMinPriority: NO_FILTER.minPriority,
 	filterMaxPriority: NO_FILTER.maxPriority,
@@ -448,6 +451,7 @@ export function filterOf(
 		from: settings.filterFrom ?? NO_FILTER.from,
 		until: settings.filterUntil ?? NO_FILTER.until,
 		dateField: settings.filterDateField ?? NO_FILTER.dateField,
+		heading: settings.filterHeading ?? NO_FILTER.heading,
 		status: settings.filterStatus,
 		minPriority: settings.filterMinPriority,
 		maxPriority: settings.filterMaxPriority ?? "any",
@@ -484,6 +488,7 @@ export function setFilter(
 		settings.filterFrom = next.from;
 		settings.filterUntil = next.until;
 		settings.filterDateField = next.dateField;
+		settings.filterHeading = next.heading;
 		settings.filterStatus = next.status;
 		settings.filterMinPriority = next.minPriority;
 		settings.filterMaxPriority = next.maxPriority;
@@ -518,6 +523,7 @@ export function sameFilter(a: TaskFilter, b: TaskFilter): boolean {
 		a.from === b.from &&
 		a.until === b.until &&
 		a.dateField === b.dateField &&
+		a.heading === b.heading &&
 		a.status === b.status &&
 		a.minPriority === b.minPriority &&
 		a.maxPriority === b.maxPriority &&
@@ -560,6 +566,7 @@ const DOMAIN_SOURCE_LABELS: Record<DomainSource, string> = {
 	folder: "Top-level folder",
 	tag: "Tag namespace",
 	property: "Front-matter property",
+	heading: "The heading it sits under",
 };
 
 const HOW_LABELS: Record<CarryPreset["how"], string> = {
@@ -718,7 +725,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 				items: [
 					{
 						name: "Domain comes from",
-						desc: "The domain is the wheel's angle, so this decides where a task sits. Folders and properties are per note; a tag namespace lets one note feed several domains.",
+						desc: "The domain is the wheel's angle, so this decides where a task sits. Folders and properties are per note; a tag namespace lets one note feed several domains. The heading it sits under does both — it splits one note over several wedges, and it collects the same heading from several notes into one. That is the setting for a vault that splits its work by horizon (today, this week, someday) and names the domain in the headings: the wedge becomes 'Home', and the notes it came from sit side by side inside it, so one turn of that wedge walks the same subject across every horizon. Outermost heading only; deeper ones stay rings, and a task under no heading at all falls back. This one holds on a wheel over a folder as well — narrowing to a folder narrows what is drawn, not what the angle means.",
 						control: {
 							type: "dropdown",
 							key: "domainSource",
@@ -820,7 +827,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Stepping into a wheel",
-						desc: "Tapping an item twice opens a wheel over it, and the way back out returns to the wider one. Reusing the tab keeps that a walk rather than a pile: the ladder runs vault → folder → note → section, so opening a tab per step leaves one behind for every branch you looked at. Nothing is lost either way — each blikveld keeps its own round, filter, zoom and folded branches wherever it is opened. A wheel you open from the file list, the ribbon or a command is one you asked for, and always gets a tab of its own.",
+						desc: "Tapping an item twice opens a wheel over it, and the way back out returns to the wider one. Reusing the tab keeps that a walk rather than a pile: the ladder runs vault → folder → note → section, with a heading wheel as a rung of its own when the domain comes from headings, so opening a tab per step leaves one behind for every branch you looked at. Nothing is lost either way — each blikveld keeps its own round, filter, zoom and folded branches wherever it is opened. A wheel you open from the file list, the ribbon or a command is one you asked for, and always gets a tab of its own.",
 						control: {
 							type: "dropdown",
 							key: "stepInto",
@@ -876,6 +883,15 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							type: "dropdown",
 							key: "filterDue",
 							options: DUE_LABELS,
+						},
+					},
+					{
+						name: "Only tasks under this heading",
+						desc: "The outermost heading a task stands under — the same step the wedges are made of, so what you filter on is what you read on the rim. Exact by default; 'Project*' takes everything that starts with it, as in the skip lists. Empty means any heading, and a task that stands under none is left out while this is set.",
+						control: {
+							type: "text",
+							key: "filterHeading",
+							placeholder: "Project",
 						},
 					},
 					{
