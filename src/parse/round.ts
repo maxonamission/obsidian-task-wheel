@@ -22,7 +22,12 @@
 
 import { isExcludedHeading } from "./domain";
 import { matches } from "./filter";
-import { isFinished, type ParseOptions, type TaskFields } from "../model/types";
+import {
+	isFinished,
+	type ParseOptions,
+	type TaskFields,
+	type WheelScope,
+} from "../model/types";
 
 /**
  * Whether finished work is part of this round at all.
@@ -32,6 +37,42 @@ import { isFinished, type ParseOptions, type TaskFields } from "../model/types";
  */
 export function showsFinishedWork(options: ParseOptions): boolean {
 	return options.includeCompleted || options.filter.status === "finished";
+}
+
+/**
+ * Whether this task is inside what the wheel is looking at.
+ *
+ * A boundary rather than a rule: what falls outside was never in this round, so
+ * it is not counted as filtered out either. Only two blikvelden narrow by
+ * heading — a wheel over one section, and a wheel over one heading wherever it
+ * is written (BC_E3_S146). The others narrow by *which notes are read*, which
+ * is settled long before a task line is looked at.
+ *
+ * It lives here because two things ask it and they were not asking the same
+ * one. `build-tree` had it and the carry did not, so on a heading wheel a
+ * note-ring carry took every task out of the note — including the ones under
+ * the headings this wheel is not about. Measured 6 sep 2026: the wheel showed
+ * one task, the carry took two. The module docstring above says the wheel
+ * carrying more than it shows is the same broken promise as carrying less, and
+ * this is the half that was missing.
+ *
+ * Safe for a block: a task and everything indented under it share a heading
+ * path, so this boundary never cuts a block in two.
+ */
+export function withinBlikveld(
+	headingPath: readonly string[],
+	scope: WheelScope,
+): boolean {
+	if (scope.kind === "section") {
+		return scope.heading.every((step, i) => headingPath[i] === step);
+	}
+	if (scope.kind === "heading") return headingPath[0] === scope.heading;
+	return true;
+}
+
+/** Whether this blikveld leaves anything of a note's own outline out. */
+export function narrowsByHeading(scope: WheelScope): boolean {
+	return scope.kind === "section" || scope.kind === "heading";
 }
 
 /**
@@ -49,6 +90,7 @@ export function inRound(
 	notePath: string,
 	options: ParseOptions,
 ): boolean {
+	if (!withinBlikveld(headingPath, options.scope)) return false;
 	if (isExcludedHeading(headingPath, options)) return false;
 	if (!showsFinishedWork(options) && isFinished(fields)) return false;
 	// The heading path goes to `matches` as well, not only to the skip rules.

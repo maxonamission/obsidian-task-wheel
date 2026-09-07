@@ -39,6 +39,26 @@ export function roundCompleteMessage(
 }
 
 /**
+ * What to say when a round is given up rather than finished.
+ *
+ * One sentence for both boundaries that do it. A changed selection and a
+ * changed angle invalidate a round for different reasons and cost the reader
+ * the same thing, so they say it the same way — and neither may do it in
+ * silence, which is what the angle used to do (BC_E3_S160).
+ *
+ * `because` names the act, not the setting: the reader knows what they just
+ * pressed and needs to hear what it cost, in that order.
+ */
+export function roundRestartedMessage(
+	restarted: number,
+	because: string,
+): string {
+	return `Task wheel: ${because} is a new round — the ${restarted} item${
+		restarted === 1 ? "" : "s"
+	} you had already passed are no longer marked.`;
+}
+
+/**
  * Note that this item has been under the reading wedge.
  *
  * Coming to rest on something *is* having reviewed it — that is what turning
@@ -56,6 +76,39 @@ export function markSeen(host: RoundHost, id: string): void {
 
 	drawSweep(host);
 	announceIfComplete(host);
+}
+
+/**
+ * The wheel has come to rest on this item: note it, and remember the place.
+ *
+ * One definition of *arriving*, because there turned out to be two. The
+ * controller reports `onSettle` when it actually turns, and the view did the
+ * round work there — but four routes reach an item by laying the wheel out
+ * around it instead of turning to it (a sideways step past what is drawn, a
+ * fold, a landing named from outside, and following the cursor back from a
+ * note). Those go through `adopt`, which reports `onFocus` and never
+ * `onSettle`, so each of them left the item unseen and unremembered: the next
+ * arrow then stepped over it as though the reader had already been there, and
+ * the round could not close (found by audit, 6 sep 2026).
+ *
+ * The two halves belong together. Marking an item seen without remembering
+ * where the reader is means a round that survives a restart but drops you at
+ * its start; remembering the place without marking it means the sweep and the
+ * counter disagree with the drawing.
+ */
+export function arrive(host: RoundHost, id: string): void {
+	markSeen(host, id);
+
+	// Where the reader is, kept so the round survives closing the tab and
+	// closing Obsidian. Coming back to the start of a round you are halfway
+	// through means finding your place again by hand (eigenaar, 23 aug 2026).
+	// Cheap now that state changes are collected rather than written on the
+	// spot (BC_E3_S45).
+	const state = stateFor(host.settings, host.scope());
+	if (state.reading === id) return;
+
+	state.reading = id;
+	host.persist();
 }
 
 /** Paint the part of the circle this round has passed. */

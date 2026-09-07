@@ -15,15 +15,32 @@ import type { WheelNode, WheelTree } from "./types";
  * is. Renaming changes the second half, and that is why a rename says up front
  * what it changed it *to*.
  *
- * Duplicates are paired off one for one, in order. Two tasks with the same
- * words in the same note, one of them seen, come out as two tasks of which one
- * is seen — which one is arbitrary, the count is not. That is the honest answer
- * without inventing an identity the vault does not have.
+ * Duplicates that all survive are paired off one for one, in order. Two tasks
+ * with the same words in the same note, one of them seen, come out as two tasks
+ * of which one is seen — which one is arbitrary, the count is not. That is the
+ * honest answer without inventing an identity the vault does not have.
+ *
+ * **A group that shrinks is not that case** (BC_E3_S175). Pairing in order
+ * there hands the survivor a mark that belonged to the one that left, and a
+ * round can close over a task that was never under the reading wedge. Since
+ * BC_E3_S166 an occurrence is ranked over the note's outline rather than over
+ * the nodes that got made, so an id that is still there after the edit *is* the
+ * same task: it keeps its own mark, and only the ids that genuinely went are
+ * paired off against the ones that genuinely arrived.
  */
 
-/** What a rename changed, so the node can be recognised on the other side. */
+/**
+ * What a rename changed, so the node can be recognised on the other side.
+ *
+ * `line` says **which line** was renamed, and it is not optional. Matching on
+ * the old text alone claimed both of two identical lines when one of them was
+ * renamed, so the other lost its mark (measured, BC_E3_S175). That is the same
+ * defect `Moved.lines` was given a line number for in BC_E3_S144; the rename
+ * hint simply never got the fix.
+ */
 export interface Rename {
 	path: string;
+	line: number;
 	from: string;
 	to: string;
 }
@@ -104,8 +121,17 @@ export function mapIds(
 		const news = now.get(key);
 		if (news === undefined) continue;
 
-		for (let i = 0; i < olds.length && i < news.length; i++) {
-			mapping.set(olds[i], news[i]);
+		// An id that is on both sides of the edit is its own continuation, and
+		// says so before anything is paired off. Order-pairing a shrunken group
+		// would otherwise walk the survivor up the list and hand it the mark of
+		// the task that left (BC_E3_S175).
+		const stayed = new Set(news.filter((id) => olds.includes(id)));
+
+		const left = olds.filter((id) => !stayed.has(id));
+		const arrived = news.filter((id) => !stayed.has(id));
+
+		for (let i = 0; i < left.length && i < arrived.length; i++) {
+			mapping.set(left[i], arrived[i]);
 		}
 	}
 
@@ -202,8 +228,13 @@ function group(
 
 function keyOf(node: WheelNode, rename?: Rename, moved?: Moved): string {
 	const path = node.source?.path ?? "";
+	// The renamed node is the one standing on that line — not every node that
+	// happens to read the same (BC_E3_S175, and BC_E3_S144 for the moved half).
 	const label =
-		rename !== undefined && path === rename.path && node.label === rename.from
+		rename !== undefined &&
+		path === rename.path &&
+		node.source?.line === rename.line &&
+		node.label === rename.from
 			? rename.to
 			: node.label;
 

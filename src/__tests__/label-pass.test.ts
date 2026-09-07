@@ -217,6 +217,51 @@ describe("the rules underneath", () => {
 		expect(rank({ ...base, onRim: true })).toBe(1);
 		expect(rank({ ...base, near: true })).toBe(2);
 		expect(rank(base)).toBe(3);
+
+		// A bare counter comes after every name, its own neighbourhood included:
+		// a "+3" that pushed a task's name off the wheel would be a bad trade
+		// (BC_E3_S154).
+		expect(rank({ ...base, countOnly: true })).toBe(4);
+		expect(rank({ ...base, countOnly: true, near: true })).toBe(4);
+		expect(rank({ ...base, countOnly: true })).toBeGreaterThan(rank(base));
+
+		// Except where the wheel has already promised a name: the focus and a
+		// wedge title outrank everything, and a counter cannot be either.
+		expect(rank({ ...base, focus: true })).toBeLessThan(
+			rank({ ...base, countOnly: true }),
+		);
+	});
+
+	it("yields a counter to a name that wants the same room", () => {
+		// The whole point of ranking it last. Two labels on the same spot: the
+		// name is asked first and kept, the counter is asked after and refused.
+		const spot: LabelPlan = {
+			angle: 90,
+			x: 100,
+			y: 0,
+			width: 30,
+			height: LEAF_HEIGHT,
+			onRim: false,
+			centred: false,
+			focus: false,
+			near: false,
+			long: "x",
+			short: "x",
+		};
+		const name: LabelPlan = { ...spot, long: "Bellen", short: "Bellen" };
+		const counter: LabelPlan = {
+			...spot,
+			countOnly: true,
+			long: "+3",
+			short: "+3",
+		};
+
+		const placed = placeLabels([name, counter], 0);
+		const forName = placed.find((one) => one.index === 0);
+		const forCounter = placed.find((one) => one.index === 1);
+
+		expect(forName?.kept).toBe(true);
+		expect(forCounter?.kept).toBe(false);
 	});
 
 	it("hangs a label outward, and centres the two that must be", () => {

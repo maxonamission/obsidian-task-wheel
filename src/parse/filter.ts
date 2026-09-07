@@ -31,7 +31,7 @@ export function isFiltering(filter: TaskFilter): boolean {
 	return (
 		!isEmpty(parseQuery(filter.text)) ||
 		filter.due !== "any" ||
-		filter.heading.trim().length > 0 ||
+		wantedHeading(filter.heading).length > 0 ||
 		filter.status !== "any" ||
 		filter.minPriority !== "any" ||
 		filter.maxPriority !== "any" ||
@@ -63,7 +63,7 @@ export function describe(filter: TaskFilter): string {
 	const query = parseQuery(filter.text);
 	if (!isEmpty(query)) parts.push(describeQuery(query));
 
-	const heading = filter.heading.trim();
+	const heading = wantedHeading(filter.heading);
 	if (heading.length > 0) parts.push(`under ${heading}`);
 
 	if (filter.status === "open") parts.push("not started");
@@ -214,11 +214,41 @@ function describeWindow(filter: TaskFilter): string {
 }
 
 /**
+ * What the reader meant by what they typed in the heading box.
+ *
+ * They type what they see in their note, and in a note a heading is written
+ * `## Deze week`. The box wanted the bare text, said so nowhere, and answered a
+ * pasted `## Deze week` with an empty wheel (eigenaar, 7 sep 2026). Leading
+ * hashes are not part of a heading's name; they are how markdown spells its
+ * level.
+ *
+ * One place, because three ask the question: whether the filter is on at all,
+ * whether a task matches, and what the line under the wheel says it is doing.
+ */
+function wantedHeading(raw: string): string {
+	return raw.replace(/^\s*#+\s*/, "").trim();
+}
+
+/**
  * Whether the task stands under the heading the reader asked for.
  *
- * The **outermost** heading only — the same step the wedge is made of, so what
- * you filter on is what you read on the rim. A deeper heading of the same name
- * belongs to its own branch and answers a different question.
+ * **Any** heading above the task, not only the outermost (herzien BC_E3_S176,
+ * eigenaarsmelding 7 sep 2026). It read the outermost only, on the reasoning
+ * that the wedge is made of that same step, so what you filter on is what you
+ * read on the rim. Measured, that reasoning held for exactly one kind of note:
+ * one without a title heading, on a wheel whose angle comes from headings. A
+ * note that opens with an `# H1` — which is most of them — carries that title as
+ * its outermost heading, so *every* section name matched nothing and the wheel
+ * came up empty whatever the reader typed.
+ *
+ * The rim only says "outermost" when the angle comes from headings; everywhere
+ * else the wedge is a folder, a tag or a property, and the tie the old rule was
+ * protecting was not there to begin with. What the label promises is the plainer
+ * thing, and it is now what happens: *the work that stands under this heading.*
+ *
+ * The price is deliberate: a `Beheer › Project` now matches `Project` too. That
+ * is one question answered a little too widely, against a filter that answered
+ * nothing at all.
  *
  * `matchesPattern` is the skip lists' rule, borrowed whole: an exact name by
  * default, `Project*` where the reader wants everything like it. Two spellings of
@@ -226,14 +256,14 @@ function describeWindow(filter: TaskFilter): string {
  */
 function matchesHeading(
 	headingPath: readonly string[],
-	wanted: string,
+	raw: string,
 ): boolean {
-	if (wanted.trim().length === 0) return true;
+	const wanted = wantedHeading(raw);
+	if (wanted.length === 0) return true;
 
-	const outermost = headingPath[0];
-	if (outermost === undefined) return false;
-
-	return matchesPattern(outermost.trim().toLowerCase(), wanted);
+	return headingPath.some((heading) =>
+		matchesPattern(heading.trim().toLowerCase(), wanted),
+	);
 }
 
 /**

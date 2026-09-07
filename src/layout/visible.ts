@@ -65,6 +65,27 @@ export interface VisibleOptions {
 	rings: RingConfig;
 	/** Share of the circle each domain owns, keyed by domain. */
 	share: ReadonlyMap<string, number>;
+	/**
+	 * Ids the reader folded away, and the ring the drawing stops at.
+	 *
+	 * Both say the same thing: this node draws nothing below it. The selection
+	 * needs to know because it hands out the budget, and the budget it spends
+	 * on a branch that is then never drawn is budget the rest of the wheel does
+	 * not get. Measured 6 sep 2026: one domain, two projects of ten tasks,
+	 * budget 12. Open, the wheel drew nine and a stump. With the first project
+	 * folded away it drew *three* of the twelve it was allowed, and this
+	 * function still reported `drawn: 12` — so folding a branch to make room for
+	 * the rest, which is the gesture harde eis §3.6 invites, did nothing at all.
+	 *
+	 * A fold on the way to the focus is not a fold: you are looking inside it,
+	 * not undoing it, and `isStump` in `radial.ts` has said so since BC_E3_S99.
+	 * The same exemption is applied here, or the two would disagree about the
+	 * very node the reader is standing on.
+	 */
+	collapsed: ReadonlySet<string>;
+	/** The ring the drawing stops at, and what the focus subtree gets extra. */
+	maxDepth: number;
+	depthBonus: number;
 }
 
 export interface Visible {
@@ -96,7 +117,21 @@ export function selectVisible(
 	field: DoiField,
 	options: VisibleOptions,
 ): Visible {
-	const { budget, rings, share } = options;
+	const { budget, rings, share, collapsed, maxDepth, depthBonus } = options;
+
+	/**
+	 * Whether this node draws nothing below it, whatever the budget says.
+	 *
+	 * The same question `stumpBy` asks in `radial.ts`, asked before the budget
+	 * is spent rather than after — see `VisibleOptions.collapsed` for what the
+	 * old order cost. Its third arm ("the budget never reached this branch") is
+	 * the answer this function is computing, so it is not asked here.
+	 */
+	const holdsBack = (node: WheelNode): boolean => {
+		if (node.id !== field.focusId && field.path.has(node.id)) return false;
+		if (collapsed.has(node.id)) return true;
+		return node.depth >= (field.subtree.has(node.id) ? maxDepth + depthBonus : maxDepth);
+	};
 
 	const parents = parentMap(root);
 	const ordered = orderedChildrenMap(root);
@@ -126,6 +161,10 @@ export function selectVisible(
 
 	for (const node of candidates(root, field)) {
 		if (expanded.has(node.id) || node.children.length === 0) continue;
+		// Nothing is drawn below it, so nothing is bought for it. Its own
+		// descendants fall away with it: `isDrawn` asks whether the parent was
+		// opened, and this one never is.
+		if (holdsBack(node)) continue;
 
 		const parent = parents.get(node.id);
 		if (parent === undefined || !isDrawn(node, parent, shown, ordered)) {

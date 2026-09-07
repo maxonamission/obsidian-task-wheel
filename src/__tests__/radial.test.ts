@@ -176,6 +176,44 @@ describe("layoutWheel — nothing disappears", () => {
 		}
 	});
 
+	it("counts what a partly opened container holds back, and nothing more", () => {
+		// The number the drawing owes the reader (BC_E3_S154). A container that
+		// draws its first few children and keeps the rest is not a stump, so it
+		// is not named — the rule below this one says why — but it does have a
+		// count, and the renderer draws that count on its own.
+		const notes: NoteInput[] = [
+			{
+				path: "Werk/P1.md",
+				content: Array.from({ length: 10 }, (_, i) => `- [ ] A${i}`).join("\n"),
+			},
+			{
+				path: "Werk/P2.md",
+				content: Array.from({ length: 10 }, (_, i) => `- [ ] B${i}`).join("\n"),
+			},
+		];
+		const layout = layoutWheel(buildTree(notes, DEFAULT_PARSE_OPTIONS), {
+			...DEFAULT_LAYOUT_OPTIONS,
+			visibleBudget: 12,
+		});
+
+		const partly = layout.nodes.find(
+			(laid) => laid.node.label === "P1" && laid.hiddenCount > 0,
+		);
+		expect(partly).toBeDefined();
+		expect(partly?.render).toBe("dot");
+
+		// And a container that shows everything it has says nothing at all.
+		const whole = layoutWheel(buildTree(notes, DEFAULT_PARSE_OPTIONS));
+		for (const laid of whole.nodes) {
+			if (laid.node.children.length === 0) continue;
+			if (laid.hiddenCount === 0) continue;
+			expect(laid.node.children.length).toBeGreaterThan(0);
+		}
+		expect(
+			whole.nodes.filter((laid) => laid.node.label === "P1")[0]?.hiddenCount,
+		).toBe(0);
+	});
+
 	it("labels leaves and domains, never the containers in between", () => {
 		// With no focus. The containers are named around the focus and nowhere
 		// else, so a wheel that is not looking at anything looks as it always did.

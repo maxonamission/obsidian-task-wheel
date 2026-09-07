@@ -949,8 +949,17 @@ export class WheelRenderer {
 				r: radius,
 			});
 
+			// A name when the layout granted one, and otherwise just the counter
+			// for a node that is holding children back. The dashed ring already
+			// says *that* something is held back; this says how much, which is
+			// what harde eis §3.3 asks of a stump (BC_E3_S154). Not on a tick:
+			// below `tickSpan` there is no room for any text at all.
 			const label =
-				laid.render === "labelled" ? this.drawLabel(group, laid) : null;
+				laid.render === "labelled"
+					? this.drawLabel(group, laid)
+					: laid.render === "dot" && laid.hiddenCount > 0
+						? this.drawLabel(group, laid, true)
+						: null;
 			this.groups.set(laid.id, group);
 			this.drawnAt.set(laid.id, laid.drawAngle);
 
@@ -981,7 +990,11 @@ export class WheelRenderer {
 	 * wedge, where it labels the whole slice — empty space included — instead of
 	 * one dot near the middle.
 	 */
-	private drawLabel(group: SVGGElement, laid: LaidOutNode): LabelHandle {
+	private drawLabel(
+		group: SVGGElement,
+		laid: LaidOutNode,
+		countOnly = false,
+	): LabelHandle {
 		const onRim = laid.depth === 1;
 		// A centred label straddles its own dot, so it is lifted a little further
 		// out than one that hangs beside it — otherwise the text sits on the dot.
@@ -997,8 +1010,13 @@ export class WheelRenderer {
 		// A wedge title has both forms too, since BC_E3_S79 — the wedge under the
 		// reading wedge was carrying the shortest name on the wheel. Everything
 		// off the reading branch and off the rim says the same thing either way.
-		const long = labelText(laid);
-		const short = onRim || laid.onPath ? labelText(laid, true) : long;
+		// A counter has one form: there is nothing in it to shorten.
+		const long = countOnly ? `+${laid.hiddenCount}` : labelText(laid);
+		const short = countOnly
+			? long
+			: onRim || laid.onPath
+				? labelText(laid, true)
+				: long;
 		el.textContent = long;
 
 		const handle: LabelHandle = {
@@ -1023,6 +1041,7 @@ export class WheelRenderer {
 			focus: laid.onPath && laid.distance === 0,
 			near: laid.distance <= this.nearSteps,
 			centred: laid.onPath && !onRim,
+			countOnly,
 			long,
 			short,
 		};

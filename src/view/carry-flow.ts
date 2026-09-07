@@ -20,7 +20,7 @@ import { isFiltering } from "../parse/filter";
 import { linesOf } from "../parse/lines";
 import { headingsOf } from "../parse/outline";
 import { splitPath } from "../parse/outline-edit";
-import { inRound } from "../parse/round";
+import { inRound, narrowsByHeading } from "../parse/round";
 import { parseTaskLine } from "../parse/task-line";
 import {
 	type CarryMode,
@@ -79,9 +79,15 @@ export function whatTravels(
 	// The same question `build-tree` asks, asked the same way. Asking only the
 	// filter here let a branch carry finished tasks the wheel was not showing,
 	// and checkboxes from under a skipped heading with them.
-	const filtering = isFiltering(options.filter);
+	// Two things can make the wheel show less than the note holds, and both have
+	// to be asked here. The filter was; the blikveld was not, and it is the one
+	// that costs nothing to overlook — with no filter on, `shows` was simply
+	// true and a note-ring carry on a heading wheel took every task out of the
+	// note, headings this wheel is not about included (measured 6 sep 2026: one
+	// task shown, two carried).
+	const narrowed = isFiltering(options.filter) || narrowsByHeading(options.scope);
 	const shows = (line: number, headingPath: readonly string[]): boolean => {
-		if (!filtering) return true;
+		if (!narrowed) return true;
 		const parsed = parseTaskLine(lines[line] ?? "");
 		return (
 			parsed !== null && inRound(parsed.fields, headingPath, source.path, options)
@@ -97,6 +103,22 @@ export function whatTravels(
 	// behind, which for a task document would empty the very thing the reader
 	// asked to move (eigenaar, 4 sep 2026). Carrying is not offered there at
 	// all; `isNoteTask` decides that where the menu is built.
+	//
+	// **What this walk does not check, and why it is written down rather than
+	// fixed** (BC_E3_S156). Every other write compares the line it is about to
+	// touch with the line the wheel is showing (`source.raw`, a few lines down),
+	// and refuses when they differ. A note has no such line: the wedge stands
+	// for the file, not for a row in it. So `extractFilteredNote` walks the read
+	// it was just handed, and `removeBlocks` then verifies the blocks against
+	// that very read — a tautology for this one route.
+	//
+	// What that costs: a task written into the note between the last scan and
+	// this carry travels along, though the wheel never drew it. Nothing is lost
+	// and nothing lands anywhere the reader did not name; the note simply
+	// arrives more complete than the drawing was. Closing it properly means
+	// handing this function the tree to compare against, which is a wider change
+	// than the gap deserves — but a reader of `CarryOutcome` should not have to
+	// find that out by experiment.
 	if (kind === "project") return extractFilteredNote(lines, shows);
 
 	// Is that line still the thing the wheel is showing? `extractBlock` accepts
@@ -115,7 +137,7 @@ export function whatTravels(
 	const lifted = extractBlock(lines, source.line);
 	if (lifted === null) return null;
 
-	if (!filtering) return { blocks: [lifted], held: 0 };
+	if (!narrowed) return { blocks: [lifted], held: 0 };
 
 	// A heading and a task branch get the same treatment. They did not at first,
 	// and that gap was the whole bug: a task branch was carried whole whatever

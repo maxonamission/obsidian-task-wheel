@@ -1,4 +1,5 @@
 import { Menu } from "obsidian";
+import { ACTION_NAMES, ACTION_UNDO } from "./action-names";
 import { putIcon } from "./icon";
 import { nodeColour, type Palette } from "../layout/colour";
 import { ancestorsOf, type LaidOutNode, type WheelLayout } from "../layout/radial";
@@ -783,7 +784,7 @@ function renderActions(
 	const isTask = fields !== undefined;
 
 	if (isTask && actions.done !== undefined) {
-		action(foot, "check", "Mark done", actions.done);
+		action(foot, "check", ACTION_NAMES.done, actions.done);
 	}
 
 	// The two other statuses Tasks defines, and both are toggles: pressing the
@@ -795,7 +796,7 @@ function renderActions(
 		action(
 			foot,
 			"play",
-			started ? "No longer in progress" : "Mark in progress",
+			started ? ACTION_UNDO.start : ACTION_NAMES.start,
 			actions.start,
 			started,
 		);
@@ -805,22 +806,22 @@ function renderActions(
 		action(
 			foot,
 			"ban",
-			cancelled ? "Bring back" : "Cancel",
+			cancelled ? ACTION_UNDO.cancel : ACTION_NAMES.cancel,
 			actions.cancel,
 			cancelled,
 		);
 	}
 
 	if (isTask && actions.defer !== undefined) {
-		action(foot, "calendar-clock", "Push a week out", actions.defer);
+		action(foot, "calendar-clock", ACTION_NAMES.defer, actions.defer);
 	}
 	if (isTask && actions.priority !== undefined) {
 		const step = actions.priority;
-		action(foot, "chevron-up", "Raise priority", () => step(1));
-		action(foot, "chevron-down", "Lower priority", () => step(-1));
+		action(foot, "chevron-up", ACTION_NAMES.raise, () => step(1));
+		action(foot, "chevron-down", ACTION_NAMES.lower, () => step(-1));
 	}
 	if (focus.node.source !== undefined && actions.open !== undefined) {
-		action(foot, "file-text", "Open the note", actions.open);
+		action(foot, "file-text", ACTION_NAMES.openNote, actions.open);
 	}
 
 	// Editing the outline lives behind one button rather than four. The row is

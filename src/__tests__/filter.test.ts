@@ -662,10 +662,18 @@ group("under a heading", () => {
 		expect(under(["Beheer"], "Project")).toBe(false);
 	});
 
-	it("reads the outermost heading only, like the wedge does", () => {
-		// A deeper heading of the same name belongs to its own branch and
-		// answers a different question.
-		expect(under(["Beheer", "Project"], "Project")).toBe(false);
+	/**
+	 * The rule this test used to assert the opposite of (BC_E3_S176).
+	 *
+	 * It read the outermost heading only, because the wedge is made of that
+	 * same step. Measured on ordinary notes, that made the filter useless: a
+	 * note opening with an `# H1` title carries the title as its outermost
+	 * heading, so every section name matched nothing at all.
+	 */
+	it("reads every heading above the task, not only the outermost", () => {
+		expect(under(["Plan 2027", "Deze week"], "Deze week")).toBe(true);
+		expect(under(["Beheer", "Project"], "Project")).toBe(true);
+		expect(under(["A", "B", "Project"], "Project")).toBe(true);
 	});
 
 	it("leaves out work that stands under no heading at all", () => {
@@ -678,11 +686,40 @@ group("under a heading", () => {
 		expect(under(["Project 2026"], "Project")).toBe(false);
 	});
 
+	/**
+	 * A reader types what their note says, and a note says `## Deze week`
+	 * (eigenaar, 7 sep 2026). The hashes are markdown's way of spelling the
+	 * level, not part of the name.
+	 */
+	it("takes the hashes a reader pastes in with the heading", () => {
+		expect(under(["Deze week"], "## Deze week")).toBe(true);
+		expect(under(["Deze week"], "#Deze week")).toBe(true);
+		expect(under(["Deze week"], "  ###   Deze week  ")).toBe(true);
+		expect(under(["Project 2026"], "## Project*")).toBe(true);
+	});
+
 	it("is off when it is empty, whitespace included", () => {
 		expect(isFiltering(filter({ heading: "" }))).toBe(false);
 		expect(isFiltering(filter({ heading: "  " }))).toBe(false);
 		expect(isFiltering(filter({ heading: "Project" }))).toBe(true);
 		expect(under([], "  ")).toBe(true);
+	});
+
+	/**
+	 * Hashes alone name no heading, so they are not a filter — a field holding
+	 * only `##` must not switch the round into "a selection" and start counting
+	 * everything as left out.
+	 */
+	it("is off when only hashes were typed", () => {
+		expect(isFiltering(filter({ heading: "##" }))).toBe(false);
+		expect(isFiltering(filter({ heading: "  ###  " }))).toBe(false);
+		expect(under(["Deze week"], "##")).toBe(true);
+	});
+
+	it("says what it is doing without the hashes", () => {
+		expect(describe(filter({ heading: "## Deze week" }))).toContain(
+			"under Deze week",
+		);
 	});
 
 	it("says so in the line under the wheel", () => {
@@ -729,5 +766,52 @@ group("under a heading, on a whole wheel", () => {
 		});
 
 		expect(tree.filteredOut).toBe(2);
+	});
+
+	/**
+	 * The scenario the owner met: every attempt gave an empty wheel
+	 * (7 sep 2026, BC_E3_S176).
+	 *
+	 * Three notes that differ only in their title heading. The old rule read
+	 * the outermost heading, and in two of the three that is the title, so
+	 * `Deze week` matched a third of the work at best — and in a vault where
+	 * every note opens with a title, none of it.
+	 */
+	const TITLED: NoteInput[] = [
+		{
+			// A title that is not the file's name, so it keeps its ring.
+			path: "Werk/Plan.md",
+			content: ["# Plan 2027", "", "## Deze week", "- [ ] Bellen"].join("\n"),
+		},
+		{
+			// A title that repeats the file's name, so BC_E3_S70 drops it.
+			path: "Werk/Beheer.md",
+			content: ["# Beheer", "", "## Deze week", "- [ ] Mailen"].join("\n"),
+		},
+		{ path: "Werk/Los.md", content: "## Deze week\n- [ ] Opruimen" },
+	];
+
+	function titledTasks(heading: string): string[] {
+		const tree = buildTree(TITLED, {
+			...DEFAULT_PARSE_OPTIONS,
+			filter: { ...NO_FILTER, withTags: [], withoutTags: [], heading },
+		});
+		const out: string[] = [];
+		for (const node of tree.byId.values()) {
+			if (node.kind === "task") out.push(node.label);
+		}
+		return out.sort();
+	}
+
+	it("finds a section whatever title heading the note opens with", () => {
+		expect(titledTasks("Deze week")).toEqual(["Bellen", "Mailen", "Opruimen"]);
+	});
+
+	it("finds it with the hashes the note writes it with", () => {
+		expect(titledTasks("## Deze week")).toEqual(["Bellen", "Mailen", "Opruimen"]);
+	});
+
+	it("still lets you filter on the title heading itself", () => {
+		expect(titledTasks("Plan 2027")).toEqual(["Bellen"]);
 	});
 });

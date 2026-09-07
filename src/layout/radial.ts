@@ -317,10 +317,16 @@ export interface WheelLayout {
 const stableByTree = new WeakMap<WheelTree, Map<string, Visible>>();
 
 function stableFor(tree: WheelTree, room: VisibleOptions): Visible {
-	const key = `${room.budget}|${JSON.stringify(room.rings)}|${[...room.share]
+	// The folds belong in the key. Since BC_E3_S153 the selection knows about
+	// them — a folded branch buys no budget — so two calls with the same tree
+	// and the same room but different folds are two different answers, and
+	// leaving them out would serve the first one for ever.
+	const key = `${room.budget}|${room.maxDepth}|${room.depthBonus}|${JSON.stringify(
+		room.rings,
+	)}|${[...room.share]
 		.sort(([a], [b]) => (a < b ? -1 : 1))
 		.map(([domain, part]) => `${domain}:${part.toFixed(6)}`)
-		.join(",")}`;
+		.join(",")}|${[...room.collapsed].sort().join(",")}`;
 
 	let forTree = stableByTree.get(tree);
 	if (forTree === undefined) {
@@ -356,6 +362,10 @@ export function layoutWheel(
 		// A wedge owns its share of every ring, for the same reason it owns its
 		// share of the circle: so a quiet domain keeps its place.
 		share: new Map(budgets.map((b) => [b.domain, b.degrees / 360])),
+		// What draws nothing below it buys nothing: see `VisibleOptions`.
+		collapsed: config.collapsed,
+		maxDepth: config.maxDepth,
+		depthBonus: config.doi.depthBonus,
 	};
 	const visible = selectVisible(tree.root, field, room);
 

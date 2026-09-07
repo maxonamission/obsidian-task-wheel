@@ -35,6 +35,7 @@ import {
 } from "./model/types";
 import type TaskWheelPlugin from "./main";
 import { pickTarget } from "./view/carry-flow";
+import { roundRestartedMessage } from "./view/round";
 import { attachPathSuggest } from "./view/path-suggest";
 import { LANGUAGE_NAMES } from "./view/help-strings";
 
@@ -390,6 +391,42 @@ export function stateFor(
 	return settings.scopes[key];
 }
 
+/**
+ * A changed angle is a new round on every wheel.
+ *
+ * The wedge key is part of a node's id, so a different source, tag namespace,
+ * property or fallback name does not re-label the same wedges — it replaces
+ * them, and every mark of every round is suddenly about ids that no longer
+ * exist. They were then swept away by the next `prune` without a word: 180 of
+ * 200 seen became 0, and since BC_E3_S148 the angle is one tap away in the ⋯
+ * menu, in the middle of a round (found by audit, 6 sep 2026).
+ *
+ * So it is made a round boundary, deliberately and out loud, exactly as a
+ * changed selection is (`setFilter`). Returns how many marks were given up so
+ * the caller can say it; a change that alters nothing gives up nothing.
+ *
+ * Every wheel, not only the one in front: the angle is a plugin-wide setting,
+ * so every round it invalidates is invalidated at the same moment.
+ */
+export function restartRoundsForAngle(settings: TaskWheelSettings): {
+	restarted: number;
+} {
+	let restarted = 0;
+
+	for (const state of everyState(settings)) {
+		restarted += state.seen.length;
+		state.seen = [];
+		state.sweepStartedAt = null;
+		// The remembered place carries a wedge key too, so it names nothing now.
+		state.reading = null;
+		// A new set of wedges is dealt afresh: order and weights both.
+		state.roundWeights = null;
+		state.roundDomains = null;
+	}
+
+	return { restarted };
+}
+
 /** Every wheel's state, for the things that apply to all of them at once. */
 export function everyState(settings: TaskWheelSettings): WheelState[] {
 	return [settings.state, ...Object.values(settings.scopes)];
@@ -702,11 +739,18 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 		// themselves: it does not re-deal the same domains, it replaces them.
 		// Holding the old order would keep dealt wedges of a set that no longer
 		// exists, and append every real one behind them (BC_E3_S82).
-		if (key === "domainSource" || key === "domainTagPrefix" || key === "domainProperty") {
-			for (const state of everyState(this.plugin.settings)) {
-				state.roundWeights = null;
-				state.roundDomains = null;
-			}
+		//
+		// `fallbackDomain` belongs in this list for the same reason and was not
+		// in it: renaming the wedge that catches everything without a domain
+		// renames its key too (found by audit, 6 sep 2026).
+		if (
+			key === "domainSource" ||
+			key === "domainTagPrefix" ||
+			key === "domainProperty" ||
+			key === "fallbackDomain"
+		) {
+			const { restarted } = restartRoundsForAngle(this.plugin.settings);
+			if (restarted > 0) new Notice(roundRestartedMessage(restarted, "a new angle"));
 		}
 
 		await this.plugin.saveSettings();

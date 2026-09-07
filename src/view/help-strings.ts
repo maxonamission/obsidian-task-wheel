@@ -202,8 +202,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyEnds: "The first and the last stop.",
 		keySideways:
 			"Sideways. Forwards it takes you to the next item this round has not been past, wherever on the circle that is; back is always one step. Shift walks the other ring.",
-		keySidewaysTouch:
-			"Sideways, staying on the ring — the two buttons on the card's edges.",
+		keySidewaysTouch: "Sideways — the two buttons on the card's edges. Forwards to the next task this round has not been past, wherever on the circle that is; back is always one step.",
 		keyOut: "A ring outwards, to a child.",
 		keyIn: "A ring inwards, to the parent.",
 		keyTap:
@@ -214,20 +213,17 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Opens the note this task is written in, at its own line.",
 		keyFold: "Folds this branch away, or opens it again.",
 		keySearch: "Opens the filter and puts the cursor in its search box. Enter there takes you to the next task it finds; Escape hands the wheel back.",
-		keyAdd: "Adds a task beside this one; with shift, a step inside it. Only in a wheel over one note — elsewhere there is no outline to add to.",
+		keyAdd: "Adds a task beside this one; with shift, a step inside it. On any wheel: it goes into the note the task is written in.",
 		keyZoom: "Zoom, or pinch on a touchscreen.",
 		keyZoomTouch: "Zoom.",
-		keyMove:
-			"Moves the task itself, with everything under it. On a wheel over one note.",
+		keyMove: "Moves the task itself, with everything under it. On any wheel, within its own note.",
 		keysNote:
 			"With the arrows you can skip a branch; by turning you cannot. That is the division of labour: the guarantee lives in the turning.",
 		keysNoteTouch:
 			"By tapping you can skip a branch; by turning you cannot. That is the division of labour: the guarantee lives in the turning.",
-		commandsNote:
-			"Every one of these is a command as well, so you can hang your own key on it.",
-		commandsNoteTouch:
-			"Every one of these is a command as well, so you can put it on the mobile toolbar.",
-		actTick: "Tick off",
+		commandsNote: "Almost all of these are commands as well, so you can hang your own key on them: the seven before the ⋯, plus adding a task and carrying work from inside that menu. Folding and the two nudges have keys already; opening the menu itself has none.",
+		commandsNoteTouch: "Almost all of these are commands as well, so you can put them on the mobile toolbar: the seven before the ⋯, plus adding a task and carrying work from inside that menu. The ⋯ itself, folding and the two nudges live on the card only.",
+		actTick: "Mark done",
 		actProgress: "Mark in progress",
 		actCancel: "Cancel",
 		actDefer: "Push a week out",
@@ -236,7 +232,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Open the note",
 		actEdit: "Edit the outline, or carry it elsewhere",
 		actFold: "Fold this branch away",
-		actNudge: "One item along the ring, without turning",
+		actNudge: "One item along, without turning",
 		legAngleLabel: "Angle",
 		legAngle: "The domain. Radius is the depth: hub, domain, project, task.",
 		legHues:
@@ -296,8 +292,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyEnds: "De eerste en de laatste stop.",
 		keySideways:
 			"Opzij. Vooruit brengt hij je naar het volgende item dat deze ronde nog niet langskwam, waar op de cirkel dat ook is; terug is altijd één stap. Shift loopt de andere ring.",
-		keySidewaysTouch:
-			"Opzij, op dezelfde ring — de twee knoppen op de randen van de kaart.",
+		keySidewaysTouch: "Opzij — de twee knoppen op de randen van de kaart. Vooruit naar de volgende taak die deze ronde nog niet langskwam, waar op de cirkel dat ook is; terug is altijd één stap.",
 		keyOut: "Een ring naar buiten, naar een kind.",
 		keyIn: "Een ring naar binnen, naar de ouder.",
 		keyTap:
@@ -308,19 +303,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Opent de notitie waar deze taak in staat, op zijn eigen regel.",
 		keyFold: "Klapt deze tak in, of weer uit.",
 		keySearch: "Opent het filter met de cursor in het zoekveld. Enter brengt je daar naar de volgende gevonden taak; Escape geeft het wiel terug.",
-		keyAdd: "Voegt een taak naast deze toe; met shift een stap erbinnen. Alleen in een wiel over één notitie — elders is er geen outline om aan toe te voegen.",
+		keyAdd: "Voegt een taak naast deze toe; met shift een stap erbinnen. Op elk wiel: hij komt in de notitie waar de taak in staat.",
 		keyZoom: "Zoomen, of knijpen op een touchscreen.",
 		keyZoomTouch: "Zoomen.",
-		keyMove:
-			"Verplaatst de taak zelf, met alles eronder. Op een wiel over één notitie.",
+		keyMove: "Verplaatst de taak zelf, met alles eronder. Op elk wiel, binnen haar eigen notitie.",
 		keysNote:
 			"Met de pijltjes kun je een tak overslaan; met draaien niet. Dat is de taakverdeling: de garantie zit in het draaien.",
 		keysNoteTouch:
 			"Met tikken kun je een tak overslaan; met draaien niet. Dat is de taakverdeling: de garantie zit in het draaien.",
-		commandsNote:
-			"Elk hiervan is ook een commando, dus je kunt er je eigen sneltoets aan hangen.",
-		commandsNoteTouch:
-			"Elk hiervan is ook een commando, dus je kunt het op de mobiele werkbalk zetten.",
+		commandsNote: "Bijna al deze zijn ook een commando, dus je kunt er je eigen sneltoets aan hangen: de zeven vóór de ⋯, plus een taak toevoegen en werk dragen uit dat menu. Inklappen en de twee opzij-knoppen hebben al een toets; het menu zelf openen heeft er geen.",
+		commandsNoteTouch: "Bijna al deze zijn ook een commando, dus je kunt ze op de mobiele werkbalk zetten: de zeven vóór de ⋯, plus een taak toevoegen en werk dragen uit dat menu. De ⋯ zelf, inklappen en de twee opzij-knoppen bestaan alleen op de kaart.",
 		actTick: "Afvinken",
 		actProgress: "Als bezig markeren",
 		actCancel: "Annuleren",
@@ -330,7 +322,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "De notitie openen",
 		actEdit: "De outline bewerken, of elders heen dragen",
 		actFold: "Deze tak inklappen",
-		actNudge: "Eén item opzij op de ring, zonder te draaien",
+		actNudge: "Eén item opzij, zonder te draaien",
 		legAngleLabel: "Hoek",
 		legAngle: "Het domein. Straal is de diepte: naaf, domein, project, taak.",
 		legHues:
@@ -390,7 +382,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "الترتيب المسطّح للجولة — المسار الذي لا يتخطى شيئًا.",
 		keyEnds: "المحطة الأولى والأخيرة.",
 		keySideways: "جانبيًا، مع البقاء على الحلقة نفسها.",
-		keySidewaysTouch: "جانبيًا على الحلقة نفسها — الزران على حافتي البطاقة.",
+		keySidewaysTouch: "جانبيًا — الزران على حافتي البطاقة. إلى الأمام تنتقل إلى المهمة التالية التي لم تمر بها هذه الجولة، أينما كانت على الدائرة؛ وإلى الوراء دائمًا خطوة واحدة.",
 		keyOut: "حلقة إلى الخارج، نحو فرع تابع.",
 		keyIn: "حلقة إلى الداخل، نحو الأصل.",
 		keyTap:
@@ -401,17 +393,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "يفتح الملاحظة التي كُتبت فيها هذه المهمة، عند سطرها.",
 		keyFold: "يطوي هذا الفرع أو يفتحه من جديد.",
 		keySearch: "يفتح عامل التصفية ويضع المؤشر في مربع البحث. يأخذك Enter إلى المهمة التالية التي يجدها، وEscape يعيد لك العجلة.",
-		keyAdd: "يضيف مهمة بجانب هذه المهمة، ومع shift خطوة داخلها. فقط في عجلة فوق ملاحظة واحدة — في غير ذلك لا يوجد مخطط للإضافة إليه.",
+		keyAdd: "يضيف مهمة بجانب هذه المهمة، ومع shift خطوة داخلها. في أي عجلة: تُكتب في الملاحظة التي تعيش فيها المهمة.",
 		keyZoom: "تكبير، أو القرص على شاشة اللمس.",
 		keyZoomTouch: "تكبير.",
-		keyMove: "ينقل المهمة نفسها مع كل ما تحتها. في عجلة على ملاحظة واحدة.",
+		keyMove: "ينقل المهمة نفسها مع كل ما تحتها. في أي عجلة، داخل ملاحظتها.",
 		keysNote:
 			"بالأسهم يمكنك تخطي فرع؛ بالتدوير لا يمكنك. هذا هو تقسيم العمل: الضمان في التدوير.",
 		keysNoteTouch:
 			"بالنقر يمكنك تخطي فرع؛ بالتدوير لا يمكنك. هذا هو تقسيم العمل: الضمان في التدوير.",
-		commandsNote: "كل واحد من هذه أمر أيضًا، فيمكنك ربطه بمفتاح خاص بك.",
-		commandsNoteTouch:
-			"كل واحد من هذه أمر أيضًا، فيمكنك وضعه في شريط أدوات الجوال.",
+		commandsNote: "كلها تقريبًا أوامر أيضًا، فيمكنك ربطها بمفاتيحك: السبعة قبل ⋯، وكذلك إضافة مهمة ونقل العمل من داخل تلك القائمة. الطي والزران الجانبيان لهما مفاتيح بالفعل؛ أما فتح القائمة نفسها فلا أمر له.",
+		commandsNoteTouch: "كلها تقريبًا أوامر أيضًا، فيمكنك وضعها في شريط أدوات الجوال: السبعة قبل ⋯، وكذلك إضافة مهمة ونقل العمل من داخل تلك القائمة. أما ⋯ نفسها والطي والزران الجانبيان فتوجد على البطاقة فقط.",
 		actTick: "إنجاز",
 		actProgress: "وضع قيد التنفيذ",
 		actCancel: "إلغاء",
@@ -421,7 +412,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "فتح الملاحظة",
 		actEdit: "تحرير المخطط أو نقله إلى مكان آخر",
 		actFold: "طي هذا الفرع",
-		actNudge: "عنصر واحد على الحلقة، دون تدوير",
+		actNudge: "عنصر واحد إلى الجانب، دون تدوير",
 		legAngleLabel: "الزاوية",
 		legAngle: "المجال. نصف القطر هو العمق: المركز، المجال، المشروع، المهمة.",
 		legHues: "اللون هو المجال. تكتب العجلة كل اسم على حافته بلونه.",
@@ -478,8 +469,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "Die flache Rundenfolge — der Gang, der nichts überspringen kann.",
 		keyEnds: "Der erste und der letzte Halt.",
 		keySideways: "Seitwärts, auf demselben Ring.",
-		keySidewaysTouch:
-			"Seitwärts auf demselben Ring — die zwei Knöpfe an den Kartenrändern.",
+		keySidewaysTouch: "Seitwärts — die zwei Knöpfe an den Kartenrändern. Vorwärts zur nächsten Aufgabe, an der diese Runde noch nicht vorbei war, wo auf dem Kreis sie auch liegt; zurück ist immer ein Schritt.",
 		keyOut: "Einen Ring nach außen, zu einem Kind.",
 		keyIn: "Einen Ring nach innen, zum Elternteil.",
 		keyTap:
@@ -491,19 +481,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 			"Öffnet die Notiz, in der diese Aufgabe steht, bei ihrer eigenen Zeile.",
 		keyFold: "Klappt diesen Ast ein oder wieder auf.",
 		keySearch: "Öffnet den Filter und setzt den Cursor ins Suchfeld. Enter bringt dich dort zur nächsten gefundenen Aufgabe; Escape gibt das Rad zurück.",
-		keyAdd: "Fügt eine Aufgabe neben dieser ein; mit Umschalt einen Schritt darin. Nur in einem Rad über einer Notiz — sonst gibt es keine Gliederung dafür.",
+		keyAdd: "Fügt eine Aufgabe neben dieser ein; mit Umschalt einen Schritt darin. In jedem Rad: sie landet in der Notiz, in der die Aufgabe steht.",
 		keyZoom: "Zoomen, oder Kneifen auf einem Touchscreen.",
 		keyZoomTouch: "Zoomen.",
-		keyMove:
-			"Verschiebt die Aufgabe selbst, mit allem darunter. In einem Rad über eine Notiz.",
+		keyMove: "Verschiebt die Aufgabe selbst, mit allem darunter. In jedem Rad, innerhalb ihrer eigenen Notiz.",
 		keysNote:
 			"Mit den Pfeilen kannst du einen Ast überspringen; durch Drehen nicht. Das ist die Arbeitsteilung: Die Garantie liegt im Drehen.",
 		keysNoteTouch:
 			"Mit Tippen kannst du einen Ast überspringen; durch Drehen nicht. Das ist die Arbeitsteilung: Die Garantie liegt im Drehen.",
-		commandsNote:
-			"Jede davon ist auch ein Befehl, du kannst also deine eigene Taste daran hängen.",
-		commandsNoteTouch:
-			"Jede davon ist auch ein Befehl, du kannst sie also in die mobile Werkzeugleiste legen.",
+		commandsNote: "Fast alle davon sind auch Befehle, du kannst also deine eigene Taste daran hängen: die sieben vor dem ⋯, dazu das Hinzufügen einer Aufgabe und das Tragen aus diesem Menü. Einklappen und die zwei Seitwärtsknöpfe haben schon Tasten; das Öffnen des Menüs selbst hat keinen Befehl.",
+		commandsNoteTouch: "Fast alle davon sind auch Befehle, du kannst sie also in die mobile Werkzeugleiste legen: die sieben vor dem ⋯, dazu das Hinzufügen einer Aufgabe und das Tragen aus diesem Menü. Das ⋯ selbst, das Einklappen und die zwei Seitwärtsknöpfe gibt es nur auf der Karte.",
 		actTick: "Abhaken",
 		actProgress: "Als begonnen markieren",
 		actCancel: "Abbrechen",
@@ -513,7 +500,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Die Notiz öffnen",
 		actEdit: "Die Gliederung bearbeiten oder woanders hintragen",
 		actFold: "Diesen Ast einklappen",
-		actNudge: "Ein Element weiter auf dem Ring, ohne zu drehen",
+		actNudge: "Ein Element weiter, ohne zu drehen",
 		legAngleLabel: "Winkel",
 		legAngle: "Die Domäne. Radius ist die Tiefe: Nabe, Domäne, Projekt, Aufgabe.",
 		legHues:
@@ -573,8 +560,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "El orden plano de la ronda — el recorrido que no puede saltarse nada.",
 		keyEnds: "La primera y la última parada.",
 		keySideways: "De lado, sin salir del anillo.",
-		keySidewaysTouch:
-			"De lado, sin salir del anillo — los dos botones en los bordes de la tarjeta.",
+		keySidewaysTouch: "De lado — los dos botones en los bordes de la tarjeta. Hacia adelante, a la siguiente tarea por la que esta vuelta no ha pasado, esté donde esté en el círculo; hacia atrás siempre un paso.",
 		keyOut: "Un anillo hacia fuera, a un hijo.",
 		keyIn: "Un anillo hacia dentro, al padre.",
 		keyTap:
@@ -585,19 +571,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Abre la nota donde está escrita esta tarea, en su propia línea.",
 		keyFold: "Pliega esta rama, o la abre de nuevo.",
 		keySearch: "Abre el filtro con el cursor en el campo de búsqueda. Allí, Enter te lleva a la siguiente tarea encontrada; Escape devuelve la rueda.",
-		keyAdd: "Añade una tarea junto a esta; con mayúsculas, un paso dentro de ella. Solo en una rueda sobre una nota — en otras no hay esquema al que añadir.",
+		keyAdd: "Añade una tarea junto a esta; con mayúsculas, un paso dentro de ella. En cualquier rueda: va a la nota donde está escrita la tarea.",
 		keyZoom: "Zoom, o pellizcar en una pantalla táctil.",
 		keyZoomTouch: "Zoom.",
-		keyMove:
-			"Mueve la tarea misma, con todo lo que cuelga de ella. En una rueda sobre una sola nota.",
+		keyMove: "Mueve la tarea misma, con todo lo que cuelga de ella. En cualquier rueda, dentro de su propia nota.",
 		keysNote:
 			"Con las flechas puedes saltarte una rama; girando no. Ese es el reparto: la garantía vive en el giro.",
 		keysNoteTouch:
 			"Tocando puedes saltarte una rama; girando no. Ese es el reparto: la garantía vive en el giro.",
-		commandsNote:
-			"Cada una de estas es también un comando, así que puedes asignarle tu propia tecla.",
-		commandsNoteTouch:
-			"Cada una de estas es también un comando, así que puedes ponerla en la barra móvil.",
+		commandsNote: "Casi todas son también comandos, así que puedes asignarles tu propia tecla: las siete anteriores a ⋯, más añadir una tarea y llevar trabajo desde ese menú. Plegar y los dos botones de lado ya tienen tecla; abrir el menú en sí no tiene comando.",
+		commandsNoteTouch: "Casi todas son también comandos, así que puedes ponerlas en la barra móvil: las siete anteriores a ⋯, más añadir una tarea y llevar trabajo desde ese menú. El propio ⋯, plegar y los dos botones de lado solo existen en la tarjeta.",
 		actTick: "Marcar hecha",
 		actProgress: "Marcar en curso",
 		actCancel: "Cancelar",
@@ -607,7 +590,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Abrir la nota",
 		actEdit: "Editar el esquema, o llevarla a otra parte",
 		actFold: "Plegar esta rama",
-		actNudge: "Un elemento por el anillo, sin girar",
+		actNudge: "Un elemento al lado, sin girar",
 		legAngleLabel: "Ángulo",
 		legAngle:
 			"El dominio. El radio es la profundidad: centro, dominio, proyecto, tarea.",
@@ -668,8 +651,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "L'ordre plat du tour — le parcours qui ne peut rien sauter.",
 		keyEnds: "Le premier et le dernier arrêt.",
 		keySideways: "De côté, en restant sur l'anneau.",
-		keySidewaysTouch:
-			"De côté, en restant sur l'anneau — les deux boutons aux bords de la carte.",
+		keySidewaysTouch: "De côté — les deux boutons aux bords de la carte. En avant vers la prochaine tâche que ce tour n'a pas encore croisée, où qu'elle soit sur le cercle ; en arrière, toujours d'un pas.",
 		keyOut: "Un anneau vers l'extérieur, vers un enfant.",
 		keyIn: "Un anneau vers l'intérieur, vers le parent.",
 		keyTap:
@@ -680,19 +662,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Ouvre la note où cette tâche est écrite, à sa propre ligne.",
 		keyFold: "Replie cette branche, ou la rouvre.",
 		keySearch: "Ouvre le filtre et place le curseur dans le champ de recherche. Entrée vous emmène à la tâche suivante trouvée ; Échap rend la roue.",
-		keyAdd: "Ajoute une tâche à côté de celle-ci ; avec Maj, une étape à l'intérieur. Uniquement dans une roue sur une note — ailleurs il n'y a pas de plan où l'ajouter.",
+		keyAdd: "Ajoute une tâche à côté de celle-ci ; avec Maj, une étape à l'intérieur. Sur n'importe quelle roue : elle va dans la note où la tâche est écrite.",
 		keyZoom: "Zoomer, ou pincer sur un écran tactile.",
 		keyZoomTouch: "Zoomer.",
-		keyMove:
-			"Déplace la tâche elle-même, avec tout ce qu'elle porte. Sur une roue d'une seule note.",
+		keyMove: "Déplace la tâche elle-même, avec tout ce qu'elle porte. Sur n'importe quelle roue, dans sa propre note.",
 		keysNote:
 			"Avec les flèches on peut sauter une branche ; en tournant, non. C'est le partage des rôles : la garantie vit dans la rotation.",
 		keysNoteTouch:
 			"En touchant on peut sauter une branche ; en tournant, non. C'est le partage des rôles : la garantie vit dans la rotation.",
-		commandsNote:
-			"Chacune est aussi une commande : vous pouvez y attacher votre propre raccourci.",
-		commandsNoteTouch:
-			"Chacune est aussi une commande : vous pouvez la placer dans la barre mobile.",
+		commandsNote: "Presque toutes sont aussi des commandes : vous pouvez y attacher votre raccourci. Les sept avant le ⋯, plus l'ajout d'une tâche et le transport depuis ce menu. Replier et les deux boutons de côté ont déjà une touche ; ouvrir le menu lui-même n'a pas de commande.",
+		commandsNoteTouch: "Presque toutes sont aussi des commandes : vous pouvez les placer dans la barre mobile. Les sept avant le ⋯, plus l'ajout d'une tâche et le transport depuis ce menu. Le ⋯ lui-même, le repli et les deux boutons de côté n'existent que sur la carte.",
 		actTick: "Cocher",
 		actProgress: "Marquer en cours",
 		actCancel: "Annuler",
@@ -702,7 +681,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Ouvrir la note",
 		actEdit: "Modifier le plan, ou l'emporter ailleurs",
 		actFold: "Replier cette branche",
-		actNudge: "Un élément le long de l'anneau, sans tourner",
+		actNudge: "Un élément de côté, sans tourner",
 		legAngleLabel: "Angle",
 		legAngle:
 			"Le domaine. Le rayon est la profondeur : moyeu, domaine, projet, tâche.",
@@ -763,7 +742,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "राउंड का सपाट क्रम — वह रास्ता जो कुछ नहीं छोड़ सकता।",
 		keyEnds: "पहला और आख़िरी पड़ाव।",
 		keySideways: "बगल में, उसी रिंग पर।",
-		keySidewaysTouch: "बगल में, उसी रिंग पर — कार्ड के किनारों के दो बटन।",
+		keySidewaysTouch: "बगल में — कार्ड के किनारों के दो बटन। आगे बढ़ने पर वह अगले उस कार्य पर ले जाता है जिससे यह चक्र अभी नहीं गुज़रा, चाहे वह वृत्त में कहीं भी हो; पीछे हमेशा एक कदम।",
 		keyOut: "एक रिंग बाहर, संतान की ओर।",
 		keyIn: "एक रिंग भीतर, मूल की ओर।",
 		keyTap:
@@ -774,19 +753,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "जिस नोट में यह कार्य लिखा है उसे उसी पंक्ति पर खोलता है।",
 		keyFold: "इस शाखा को मोड़ता है, या फिर खोलता है।",
 		keySearch: "फ़िल्टर खोलता है और कर्सर खोज बॉक्स में रखता है। वहाँ Enter अगली मिली हुई task पर ले जाता है; Escape पहिया वापस देता है।",
-		keyAdd: "इसके बगल में एक task जोड़ता है; shift के साथ इसके भीतर एक चरण। केवल एक नोट के पहिये में — अन्यथा जोड़ने के लिए कोई outline नहीं है।",
+		keyAdd: "इसके बगल में एक task जोड़ता है; shift के साथ इसके भीतर एक चरण। किसी भी पहिये पर: वह उसी नोट में जाता है जिसमें task लिखा है।",
 		keyZoom: "ज़ूम, या टचस्क्रीन पर पिंच।",
 		keyZoomTouch: "ज़ूम।",
-		keyMove:
-			"कार्य को ही, उसके नीचे की हर चीज़ के साथ, स्थानांतरित करता है। एक नोट के पहिये पर।",
+		keyMove: "कार्य को ही, उसके नीचे की हर चीज़ के साथ, स्थानांतरित करता है। किसी भी पहिये पर, उसी नोट के भीतर।",
 		keysNote:
 			"तीरों से आप एक शाखा छोड़ सकते हैं; घुमाने से नहीं। यही बँटवारा है: गारंटी घुमाने में है।",
 		keysNoteTouch:
 			"टैप से आप एक शाखा छोड़ सकते हैं; घुमाने से नहीं। यही बँटवारा है: गारंटी घुमाने में है।",
-		commandsNote:
-			"इनमें से हर एक कमांड भी है, इसलिए आप इसे अपनी कुंजी से जोड़ सकते हैं।",
-		commandsNoteTouch:
-			"इनमें से हर एक कमांड भी है, इसलिए आप इसे मोबाइल टूलबार में रख सकते हैं।",
+		commandsNote: "इनमें से लगभग सभी कमांड भी हैं, इसलिए आप उन्हें अपनी कुंजी से जोड़ सकते हैं: ⋯ से पहले वाले सात, साथ ही उस मेन्यू से कार्य जोड़ना और काम ले जाना। मोड़ना और दोनों बगल वाले बटन के पास पहले से कुंजी है; मेन्यू खोलने के लिए कोई कमांड नहीं है।",
+		commandsNoteTouch: "इनमें से लगभग सभी कमांड भी हैं, इसलिए आप उन्हें मोबाइल टूलबार में रख सकते हैं: ⋯ से पहले वाले सात, साथ ही उस मेन्यू से कार्य जोड़ना और काम ले जाना। ⋯ स्वयं, मोड़ना और दोनों बगल वाले बटन केवल कार्ड पर हैं।",
 		actTick: "पूर्ण करें",
 		actProgress: "प्रगति में चिह्नित करें",
 		actCancel: "रद्द करें",
@@ -796,7 +772,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "नोट खोलें",
 		actEdit: "रूपरेखा संपादित करें, या कहीं और ले जाएँ",
 		actFold: "यह शाखा मोड़ें",
-		actNudge: "रिंग पर एक आइटम आगे, बिना घुमाए",
+		actNudge: "बिना घुमाए एक आइटम आगे",
 		legAngleLabel: "कोण",
 		legAngle: "क्षेत्र। त्रिज्या गहराई है: केंद्र, क्षेत्र, परियोजना, कार्य।",
 		legHues:
@@ -855,8 +831,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "L'ordine piatto del giro — il percorso che non può saltare nulla.",
 		keyEnds: "La prima e l'ultima fermata.",
 		keySideways: "Di lato, restando sull'anello.",
-		keySidewaysTouch:
-			"Di lato, restando sull'anello — i due pulsanti ai bordi della scheda.",
+		keySidewaysTouch: "Di lato — i due pulsanti ai bordi della scheda. In avanti alla prossima attività su cui questo giro non è ancora passato, ovunque si trovi sul cerchio; indietro è sempre un passo.",
 		keyOut: "Un anello verso l'esterno, verso un figlio.",
 		keyIn: "Un anello verso l'interno, verso il genitore.",
 		keyTap:
@@ -867,19 +842,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Apre la nota in cui è scritta questa attività, alla sua riga.",
 		keyFold: "Ripiega questo ramo, o lo riapre.",
 		keySearch: "Apre il filtro con il cursore nel campo di ricerca. Lì Enter porta all'attività successiva trovata; Escape restituisce la ruota.",
-		keyAdd: "Aggiunge un'attività accanto a questa; con maiusc, un passo al suo interno. Solo in una ruota su una nota — altrove non c'è struttura a cui aggiungere.",
+		keyAdd: "Aggiunge un'attività accanto a questa; con maiusc, un passo al suo interno. Su qualsiasi ruota: finisce nella nota in cui l'attività è scritta.",
 		keyZoom: "Zoom, o pizzicare su uno schermo tattile.",
 		keyZoomTouch: "Zoom.",
-		keyMove:
-			"Sposta l'attività stessa, con tutto ciò che porta. Su una ruota di una sola nota.",
+		keyMove: "Sposta l'attività stessa, con tutto ciò che porta. Su qualsiasi ruota, dentro la sua nota.",
 		keysNote:
 			"Con le frecce puoi saltare un ramo; girando no. È la divisione dei compiti: la garanzia vive nel girare.",
 		keysNoteTouch:
 			"Toccando puoi saltare un ramo; girando no. È la divisione dei compiti: la garanzia vive nel girare.",
-		commandsNote:
-			"Ognuna di queste è anche un comando, quindi puoi assegnarle un tuo tasto.",
-		commandsNoteTouch:
-			"Ognuna di queste è anche un comando, quindi puoi metterla nella barra mobile.",
+		commandsNote: "Quasi tutte sono anche comandi, quindi puoi assegnare loro un tuo tasto: le sette prima dei ⋯, più aggiungere un'attività e portare lavoro da quel menu. Chiudere il ramo e i due pulsanti laterali hanno già un tasto; aprire il menu stesso non ha comando.",
+		commandsNoteTouch: "Quasi tutte sono anche comandi, quindi puoi metterle nella barra mobile: le sette prima dei ⋯, più aggiungere un'attività e portare lavoro da quel menu. I ⋯ stessi, la chiusura del ramo e i due pulsanti laterali esistono solo sulla scheda.",
 		actTick: "Spunta",
 		actProgress: "Segna in corso",
 		actCancel: "Annulla",
@@ -889,7 +861,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Apri la nota",
 		actEdit: "Modifica la struttura, o portala altrove",
 		actFold: "Ripiega questo ramo",
-		actNudge: "Un elemento lungo l'anello, senza girare",
+		actNudge: "Un elemento di lato, senza girare",
 		legAngleLabel: "Angolo",
 		legAngle:
 			"Il dominio. Il raggio è la profondità: mozzo, dominio, progetto, attività.",
@@ -950,7 +922,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "ラウンドの平坦な順序 — 何も飛ばせない歩き方。",
 		keyEnds: "最初と最後の停止位置。",
 		keySideways: "横へ、同じリング上を。",
-		keySidewaysTouch: "横へ、同じリング上を — カード両端の二つのボタン。",
+		keySidewaysTouch: "横へ — カード両端の二つのボタン。進むと、この周回でまだ通っていない次のタスクへ、円のどこにあっても移ります。戻るときは常に一歩。",
 		keyOut: "一つ外のリングへ、子の方向。",
 		keyIn: "一つ内のリングへ、親の方向。",
 		keyTap: "読み取り位置の下へ持ってきます。もう一度タップすると開きます — 見出しやノートならそのホイール、タスクなら編集。",
@@ -959,19 +931,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "このタスクが書かれているノートを、その行で開きます。",
 		keyFold: "この枝を折りたたむ、または再び開く。",
 		keySearch: "フィルターを開き、検索欄にカーソルを置く。そこで Enter を押すと見つかった次のタスクへ移動し、Escape でホイールに戻る。",
-		keyAdd: "このタスクの隣にタスクを追加する。Shift を押しながらだと中に一段入れる。ノート一つのホイールでのみ有効。",
+		keyAdd: "このタスクの隣にタスクを追加する。Shift を押しながらだと中に一段入れる。どのホイールでも使え、追加先はそのタスクが書かれているノート。",
 		keyZoom: "ズーム。タッチ画面ではピンチ。",
 		keyZoomTouch: "ズーム。",
-		keyMove:
-			"タスク自体を、その下のすべてと共に移動します。単一ノートのホイールで。",
+		keyMove: "タスク自体を、その下のすべてと共に移動します。どのホイールでも、そのタスクのノートの中で。",
 		keysNote:
 			"矢印キーでは枝を飛ばせますが、回転では飛ばせません。それが役割分担です：保証は回転にあります。",
 		keysNoteTouch:
 			"タップでは枝を飛ばせますが、回転では飛ばせません。それが役割分担です：保証は回転にあります。",
-		commandsNote:
-			"これらはすべてコマンドでもあるので、好きなキーを割り当てられます。",
-		commandsNoteTouch:
-			"これらはすべてコマンドでもあるので、モバイルツールバーに置けます。",
+		commandsNote: "ここにあるもののほとんどはコマンドでもあり、好きなキーを割り当てられます。⋯ より前の七つと、そのメニュー内のタスク追加と持ち運びです。折りたたみと左右の二つのボタンにはすでにキーがあり、メニューを開く操作自体にはコマンドがありません。",
+		commandsNoteTouch: "ここにあるもののほとんどはコマンドでもあり、モバイルツールバーに置けます。⋯ より前の七つと、そのメニュー内のタスク追加と持ち運びです。⋯ 自体と折りたたみ、左右の二つのボタンはカードの上にしかありません。",
 		actTick: "完了にする",
 		actProgress: "進行中にする",
 		actCancel: "キャンセル",
@@ -981,7 +950,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "ノートを開く",
 		actEdit: "アウトラインを編集、または別の場所へ移す",
 		actFold: "この枝を折りたたむ",
-		actNudge: "回転せずにリング上を一つ進む",
+		actNudge: "回転せずに一つ隣へ",
 		legAngleLabel: "角度",
 		legAngle: "領域。半径は深さ：中心、領域、プロジェクト、タスク。",
 		legHues:
@@ -1040,7 +1009,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "라운드의 평평한 순서 — 아무것도 건너뛸 수 없는 길.",
 		keyEnds: "첫 번째와 마지막 정지 위치.",
 		keySideways: "옆으로, 같은 링 위에서.",
-		keySidewaysTouch: "옆으로, 같은 링 위에서 — 카드 양쪽 가장자리의 두 버튼.",
+		keySidewaysTouch: "옆으로 — 카드 양쪽 가장자리의 두 버튼. 앞으로 누르면 이번 라운드에서 아직 지나지 않은 다음 작업으로, 원의 어디에 있든 이동합니다. 뒤로는 항상 한 걸음.",
 		keyOut: "한 링 바깥으로, 자식에게.",
 		keyIn: "한 링 안쪽으로, 부모에게.",
 		keyTap: "읽기 위치 아래로 가져옵니다. 두 번째 탭이 그것을 엽니다 — 제목이나 노트면 휠을, 작업이면 편집을.",
@@ -1049,19 +1018,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "이 작업이 적힌 노트를 해당 줄에서 엽니다.",
 		keyFold: "이 가지를 접거나 다시 폅니다.",
 		keySearch: "필터를 열고 검색란에 커서를 놓습니다. 그곳에서 Enter는 찾은 다음 작업으로 이동하고, Escape는 휠로 돌아갑니다.",
-		keyAdd: "이 작업 옆에 작업을 추가합니다. Shift와 함께 누르면 안쪽으로 한 단계 들어갑니다. 노트 하나를 다루는 휠에서만 됩니다.",
+		keyAdd: "이 작업 옆에 작업을 추가합니다. Shift와 함께 누르면 안쪽으로 한 단계 들어갑니다. 모든 휠에서 되며, 작업이 적힌 노트에 추가됩니다.",
 		keyZoom: "확대·축소, 터치 화면에서는 핀치.",
 		keyZoomTouch: "확대·축소.",
-		keyMove:
-			"작업 자체를 그 아래 모든 것과 함께 옮깁니다. 노트 하나의 휠에서.",
+		keyMove: "작업 자체를 그 아래 모든 것과 함께 옮깁니다. 모든 휠에서, 그 작업이 있는 노트 안에서.",
 		keysNote:
 			"화살표로는 가지를 건너뛸 수 있지만, 돌리기로는 못 합니다. 그것이 역할 분담입니다: 보장은 돌리기에 있습니다.",
 		keysNoteTouch:
 			"탭으로는 가지를 건너뛸 수 있지만, 돌리기로는 못 합니다. 그것이 역할 분담입니다: 보장은 돌리기에 있습니다.",
-		commandsNote:
-			"이 모든 것은 명령이기도 하므로 원하는 키를 직접 지정할 수 있습니다.",
-		commandsNoteTouch:
-			"이 모든 것은 명령이기도 하므로 모바일 도구 막대에 둘 수 있습니다.",
+		commandsNote: "여기 있는 것 대부분은 명령이기도 하므로 원하는 키를 지정할 수 있습니다. ⋯ 앞의 일곱 가지와, 그 메뉴 안의 작업 추가와 옮기기입니다. 접기와 양옆 두 버튼에는 이미 키가 있고, 메뉴를 여는 것 자체에는 명령이 없습니다.",
+		commandsNoteTouch: "여기 있는 것 대부분은 명령이기도 하므로 모바일 도구 막대에 둘 수 있습니다. ⋯ 앞의 일곱 가지와, 그 메뉴 안의 작업 추가와 옮기기입니다. ⋯ 자체와 접기, 양옆 두 버튼은 카드에만 있습니다.",
 		actTick: "완료 표시",
 		actProgress: "진행 중으로 표시",
 		actCancel: "취소",
@@ -1071,7 +1037,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "노트 열기",
 		actEdit: "개요 편집 또는 다른 곳으로 옮기기",
 		actFold: "이 가지 접기",
-		actNudge: "돌리지 않고 링에서 한 항목 이동",
+		actNudge: "돌리지 않고 한 항목 옆으로",
 		legAngleLabel: "각도",
 		legAngle: "영역. 반지름은 깊이입니다: 중심, 영역, 프로젝트, 작업.",
 		legHues:
@@ -1130,8 +1096,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "A ordem plana da rodada — o percurso que não pode pular nada.",
 		keyEnds: "A primeira e a última parada.",
 		keySideways: "De lado, ficando no anel.",
-		keySidewaysTouch:
-			"De lado, ficando no anel — os dois botões nas bordas do cartão.",
+		keySidewaysTouch: "De lado — os dois botões nas bordas do cartão. Para a frente, até à próxima tarefa por que esta volta ainda não passou, onde quer que esteja no círculo; para trás é sempre um passo.",
 		keyOut: "Um anel para fora, até um filho.",
 		keyIn: "Um anel para dentro, até o pai.",
 		keyTap:
@@ -1142,19 +1107,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Abre a nota em que esta tarefa está escrita, na sua própria linha.",
 		keyFold: "Recolhe este ramo, ou o abre de novo.",
 		keySearch: "Abre o filtro com o cursor no campo de busca. Ali, Enter leva à próxima tarefa encontrada; Escape devolve a roda.",
-		keyAdd: "Adiciona uma tarefa ao lado desta; com shift, um passo dentro dela. Só numa roda sobre uma nota — noutras não há estrutura para adicionar.",
+		keyAdd: "Adiciona uma tarefa ao lado desta; com shift, um passo dentro dela. Em qualquer roda: vai para a nota onde a tarefa está escrita.",
 		keyZoom: "Zoom, ou pinçar numa tela sensível ao toque.",
 		keyZoomTouch: "Zoom.",
-		keyMove:
-			"Move a própria tarefa, com tudo o que está abaixo dela. Numa roda de uma só nota.",
+		keyMove: "Move a própria tarefa, com tudo o que está abaixo dela. Em qualquer roda, dentro da sua própria nota.",
 		keysNote:
 			"Com as setas você pode pular um ramo; girando, não. Essa é a divisão de trabalho: a garantia vive no girar.",
 		keysNoteTouch:
 			"Tocando você pode pular um ramo; girando, não. Essa é a divisão de trabalho: a garantia vive no girar.",
-		commandsNote:
-			"Cada uma destas também é um comando, então você pode pendurar sua própria tecla nela.",
-		commandsNoteTouch:
-			"Cada uma destas também é um comando, então você pode colocá-la na barra móvel.",
+		commandsNote: "Quase todas também são comandos, então você pode pendurar sua própria tecla nelas: as sete antes do ⋯, mais adicionar uma tarefa e levar trabalho a partir desse menu. Dobrar e os dois botões laterais já têm tecla; abrir o próprio menu não tem comando.",
+		commandsNoteTouch: "Quase todas também são comandos, então você pode colocá-las na barra móvel: as sete antes do ⋯, mais adicionar uma tarefa e levar trabalho a partir desse menu. O próprio ⋯, dobrar e os dois botões laterais só existem no cartão.",
 		actTick: "Concluir",
 		actProgress: "Marcar em andamento",
 		actCancel: "Cancelar",
@@ -1164,7 +1126,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Abrir a nota",
 		actEdit: "Editar o esboço, ou levá-la para outro lugar",
 		actFold: "Recolher este ramo",
-		actNudge: "Um item pelo anel, sem girar",
+		actNudge: "Um item ao lado, sem girar",
 		legAngleLabel: "Ângulo",
 		legAngle:
 			"O domínio. O raio é a profundidade: centro, domínio, projeto, tarefa.",
@@ -1225,8 +1187,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "Плоский порядок круга — путь, который ничего не может пропустить.",
 		keyEnds: "Первая и последняя остановка.",
 		keySideways: "Вбок, оставаясь на кольце.",
-		keySidewaysTouch:
-			"Вбок, оставаясь на кольце — две кнопки по краям карточки.",
+		keySidewaysTouch: "Вбок — две кнопки по краям карточки. Вперёд — к следующей задаче, мимо которой этот круг ещё не проходил, где бы она ни была на окружности; назад — всегда один шаг.",
 		keyOut: "На кольцо наружу, к потомку.",
 		keyIn: "На кольцо внутрь, к родителю.",
 		keyTap:
@@ -1237,19 +1198,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "Открывает заметку, в которой записана эта задача, на её строке.",
 		keyFold: "Сворачивает эту ветку или снова раскрывает.",
 		keySearch: "Открывает фильтр и ставит курсор в поле поиска. Enter там переходит к следующей найденной задаче, Escape возвращает колесо.",
-		keyAdd: "Добавляет задачу рядом с этой; с shift — шаг внутри неё. Только в колесе над одной заметкой — в других нет структуры для добавления.",
+		keyAdd: "Добавляет задачу рядом с этой; с shift — шаг внутри неё. В любом колесе: она попадает в ту заметку, где написана задача.",
 		keyZoom: "Масштаб, или щипок на сенсорном экране.",
 		keyZoomTouch: "Масштаб.",
-		keyMove:
-			"Перемещает саму задачу со всем, что под ней. В колесе одной заметки.",
+		keyMove: "Перемещает саму задачу со всем, что под ней. В любом колесе, внутри её собственной заметки.",
 		keysNote:
 			"Стрелками можно пропустить ветку; вращением — нет. В этом разделение труда: гарантия живёт во вращении.",
 		keysNoteTouch:
 			"Касанием можно пропустить ветку; вращением — нет. В этом разделение труда: гарантия живёт во вращении.",
-		commandsNote:
-			"Каждое из них — ещё и команда, так что можно назначить свою клавишу.",
-		commandsNoteTouch:
-			"Каждое из них — ещё и команда, так что её можно вынести на мобильную панель.",
+		commandsNote: "Почти все они — ещё и команды, так что можно назначить свою клавишу: семь до ⋯, а также добавление задачи и перенос работы из этого меню. У сворачивания и двух боковых кнопок клавиши уже есть; у открытия самого меню команды нет.",
+		commandsNoteTouch: "Почти все они — ещё и команды, так что их можно вынести на мобильную панель: семь до ⋯, а также добавление задачи и перенос работы из этого меню. Само ⋯, сворачивание и две боковые кнопки есть только на карточке.",
 		actTick: "Отметить сделанной",
 		actProgress: "Отметить в работе",
 		actCancel: "Отменить",
@@ -1259,7 +1217,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "Открыть заметку",
 		actEdit: "Изменить структуру или перенести в другое место",
 		actFold: "Свернуть эту ветку",
-		actNudge: "Один элемент по кольцу, не вращая",
+		actNudge: "Один элемент вбок, не вращая",
 		legAngleLabel: "Угол",
 		legAngle: "Сфера. Радиус — глубина: центр, сфера, проект, задача.",
 		legHues:
@@ -1319,7 +1277,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyFlat: "本轮的平铺顺序 — 不会跳过任何东西的路径。",
 		keyEnds: "第一个与最后一个停位。",
 		keySideways: "侧移，保持在同一环上。",
-		keySidewaysTouch: "侧移，保持在同一环上 — 卡片两侧的两个按钮。",
+		keySidewaysTouch: "侧移 — 卡片两侧的两个按钮。向前会带你到本轮还没经过的下一个任务，无论它在圆周何处；向后总是一步。",
 		keyOut: "向外一环，去往子项。",
 		keyIn: "向内一环，去往父项。",
 		keyTap: "把它带到阅读位置下。再点一次就打开它——标题或笔记是它的转盘，任务则打开编辑。",
@@ -1328,16 +1286,16 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		keyNote: "打开写着这条任务的笔记，并定位到那一行。",
 		keyFold: "折叠此分支，或再次展开。",
 		keySearch: "打开筛选器并把光标放进搜索框。在那里按 Enter 跳到找到的下一个任务，按 Escape 交回轮盘。",
-		keyAdd: "在这个任务旁边加一个任务；按住 shift 则加在它里面一层。只在针对单篇笔记的轮盘中可用。",
+		keyAdd: "在这个任务旁边加一个任务；按住 shift 则加在它里面一层。在任何轮盘上都可用，加到该任务所在的那篇笔记里。",
 		keyZoom: "缩放，或在触屏上捏合。",
 		keyZoomTouch: "缩放。",
-		keyMove: "移动任务本身及其下的一切。仅在单个笔记的转盘上。",
+		keyMove: "移动任务本身及其下的一切。在任何轮盘上，都在该任务所在的笔记内。",
 		keysNote:
 			"用方向键可以跳过分支；转动则不能。这就是分工：保证在转动之中。",
 		keysNoteTouch:
 			"点按可以跳过分支；转动则不能。这就是分工：保证在转动之中。",
-		commandsNote: "以上每一项也是命令，你可以为它绑定自己的快捷键。",
-		commandsNoteTouch: "以上每一项也是命令，你可以把它放进移动工具栏。",
+		commandsNote: "其中几乎每一项也是命令，你可以为它绑定自己的快捷键：⋯ 之前的七项，以及该菜单里的添加任务和搬运工作。折叠和左右两个按钮已经有按键；打开菜单本身没有命令。",
+		commandsNoteTouch: "其中几乎每一项也是命令，你可以把它们放进移动工具栏：⋯ 之前的七项，以及该菜单里的添加任务和搬运工作。⋯ 本身、折叠和左右两个按钮只在卡片上。",
 		actTick: "勾选完成",
 		actProgress: "标记进行中",
 		actCancel: "取消",
@@ -1347,7 +1305,7 @@ export const HELP_LOCALES: Record<HelpLanguage, HelpStrings> = {
 		actOpenNote: "打开笔记",
 		actEdit: "编辑大纲，或移到别处",
 		actFold: "折叠此分支",
-		actNudge: "沿环移动一个条目，无需转动",
+		actNudge: "不转动，移动一个条目",
 		legAngleLabel: "角度",
 		legAngle: "领域。半径是深度：中心、领域、项目、任务。",
 		legHues: "色相是领域。转盘把每个名字用它的颜色写在自己的边缘上。",

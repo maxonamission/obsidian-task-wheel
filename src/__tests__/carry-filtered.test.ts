@@ -410,6 +410,41 @@ describe("a named destination (BC_E3_S18)", () => {
  * the four was silent: a note beginning with `## Tuin` carried only that
  * section and said it had moved things.
  */
+describe("carrying on a wheel over one heading (BC_E3_S156)", () => {
+	/**
+	 * The blikveld narrows what the wheel shows just as a filter does, and the
+	 * carry only ever asked the filter. With none on, a note-ring carry took
+	 * every task out of the note — the headings this wheel is not about
+	 * included. Measured 6 sep 2026: one task shown, two carried.
+	 */
+	const underTuin: ParseOptions = {
+		...DEFAULT_PARSE_OPTIONS,
+		domainSource: "heading",
+		scope: { kind: "heading", heading: "Tuin", path: "" },
+	};
+
+	it("carries the note's work under that heading, and leaves the rest", async () => {
+		notes.set(
+			"Klussen.md",
+			[
+				"## Tuin",
+				"- [ ] Terras vegen",
+				"## Zolder",
+				"- [ ] Dozen sorteren",
+				"",
+			].join("\n"),
+		);
+
+		await carry("Klussen", underTuin);
+
+		expect(landed()).toContain("Terras vegen");
+		expect(landed()).not.toContain("Dozen sorteren");
+
+		expect(left()).toContain("Dozen sorteren");
+		expect(left()).not.toContain("Terras vegen");
+	});
+});
+
 describe("carrying a whole note", () => {
 	const shapes: Record<string, string[]> = {
 		"begins with a heading": [

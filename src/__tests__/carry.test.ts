@@ -48,7 +48,14 @@ describe("a task that was renamed", () => {
 	const after = tree(
 		["## Werk", "- [ ] Loodgieter bellen", "- [ ] Mailen"].join("\n"),
 	);
-	const rename = { path: "Werk/Plan.md", from: "Bellen", to: "Loodgieter bellen" };
+	// Line 1: the `- [ ] Bellen` under the heading. The hint names a line rather
+	// than only the words, so it cannot claim two identical ones (BC_E3_S175).
+	const rename = {
+		path: "Werk/Plan.md",
+		line: 1,
+		from: "Bellen",
+		to: "Loodgieter bellen",
+	};
 
 	it("keeps its seen-mark under its new name", () => {
 		const seen = [idOf(before, "Bellen")];
@@ -328,6 +335,94 @@ describe("what it refuses to guess", () => {
 		const after = tree("## Werk\n- [ ] Bellen\n- [ ] Mailen");
 		const seen = [idOf(before, "Bellen")];
 		expect(carrySeen(before, after, seen)).toEqual(seen);
+	});
+});
+
+/**
+ * Two identical lines, one of them gone (BC_E3_S175).
+ *
+ * BC_E3_S166 closed the identity half: an occurrence is ranked over the note's
+ * outline, so a ticked-off twin does not shift the other one's id. This is the
+ * carrying half. `mapIds` paired duplicates off in order, which is the honest
+ * answer while both survive and the wrong one the moment one leaves: the
+ * survivor walks up the list and inherits a mark that was never its own, and a
+ * round closes over a task that has not been under the reading wedge.
+ */
+describe("two identical tasks, and one of them leaves", () => {
+	const both = tree(["## Werk", "- [ ] Bellen", "- [ ] Bellen"].join("\n"));
+	const firstGone = tree(["## Werk", "- [x] Bellen", "- [ ] Bellen"].join("\n"));
+	const secondGone = tree(["## Werk", "- [ ] Bellen", "- [x] Bellen"].join("\n"));
+
+	/** The two ids, in the order the outline puts them. */
+	const twins = (): [string, string] => {
+		const ids: string[] = [];
+		for (const [id, node] of both.byId) {
+			if (node.kind === "task") ids.push(id);
+		}
+		ids.sort();
+		return [ids[0], ids[1]];
+	};
+
+	it("does not hand the survivor the mark of the one that went", () => {
+		const [first, second] = twins();
+		// The first was seen and is now ticked off. What is left has not been
+		// seen, and must not come out of the edit claiming it was.
+		const carried = carrySeen(both, firstGone, [first]);
+		expect(carried).not.toContain(second);
+		expect(labelsSeen(firstGone, carried)).toEqual([]);
+	});
+
+	it("leaves the survivor's own mark exactly where it was", () => {
+		const [, second] = twins();
+		const carried = carrySeen(both, firstGone, [second]);
+		expect(carried).toContain(second);
+		expect(labelsSeen(firstGone, carried)).toEqual(["Bellen"]);
+	});
+
+	it("does the same when it is the second one that leaves", () => {
+		const [first, second] = twins();
+		expect(labelsSeen(secondGone, carrySeen(both, secondGone, [first]))).toEqual([
+			"Bellen",
+		]);
+		expect(labelsSeen(secondGone, carrySeen(both, secondGone, [second]))).toEqual(
+			[],
+		);
+	});
+
+	/**
+	 * Found by measuring for the case above, and not reported by anyone: the
+	 * rename hint matched on the old text, so renaming *one* of two identical
+	 * lines claimed both — and the one still called Bellen lost its mark. The
+	 * same defect `Moved.lines` was given a line number for in BC_E3_S144.
+	 */
+	it("renames the line that was renamed, not everything that reads like it", () => {
+		const renamed = tree(
+			["## Werk", "- [ ] Loodgieter bellen", "- [ ] Bellen"].join("\n"),
+		);
+		const hint = {
+			path: "Werk/Plan.md",
+			line: 1,
+			from: "Bellen",
+			to: "Loodgieter bellen",
+		};
+		const [first, second] = twins();
+
+		expect(labelsSeen(renamed, carrySeen(both, renamed, [first], hint))).toEqual([
+			"Loodgieter bellen",
+		]);
+		expect(labelsSeen(renamed, carrySeen(both, renamed, [second], hint))).toEqual([
+			"Bellen",
+		]);
+	});
+
+	it("still pairs off duplicates that all survive", () => {
+		// Nothing shrank, so the old answer stands: which of the two is arbitrary,
+		// the count is not.
+		const three = tree(
+			["## Werk", "- [ ] Bellen", "- [ ] Bellen", "- [ ] Bellen"].join("\n"),
+		);
+		const [first] = twins();
+		expect(labelsSeen(three, carrySeen(both, three, [first]))).toEqual(["Bellen"]);
 	});
 });
 

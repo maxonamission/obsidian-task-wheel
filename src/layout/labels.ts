@@ -77,6 +77,18 @@ export interface LabelPlan {
 	focus: boolean;
 	/** The focus or one of its neighbours: named before the rest is. */
 	near: boolean;
+	/**
+	 * Only a counter, with no name in front of it (BC_E3_S154).
+	 *
+	 * A node that draws its first few children and holds the rest back has a
+	 * number the drawing owes the reader, and a name the drawing has decided
+	 * not to give it: "labels leaves and domains, never the containers in
+	 * between" is a rule with a test under it, and a busy wheel is exactly
+	 * where it earns its keep. So the counter goes on alone, and it is asked
+	 * last — after every real name, including the ones far from the focus.
+	 * A `+3` that pushed a task's name off the wheel would be a bad trade.
+	 */
+	countOnly?: boolean;
 	/** What it says centred over its own dot, and what it says hanging aside. */
 	long: string;
 	short: string;
@@ -115,6 +127,9 @@ export interface PlacedLabel {
 export function rank(label: LabelPlan): number {
 	if (label.focus) return 0;
 	if (label.onRim) return 1;
+	// After every name, its own included: a bare counter is worth having only
+	// where nothing else wanted the room (BC_E3_S154).
+	if (label.countOnly === true) return 4;
 	return label.near ? 2 : 3;
 }
 

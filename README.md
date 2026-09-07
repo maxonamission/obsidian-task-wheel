@@ -113,8 +113,8 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **One stop in the flat order** | PageUp / PageDown |
 | **Jump to the first or last** | Home / End |
 | **Carry to a named place** | The ⋯ button, or a key you bind yourself |
-| **Add a task** | `a` beside this one, `Shift+A` inside it — in a wheel over one note. Both are commands too, so Obsidian can bind other keys |
-| **Make it a subtask of another** | The ⋯ button, in a wheel over one note |
+| **Add a task** | `a` beside this one, `Shift+A` inside it — on any wheel; it goes into the note the task is written in. Both are commands too, so Obsidian can bind other keys |
+| **Make it a subtask of another** | The ⋯ button — on any wheel, choosing from the other tasks in its own note |
 | **Help** | The ? in the wheel's header — keys, the drawing's legend, and where this round stands |
 
 The help speaks thirteen languages (English, Nederlands, Deutsch, Français,
@@ -122,9 +122,9 @@ Español, Italiano, Português, Русский, 日本語, 한국어, 中文, ا
 follows Obsidian's own language setting; a setting overrides it.
 
 Turning is the big movement; the two chevrons beside the card are the small
-one. They do what ← → do — sideways along the ring you are reading — so the
-place your eye is on stays put. Turning is where the guarantee lives: it walks
-the flat order, and that is the walk that cannot skip anything.
+one. They do what ← → do, one step sideways rather than a turn, so the place
+your eye is on stays put. Turning is where the guarantee lives: it walks the
+flat order, and that is the walk that cannot skip anything.
 
 Sideways **takes you to the next thing this round has not been past**, wherever
 on the circle that is: reviewing the same task twice is time spent for nothing,
@@ -208,10 +208,12 @@ what the wheel is looking at, beside the round it defines. Two wheels over the
 **Under heading** narrows a round to the work that stands under one heading,
 wherever it is written: *"give me everything in this scope that sits under a
 heading Project"*. That is the one question the other rules cannot ask — the
-same subject, scattered over a dozen notes in half as many folders. It reads the
-**outermost** heading, the same step the wedges are made of, so what you filter
-on is what you read on the rim. Exact by default, and `Project*` takes
-everything that starts with it, exactly as the skip lists do. It works whatever
+same subject, scattered over a dozen notes in half as many folders. It reads
+**any** heading above the task, so a section deep in a note that opens with a
+title heading is found as readily as one at the top. Exact by default, and
+`Project*` takes everything that starts with it, exactly as the skip lists do.
+Paste the heading in with its `##` if that is how you have it: the hashes are
+markdown's way of writing the level and are taken off. It works whatever
 the domain comes from, and it combines with the rest, so "this subject, high
 priority, this week" is one question rather than three wheels. A task that
 stands under no heading at all is left out while it is set — and counted as
@@ -382,11 +384,17 @@ become the wedges, inside a note its **headings** do. The angle is always the
 top division of what you are looking at. Each wheel keeps its own position,
 zoom and folds.
 
-### Editing, but only in a note's own wheel
+### Editing: structure in the wheel, prose in the note
 
-Over a whole vault the wheel reviews and does not edit. Over one note it *is*
-that note's outline — headings are the wedges, indentation is the depth — so
-one line is drawn instead: **structure in the wheel, prose in the note.**
+The wheel reviews; it does not become a text editor. One line is drawn instead
+of none: **structure in the wheel, prose in the note.**
+
+The task edits below work on **every** wheel. A task carries the note it is
+written in, so there is always somewhere to write, and the edit stays inside
+that note. Editing **headings** is the part that does not travel: for that the
+wheel has to *be* the note's outline, with the headings as wedges and the
+indentation as the depth, so it is offered in a wheel over one note or one
+section and nowhere else.
 
 - **Move** a task up or down among its siblings, carrying everything underneath
   it, including plain prose lines. `Alt` with an arrow, or the `⋯` button. This
@@ -416,9 +424,9 @@ from its place and its text — so the round's seen-marks and the reading wedge
 are carried across to whatever the items became. An edit never quietly undoes
 part of a round.
 
-A **heading** has the same four moves, one level up: move it among its
-siblings, hang it under another heading, add a task to it, or give it a
-subheading. That includes the note's top headings, which are the wedges here —
+In a wheel over one note or one section, a **heading** has the same four moves,
+one level up: move it among its siblings, hang it under another heading, add a
+task to it, or give it a subheading. That includes the note's top headings, which are the wedges here —
 so in a note's wheel the wedges sit in the note's own order rather than
 alphabetically, and moving one is something you can see. A section travels with everything under it and is renumbered as it
 goes — a `###` with two `####` becomes a `##` with two `###`, so the shape

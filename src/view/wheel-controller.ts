@@ -157,8 +157,12 @@ export interface WheelControllerOptions {
 	/**
 	 * Move the focused task up or down among its siblings.
 	 *
-	 * Only a wheel over one note hands this in; without it Alt with an arrow
-	 * does nothing at all, which is right — there is no outline to reorder.
+	 * Handed in on every wheel: the move is within the task's own note, and the
+	 * task carries which note that is. Only the *item* decides whether it can
+	 * happen — a heading or a note has no task line to reorder, and `moveFocused`
+	 * answers that per press rather than per wheel (herzien BC_E3_S164; the note
+	 * here used to say "only a wheel over one note hands this in", which stopped
+	 * being true when the task edits moved to every wheel in 0.1.3).
 	 */
 	onMove?: (direction: "up" | "down") => void;
 	/**
@@ -1029,8 +1033,9 @@ export class WheelController {
 		// literally higher on screen.
 		// Alt with an arrow is Obsidian's own "move this line" idiom, and it is
 		// the same move here — except that the wheel moves the task with
-		// everything under it. Only a wheel over one note offers it; elsewhere
-		// `onMove` is absent and the arrows do what they always did.
+		// everything under it. Offered on every wheel, within the task's own
+		// note; when the item under the wedge has no line to move, `onMove`
+		// finds nothing and the press does nothing.
 		if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
 			const move = this.options.onMove;
 			if (move === undefined) return;

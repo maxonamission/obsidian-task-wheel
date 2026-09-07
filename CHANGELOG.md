@@ -4,6 +4,83 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.4]
+
+Repairs, and a round of names. The heading filter did nothing at all in most
+vaults, and a seen-mark could still land on a task that had never come past the
+reading wedge. That second one was the last of four ways the round could lose
+track of what you had seen; the other three were closed in 0.2.3.
+
+- **Fixed**: **Under heading** came back empty whatever you typed. It read the
+  *outermost* heading a task stands under, and in a note that opens with a title
+  heading that outermost one is the title, so no section name ever matched. The
+  exception was a note whose title repeats the file's name, which the wheel
+  already drops, and that is why it looked as though it worked sometimes. It now
+  reads any heading above the task, which is what the label promises: the work
+  that stands under this heading. One trade is worth knowing: a *Project* nested
+  under *Beheer* now matches `Project` too.
+- **Fixed**: the heading box takes the `##` you paste in with the heading. The
+  hashes are how markdown spells the level, not part of the name, and typing the
+  heading exactly as your note writes it used to match nothing.
+- **Fixed**: two identical task lines in one note, one of them seen. Ticking off
+  or renaming the seen one handed its mark to the other, so a round could close
+  over a task that had never come past. The line that leaves takes its own mark
+  with it now, and the one that stays keeps only its own. Renaming one of two
+  identical lines no longer wipes the other's mark either.
+- **Changed**: five commands are renamed so the command palette says the same
+  thing as the button on the card and the help panel: *Tick off* is now **Mark
+  done**, *Mark as started* is **Mark in progress**, *Raise/Lower the priority*
+  are **Raise/Lower priority**, and *Open the note here* is **Open the note**.
+  Any key you have bound keeps working: Obsidian binds a key to the command, not
+  to its name.
+- **Changed**: the help panel now says what the plugin actually does in three
+  places where it had fallen behind. Adding a task and moving one work on every
+  wheel, not only in a wheel over one note (that changed in 0.1.3); the two
+  ‹ › buttons beside the card step to the next task this round has not been
+  past, rather than staying on the ring; and the note under the icon row no
+  longer claims every one of them is also a command, since three of the ten are
+  not.
+
+## [0.2.3]
+
+A second round of audit fixes, this one mostly about the round keeping its
+promise. Three ways the wheel could quietly lose track of what you had seen are
+closed, and a busy wheel now spends its drawing room on what it actually draws.
+
+- **Fixed**: stepping sideways to a task that was not drawn yet did not mark it
+  as seen, so the next arrow skipped it. With the default *step past seen work*
+  setting that was the ordinary route, which meant a round could close over
+  tasks that had been under the reading wedge. Arriving somewhere is now one
+  action, whichever way you got there: the arrows, the cursor following your
+  note, landing on a task from the panel, or folding a branch open.
+- **Fixed**: changing where the angle comes from, from the folder to a heading
+  or a tag, silently threw away every seen mark on every wheel. The wedge keys
+  are part of a task's identity, so a different angle source means a different
+  round, and 180 of 200 became 0 without a word. It now says so, the way
+  changing the filter has said so since August, and it says it once for all
+  wheels rather than only the one in view.
+- **Fixed**: two identical task lines in one note shared an identity when the
+  first was ticked off: the second slid into the first one's place and inherited
+  its seen mark, so a round could close with a task that had never been shown.
+  The two lines now keep their own place, counted over what the note contains
+  rather than over what the wheel happens to be showing.
+- **Fixed**: collapsing a branch to make room for the rest did nothing. The
+  drawing budget was handed out as if every candidate were drawn, while a
+  second, later decision left the collapsed branch and everything under the
+  ring cap undrawn. That room was bought and never released: on a wheel of two
+  ten-task projects, collapsing the first one drew *none* of the second and
+  still reported twelve nodes drawn. Collapsing now gives the room back, and
+  the count reports what is on screen.
+- **Fixed**: with a heading wheel or the *under heading* angle, a note wedge
+  carried every task in the note, including the ones this wheel was not
+  showing. A carrier now takes exactly what the wheel shows. The one write
+  route that could not compare, carrying a whole note, now says so in its
+  outcome instead of leaving it unsaid.
+- **Added**: a branch the wheel opened only part of now says how many children
+  it is holding back, with the same **+N** a fully collapsed stump has always
+  carried. It stays a dot without a name, so the count arrives without a label
+  crowding its neighbours.
+
 ## [0.2.2]
 
 A round of audit fixes, most of them in what the wheel writes back to your

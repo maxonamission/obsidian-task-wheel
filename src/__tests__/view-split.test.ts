@@ -35,6 +35,82 @@ const withFilter = (filter: Partial<typeof NO_FILTER>): ParseOptions => ({
 	filter: { ...NO_FILTER, ...filter },
 });
 
+describe("whatTravels — the blikveld, not only the filter (BC_E3_S156)", () => {
+	/**
+	 * Two things can make the wheel show less than the note holds, and both have
+	 * to be asked. The filter was; the blikveld was not, and with no filter on
+	 * `shows` was simply true — so a note-ring carry on a heading wheel took
+	 * every task out of the note, headings this wheel is not about included.
+	 * Measured 6 sep 2026: one task shown, two carried.
+	 *
+	 * `parse/round.ts` says it in one line: the wheel carrying more than it
+	 * shows is the same broken promise as carrying less.
+	 */
+	const LINES = ["## Thuis", "- [ ] Afwas", "## Werk", "- [ ] Mailen"];
+
+	const onHeading = (heading: string): ParseOptions => ({
+		...DEFAULT_PARSE_OPTIONS,
+		domainSource: "heading",
+		scope: { kind: "heading", heading, path: "" },
+	});
+
+	it("takes only what the heading wheel is about", () => {
+		const carry = whatTravels(
+			LINES,
+			at("Deze week.md", 0),
+			onHeading("Thuis"),
+			"project",
+		);
+
+		expect(carry?.blocks.map((block) => block.raw)).toEqual([["- [ ] Afwas"]]);
+	});
+
+	it("takes the other one on the other wheel", () => {
+		const carry = whatTravels(
+			LINES,
+			at("Deze week.md", 0),
+			onHeading("Werk"),
+			"project",
+		);
+
+		expect(carry?.blocks.map((block) => block.raw)).toEqual([["- [ ] Mailen"]]);
+	});
+
+	it("takes the whole note on a wheel that is about the whole note", () => {
+		// No filter and no narrowing blikveld: the note travels as it stands, and
+		// a block stays indivisible.
+		const carry = whatTravels(
+			LINES,
+			at("Deze week.md", 0),
+			DEFAULT_PARSE_OPTIONS,
+			"project",
+		);
+
+		expect(carry?.blocks).toHaveLength(2);
+	});
+
+	it("holds a section wheel to its own subtree", () => {
+		const nested = [
+			"## Project",
+			"### Deze week",
+			"- [ ] Bellen",
+			"### Later",
+			"- [ ] Mailen",
+		];
+		const carry = whatTravels(
+			nested,
+			at("Plan.md", 0),
+			{
+				...DEFAULT_PARSE_OPTIONS,
+				scope: { kind: "section", path: "Plan.md", heading: ["Project", "Deze week"] },
+			},
+			"project",
+		);
+
+		expect(carry?.blocks.map((block) => block.raw)).toEqual([["- [ ] Bellen"]]);
+	});
+});
+
 describe("whatTravels — what a carry actually takes", () => {
 	it("takes a task with its whole block", () => {
 		const lines = [

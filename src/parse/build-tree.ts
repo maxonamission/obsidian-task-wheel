@@ -34,7 +34,7 @@ import {
 	type Wedge,
 } from "./domain";
 import { isFiltering, matches } from "./filter";
-import { showsFinishedWork } from "./round";
+import { showsFinishedWork, withinBlikveld } from "./round";
 import { TASK_LINE } from "./task-line";
 import { isTaskNote, taskNoteLabel, taskNoteState } from "./task-note";
 import {
@@ -191,6 +191,10 @@ export function buildTreeFrom(
 				? noteGroup(note, options).wedge
 				: undefined;
 
+		// Ranked over the shaped outline, not over what the round kept: ticking a
+		// twin off must not renumber the one below it (BC_E3_S166).
+		const twins = rankTwins(shaped);
+
 		for (const group of groupTasks(kept, note, options, onePlace)) {
 			const container = ensureContainers(
 				root,
@@ -200,7 +204,7 @@ export function buildTreeFrom(
 				options,
 				asTask,
 			);
-			attachTasks(container, byId, note, group.tasks);
+			attachTasks(container, byId, note, group.tasks, twins);
 		}
 	}
 
@@ -278,7 +282,9 @@ function underHeading(
 	tasks: readonly OutlinedTask[],
 	heading: string,
 ): OutlinedTask[] {
-	return tasks.filter((task) => task.headingPath[0] === heading);
+	return tasks.filter((task) =>
+		withinBlikveld(task.headingPath, { kind: "heading", heading, path: "" }),
+	);
 }
 
 /**
@@ -293,7 +299,7 @@ function withinSection(
 	heading: readonly string[],
 ): OutlinedTask[] {
 	return tasks.filter((task) =>
-		heading.every((step, i) => task.headingPath[i] === step),
+		withinBlikveld(task.headingPath, { kind: "section", heading: [...heading], path: "" }),
 	);
 }
 
@@ -894,11 +900,53 @@ function ensureChild(
 /* tasks: nesting by indentation                                       */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Which of the identical siblings this one is, counted over the whole note.
+ *
+ * Two tasks can carry the same text, and the id has to tell them apart. It used
+ * to do that by counting the nodes already *made*, which is a number that moves:
+ * tick the first of two `- [ ] Bellen` off and the second stops being `#2` and
+ * becomes the plain id the first one had — inheriting its seen mark, so a round
+ * could close over a task that was never under the reading wedge (found by
+ * audit, 6 sep 2026).
+ *
+ * Counted over the note's shaped outline instead, which still holds the
+ * finished and the filtered-out: what the round is about changes as the reader
+ * works, what the note *contains* does not. `model/carry.ts` documents that
+ * which of two twins is which is arbitrary; that stays true, and the count
+ * stops being wrong.
+ *
+ * The key is structural (§3.2): the headings above, the indent, and the label.
+ * It can group two tasks that would not have collided anyway — same depth, same
+ * words, different parent task — and then hands one of them a `#2` it did not
+ * need. Harmless: the id is still stable and still unique, which is all it has
+ * to be.
+ */
+function rankTwins(tasks: readonly OutlinedTask[]): Map<OutlinedTask, number> {
+	const seen = new Map<string, number>();
+	const rank = new Map<OutlinedTask, number>();
+
+	for (const task of tasks) {
+		const key = [
+			task.headingPath.join(SEP),
+			task.indent,
+			sanitise(sortableText(labelFor(task))),
+		].join(SEP);
+
+		const nth = seen.get(key) ?? 0;
+		rank.set(task, nth);
+		seen.set(key, nth + 1);
+	}
+
+	return rank;
+}
+
 function attachTasks(
 	container: WheelNode,
 	byId: Map<string, WheelNode>,
 	note: NoteInput,
 	tasks: OutlinedTask[],
+	twins: Map<OutlinedTask, number>,
 ): void {
 	/** Open ancestors, outermost first, with the indent each was found at. */
 	const stack: Array<{ indent: number; node: WheelNode }> = [];
@@ -908,7 +956,7 @@ function attachTasks(
 			stack.pop();
 		}
 		const parent = stack.length > 0 ? stack[stack.length - 1].node : container;
-		const created = createTask(byId, parent, note, task);
+		const created = createTask(byId, parent, note, task, twins.get(task) ?? 0);
 		stack.push({ indent: task.indent, node: created });
 	}
 }
@@ -934,14 +982,20 @@ function createTask(
 	parent: WheelNode,
 	note: NoteInput,
 	task: OutlinedTask,
+	twin: number,
 ): WheelNode {
 	const label = labelFor(task);
 	const base = `${parent.id}${SEP}t:${sanitise(sortableText(label))}`;
 
-	// Two siblings can carry the same text. Disambiguate by occurrence, which
-	// stays stable as long as their relative order does.
-	let id = base;
-	let occurrence = 2;
+	// Two siblings can carry the same text. Disambiguated by which of them this
+	// is in the note, counted before the round narrowed anything down — see
+	// `rankTwins` for why that number has to come from outside this loop.
+	let id = twin === 0 ? base : `${base}#${twin + 1}`;
+
+	// A collision the ranking did not foresee would otherwise overwrite a node
+	// in `byId` and lose it from the wheel, so the old counter stays as a floor
+	// under it. It should never run.
+	let occurrence = twin + 2;
 	while (byId.has(id)) {
 		id = `${base}#${occurrence}`;
 		occurrence += 1;

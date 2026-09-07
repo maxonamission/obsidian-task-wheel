@@ -34,6 +34,7 @@ import {
 	setFilter,
 } from "./settings";
 import { readNotes, ScanCache } from "./vault/scan";
+import { ACTION_NAMES } from "./view/action-names";
 import { DUE_LABELS } from "./view/filter-labels";
 import { DuplicateReportModal } from "./view/duplicate-report-modal";
 import { SkipReportModal } from "./view/skip-report-modal";
@@ -1089,18 +1090,18 @@ const FOCUS_COMMANDS: readonly {
 	name: string;
 	pick: (actions: CardActions) => (() => void) | undefined;
 }[] = [
-	{ id: "focus-done", name: "Tick off", pick: (a) => a.done },
-	{ id: "focus-start", name: "Mark as started", pick: (a) => a.start },
-	{ id: "focus-cancel", name: "Cancel", pick: (a) => a.cancel },
-	{ id: "focus-defer", name: "Push a week out", pick: (a) => a.defer },
+	{ id: "focus-done", name: ACTION_NAMES.done, pick: (a) => a.done },
+	{ id: "focus-start", name: ACTION_NAMES.start, pick: (a) => a.start },
+	{ id: "focus-cancel", name: ACTION_NAMES.cancel, pick: (a) => a.cancel },
+	{ id: "focus-defer", name: ACTION_NAMES.defer, pick: (a) => a.defer },
 	{
 		id: "focus-priority-up",
-		name: "Raise the priority",
+		name: ACTION_NAMES.raise,
 		pick: (a) => (a.priority === undefined ? undefined : () => a.priority?.(1)),
 	},
 	{
 		id: "focus-priority-down",
-		name: "Lower the priority",
+		name: ACTION_NAMES.lower,
 		pick: (a) => (a.priority === undefined ? undefined : () => a.priority?.(-1)),
 	},
 	{
@@ -1113,7 +1114,7 @@ const FOCUS_COMMANDS: readonly {
 		name: "Add subtask",
 		pick: (a) => (a.outline === undefined ? undefined : () => a.outline?.add(true)),
 	},
-	{ id: "focus-open", name: "Open the note here", pick: (a) => a.open },
+	{ id: "focus-open", name: ACTION_NAMES.openNote, pick: (a) => a.open },
 	{
 		id: "focus-copy",
 		name: "Copy to another note",

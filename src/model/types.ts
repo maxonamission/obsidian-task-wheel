@@ -466,10 +466,16 @@ export interface TaskFilter {
 	 * rest, so "this subject, high priority, this week" is one question and not
 	 * three wheels.
 	 *
-	 * Matched on the **outermost** heading, the same step the wedge is made of,
-	 * so what you filter on is what you see on the rim. A `*` widens it, exactly
-	 * as it does in the skip lists — one spelling of "a name with a star" for the
-	 * whole plugin.
+	 * Matched on **any** heading above the task (herzien BC_E3_S176). It read the
+	 * outermost only, on the reasoning that the wedge is made of that same step;
+	 * measured, that reasoning only held for a note without a title heading. A
+	 * note opening with an `# H1` carries that title as its outermost heading, so
+	 * every section name matched nothing and the wheel came up empty.
+	 *
+	 * A `*` widens it, exactly as it does in the skip lists — one spelling of
+	 * "a name with a star" for the whole plugin. Leading `#` are taken off what
+	 * the reader types: a heading is written `## Deze week` in a note, and that
+	 * is what gets pasted in.
 	 */
 	heading: string;
 	/** Which statuses count. */

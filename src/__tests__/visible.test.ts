@@ -51,11 +51,19 @@ function shareOf(tree: WheelTree): Map<string, number> {
 	return new Map(tree.domains.map((d) => [d, 1 / tree.domains.length]));
 }
 
-function select(tree: WheelTree, focusId: string | null = null, budget = DEFAULT_VISIBLE_BUDGET): Visible {
+function select(
+	tree: WheelTree,
+	focusId: string | null = null,
+	budget = DEFAULT_VISIBLE_BUDGET,
+	folded: ReadonlySet<string> = new Set(),
+): Visible {
 	return selectVisible(tree.root, doiField(tree.root, focusId), {
 		budget,
 		rings: DEFAULT_LAYOUT_OPTIONS.rings,
 		share: shareOf(tree),
+		collapsed: folded,
+		maxDepth: DEFAULT_LAYOUT_OPTIONS.maxDepth,
+		depthBonus: DEFAULT_LAYOUT_OPTIONS.doi.depthBonus,
 	});
 }
 
@@ -202,6 +210,93 @@ describe("selectVisible — the focus always opens", () => {
 	});
 });
 
+describe("selectVisible — a fold makes room (BC_E3_S153)", () => {
+	/**
+	 * The selection handed out the budget as though every candidate would be
+	 * drawn, and `stumpBy` in `radial.ts` decided afterwards that a folded
+	 * branch draws nothing. What was bought for it never came back.
+	 *
+	 * Measured 6 sep 2026 on two projects of ten tasks with a budget of twelve:
+	 * open, the wheel drew nine tasks and a stump. With the first project folded
+	 * away it drew **nothing at all** — four nodes, none of them a task — while
+	 * this function still reported `drawn: 12`. Folding a branch to make room for
+	 * the rest is the gesture harde eis §3.6 invites, and it did the opposite.
+	 */
+	const PAIR: NoteInput[] = [
+		{
+			path: "Werk/P1.md",
+			content: Array.from({ length: 10 }, (_, i) => `- [ ] A${i}`).join("\n"),
+		},
+		{
+			path: "Werk/P2.md",
+			content: Array.from({ length: 10 }, (_, i) => `- [ ] B${i}`).join("\n"),
+		},
+	];
+
+	const pair = (): WheelTree => buildTree(PAIR, DEFAULT_PARSE_OPTIONS);
+	const idOf = (tree: WheelTree, label: string): string =>
+		[...tree.byId.values()].find((node) => node.label === label)!.id;
+
+	it("spends on the other branch what the folded one gave back", () => {
+		const tree = pair();
+		const open = select(tree, null, 12);
+		const folded = select(tree, null, 12, new Set([idOf(tree, "P1")]));
+
+		expect(open.shown.get(idOf(tree, "P1"))).toBeGreaterThan(0);
+		expect(folded.shown.has(idOf(tree, "P1"))).toBe(false);
+
+		// The whole point: the branch that stayed open draws more than it did.
+		expect(folded.shown.get(idOf(tree, "P2")) ?? 0).toBeGreaterThan(
+			open.shown.get(idOf(tree, "P2")) ?? 0,
+		);
+	});
+
+	it("counts as drawn what the wheel then actually draws", () => {
+		// `drawn` is the ceiling's own bookkeeping, and it has to agree with the
+		// drawing or the ceiling is measuring something else. It used to count
+		// children bought for a branch that was never drawn: with P1 folded it
+		// reported twelve while the wheel put four nodes on the disc, none of
+		// them a task.
+		const tree = pair();
+		const p1 = idOf(tree, "P1");
+		const layout = layoutWheel(tree, {
+			...DEFAULT_LAYOUT_OPTIONS,
+			visibleBudget: 12,
+			collapsed: new Set([p1]),
+		});
+
+		const folded = select(tree, null, 12, new Set([p1]));
+		const onDisc = layout.nodes.filter((laid) => laid.depth > 0).length;
+
+		expect(folded.drawn).toBe(onDisc);
+		expect(onDisc).toBeGreaterThan(4);
+	});
+
+	it("drops what hangs under a fold without being asked twice", () => {
+		// A child of a folded node is never considered: its parent was not
+		// opened, so `isDrawn` says no. Nothing below a fold buys anything.
+		const tree = pair();
+		const p1 = idOf(tree, "P1");
+		const folded = select(tree, null, 12, new Set([p1]));
+
+		for (const id of folded.expanded) {
+			expect(id.startsWith(`${p1}\u001f`)).toBe(false);
+		}
+	});
+
+	it("opens a fold that lies on the way to the focus", () => {
+		// You are looking inside it, not undoing it — the same exemption
+		// `isStump` has made since BC_E3_S99. If the two disagreed it would be
+		// about the very node the reader is standing on.
+		const tree = pair();
+		const p1 = idOf(tree, "P1");
+		const inside = tree.byId.get(p1)!.children[0];
+
+		const folded = select(tree, inside.id, 12, new Set([p1]));
+		expect(folded.expanded.has(p1)).toBe(true);
+	});
+});
+
 describe("selectVisible — without a focus", () => {
 	it("fills breadth first rather than favouring one wedge", () => {
 		const tree = treeOf(1000);
@@ -209,6 +304,9 @@ describe("selectVisible — without a focus", () => {
 			budget: DEFAULT_VISIBLE_BUDGET,
 			rings: DEFAULT_LAYOUT_OPTIONS.rings,
 			share: shareOf(tree),
+			collapsed: new Set<string>(),
+			maxDepth: DEFAULT_LAYOUT_OPTIONS.maxDepth,
+			depthBonus: DEFAULT_LAYOUT_OPTIONS.doi.depthBonus,
 		});
 
 		const drawn = drawnNodes(tree, visible);
