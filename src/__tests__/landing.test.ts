@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildTree } from "../parse/build-tree";
-import { landingId, readLanding } from "../model/landing";
+import { landingId, nodeAt, readLanding } from "../model/landing";
 import {
 	DEFAULT_PARSE_OPTIONS,
 	type NoteInput,
@@ -214,5 +214,96 @@ describe("reading a landing out of a leaf's state", () => {
 		]) {
 			expect(readLanding(state)).toBeNull();
 		}
+	});
+});
+
+/**
+ * The one answer to "which node is at this line" (BC_E3_S159, audit 6 sep 2026).
+ *
+ * There used to be two lookups: this one, and `nodeAtLine` in `view/`. They
+ * disagreed on five lines out of twelve in an ordinary note, each had a test
+ * pinning its own answer, and neither tested the other's. The cases below are
+ * both sets, kept together so that a future disagreement has to be written down
+ * as a contradiction rather than discovered in a second file.
+ */
+describe("nodeAt — the stop a cursor stands in", () => {
+	const PATH = "Werk/Plan.md";
+	const tree = buildTree(
+		[
+			{
+				path: PATH,
+				content: [
+					"- [ ] Bonnetjes scannen", // 0
+					"  aantekening bij de taak", // 1
+					"", // 2
+					"## Deze week", // 3
+					"een paragraaf", // 4
+					"- [ ] Iets onder de kop", // 5
+					"## Volgende week", // 6
+					"nog een paragraaf", // 7
+					"- [ ] Later", // 8
+				].join("\n"),
+			},
+		],
+		DEFAULT_PARSE_OPTIONS,
+	);
+
+	const labelAt = (line: number): string | undefined => {
+		const id = nodeAt(tree, PATH, line);
+		return id === null ? undefined : tree.byId.get(id)?.label;
+	};
+
+	it("lands on the task when the cursor is on one", () => {
+		expect(labelAt(0)).toBe("Bonnetjes scannen");
+		expect(labelAt(5)).toBe("Iets onder de kop");
+	});
+
+	it("lands on the heading when the cursor is on one", () => {
+		expect(labelAt(3)).toBe("Deze week");
+		expect(labelAt(6)).toBe("Volgende week");
+	});
+
+	/**
+	 * The first of the two disagreements, and `nodeAt` had it right.
+	 *
+	 * Every note has a line 0, and the note's own ring claims it — `line: 0`
+	 * with `raw: null`, meaning "this document starts here" rather than "I am
+	 * written on this line". The other lookup took that literally and answered
+	 * the note about a cursor sitting on a task.
+	 */
+	it("never answers the note about a line a task is written on", () => {
+		expect(labelAt(0)).toBe("Bonnetjes scannen");
+		for (const line of [0, 1, 2]) {
+			expect(labelAt(line)).toBe("Bonnetjes scannen");
+		}
+	});
+
+	/**
+	 * The second, and there the *other* lookup had it right.
+	 *
+	 * Reaching back for the last **task** walked straight past the heading in
+	 * between: measured, a cursor in a paragraph under *Volgende week* answered
+	 * with a task under *Deze week* — work from a section the reader had left.
+	 */
+	it("does not reach past a heading for a task in the section before it", () => {
+		expect(labelAt(7)).toBe("Volgende week");
+		expect(labelAt(4)).toBe("Deze week");
+	});
+
+	it("still lets prose under a task belong to that task", () => {
+		// No heading in between, so the task *is* the nearest node above.
+		expect(labelAt(1)).toBe("Bonnetjes scannen");
+	});
+
+	it("never looks below the cursor", () => {
+		expect(labelAt(3)).not.toBe("Iets onder de kop");
+	});
+
+	it("has nothing to offer above the first stop", () => {
+		expect(nodeAt(tree, PATH, -1)).toBeNull();
+	});
+
+	it("ignores every other note", () => {
+		expect(nodeAt(tree, "Gezin/Weekend.md", 1)).toBeNull();
 	});
 });

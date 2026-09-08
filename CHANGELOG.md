@@ -4,6 +4,74 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.6]
+
+Four of these came from using the plugin — a stray line, two wedges of the same
+colour, a filter box that would not take part of a word, and a search box you
+could not leave. The other five came from reading it, in the second audit of the
+code.
+
+- **Fixed**: a branch could be drawn the long way round the wheel, as a thin
+  line most of the way about the hub. The arc took the shorter of two turns and
+  the flag saying "this is the long way" was set from the raw difference between
+  two angles, which is the *other* number once one of them has wrapped past
+  360°. Every branch now turns the short way, and the drawing says so with one
+  number instead of two that could disagree.
+- **Fixed**: with *Colour-blind friendly* chosen, two neighbouring wedges could
+  still be the same colour. Six hues and seven wedges put the seventh back on the
+  first hue, and on a circle the seventh wedge is the first one's neighbour. The
+  reasoning written into the setting — *past the end of a palette the hues start
+  over and the wedge position tells those apart* — held for every pair except the
+  one it had to hold for. A wheel of six wedges looks exactly as it did; you do
+  not have to relearn a wedge by its colour.
+- **Changed**: *Wedge colours* now says what the setting does and does not
+  touch. The sweep band and the reading ring take their colour from your theme's
+  accent, which is yours to choose and not the palette's to override, and how red
+  a hue looks is your theme's answer. That is why a wheel promising "no red or
+  green" could still show both: the promise was about one channel and read as a
+  statement about the whole drawing.
+- **Fixed**: the filter's three text boxes each searched differently, and
+  nothing said so. Typing `may` found nothing while `#maybe` sat on the task, and
+  part of a heading found nothing either, while the words box above them had
+  always been happy with part of a word. There are two rules now, and which
+  applies follows from what the box asks about. A heading is prose, so a bare
+  word matches part of the name: *bonnetjes* finds *Project bonnetjes*. A tag is
+  an identifier with structure, so a bare word matches from the start: `may`
+  finds `#maybe` and `#may/urgent`, and leaves `#thuismaybe` alone. The star
+  works in all three boxes now — it did not in the tag box — and one line under
+  the panel says all of this.
+- **Fixed**: pressing Enter in a filter box left you standing in it. Only the
+  search box knew what Enter means; the other five applied what you typed and
+  then handed you back nothing, so the round narrowed while your cursor was still
+  in the box. Every box you type in now applies and gives the wheel its keyboard
+  back, and Escape does the same without applying. This reached further than it
+  looked: the wheel refuses to pull focus off anything you might still be typing
+  in, which is right for a redraw that cannot know, and wrong when you have just
+  pressed Enter to say you are done.
+- **Fixed**: a redraw could take away what you were typing. Emptying the panel
+  to rebuild it fires the same event a finished edit does, so a sync landing
+  mid-word applied half a search term — a new selection, and so a new round, with
+  the marks of everything you had already been past given up for it. The panel
+  now waits until you have left the box.
+- **Fixed**: the magnifier changed strength as you turned. Its calibration was
+  reading the drawing as it stood, and which items are drawn depends on where you
+  are looking, so the same tree gave answers between 0.49 and 0.96 across one
+  turn. It now reads the tree, which does not move.
+- **Fixed**: stepping into the wedge that collects work standing under no
+  heading — in heading mode — opened an empty wheel that said nothing about the
+  items you had just been looking at. It showed only half of what that wedge
+  holds. It now opens on all of it.
+- **Fixed**: the wheel could disagree with itself about which item your cursor
+  is on. Opening the wheel on the cursor and following the cursor as you move
+  around a note used two different lookups, which parted company on five lines
+  out of twelve in an ordinary note: one answered the note about a cursor sitting
+  on a task, the other reached back past a heading for work in the section
+  before. One lookup now, right about both.
+- **Changed**: the settings tab's filter group offers the same rules as the
+  panel beside the wheel — it was missing *Priority at most* — and both now name
+  the date a window is pointed at, rather than saying "Due from" about a window
+  reading 🛫.
+
 ## [0.2.5]
 
 Two things found by using the plugin rather than by reading it. A named

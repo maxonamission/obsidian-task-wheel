@@ -66,7 +66,14 @@ export function withinBlikveld(
 	if (scope.kind === "section") {
 		return scope.heading.every((step, i) => headingPath[i] === step);
 	}
-	if (scope.kind === "heading") return headingPath[0] === scope.heading;
+	if (scope.kind === "heading") {
+		// The fallback wedge is the bucket for work under no heading, so a wheel
+		// over it holds that work too (BC_E3_S157). Without this the step in
+		// showed a wedge's other half only: measured, a fallback wedge of two
+		// items opened on an empty wheel that said nothing about either of them.
+		if (headingPath.length === 0) return scope.loose === true;
+		return headingPath[0] === scope.heading;
+	}
 	return true;
 }
 

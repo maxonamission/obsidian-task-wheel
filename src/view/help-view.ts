@@ -713,18 +713,20 @@ function drawLegend(
  */
 function drawHues(parent: HTMLElement, wheel: TaskWheelView | null): void {
 	parent.empty();
-	const domains = wheel?.domainNames() ?? [];
+	const domains = wheel?.domainKeys() ?? [];
 
 	const palette = wheel?.palette();
 
-	for (const [index, name] of domains.entries()) {
+	for (const { name, hue } of domains) {
 		const one = parent.createSpan({ cls: "task-wheel-help-hue" });
 		const swatch = one.createSpan({ cls: "task-wheel-help-swatch" });
 		// `normal` is the absence of a priority marker, and so most of the
 		// wheel: the swatch shows the hue as the reader mostly meets it. In
-		// that wheel's own palette — this key names the domains in front of
-		// the reader, so it has to show the colours they are actually drawn in.
-		swatch.style.setProperty("--tw-colour", nodeColour(index, "normal", palette));
+		// that wheel's own palette, and with the hue the wheel handed out
+		// rather than one worked out again here — this key names the domains in
+		// front of the reader, so it has to show the colours they are actually
+		// drawn in (BC_E3_S180).
+		swatch.style.setProperty("--tw-colour", nodeColour(hue, "normal", palette));
 		one.createSpan({ text: name });
 	}
 }

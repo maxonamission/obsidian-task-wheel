@@ -155,6 +155,32 @@ const PRIORITY_STRENGTH: Readonly<Record<Priority, number>> = {
 };
 
 /**
+ * Which hue a wedge gets, so that no two *neighbours* ever share one.
+ *
+ * Position was the hue, and past the end of a palette the hues started over —
+ * with the wedge position offered as what tells two of the same colour apart.
+ * That argument holds for every pair except the one it has to hold for: on a
+ * circle the last wedge sits **beside** the first. Measured 8 sep 2026 on the
+ * owner's vault: six hues, seven wedges, and wedges 7 and 1 were both blue,
+ * side by side.
+ *
+ * Consecutive positions always get consecutive hues, so the last-and-first pair
+ * is the only one that can collide at all, and it collides exactly when the
+ * count leaves a remainder of one. The last wedge then steps one hue on. Its
+ * other neighbour holds the palette's last hue and the first holds hue 0, so
+ * hue 1 is free of both — with three hues or more, always.
+ *
+ * Below three hues there is no free choice left, and with no repetition yet
+ * there is nothing to fix; both cases hand back the position unchanged.
+ */
+export function hueIndex(index: number, total: number, hues: number): number {
+	if (hues < 3 || total <= hues) return index;
+	if (total % hues !== 1) return index;
+
+	return index === total - 1 ? 1 : index;
+}
+
+/**
  * The domain's hue as a bare CSS value.
  *
  * The palette defaults to the theme's full set, so every caller that does not

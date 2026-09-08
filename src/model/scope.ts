@@ -139,6 +139,21 @@ export function scopeFor(
 	node: TappedNode,
 	within: WheelScope,
 	domainSource: DomainSource,
+	/**
+	 * What the fallback wedge is called, so a step into it can carry the loose
+	 * work along (BC_E3_S157).
+	 *
+	 * A name rather than a flag on the node, because the name is all the tree
+	 * has: a fallback wedge and a heading wedge are the same shape, both without
+	 * a source of their own. That is not a loss of precision — where a heading
+	 * really is called *Overig*, its work and the loose work are already drawn
+	 * as one wedge, so one wheel holding both is the honest answer and not an
+	 * approximation of two.
+	 *
+	 * Empty by default: a caller that does not say has no fallback wedge, and no
+	 * label is ever empty, so nothing matches by accident.
+	 */
+	fallbackDomain = "",
 ): WheelScope | NoScope {
 	const here = within.kind;
 
@@ -197,6 +212,10 @@ export function scopeFor(
 				kind: "heading",
 				heading: node.label,
 				path: within.kind === "folder" ? within.path : "",
+				// The fallback wedge holds whatever heading carries its name
+				// *and* everything under no heading at all. Stepping in shows
+				// both, which is what the wedge was drawing (BC_E3_S157).
+				loose: fallbackDomain.length > 0 && node.label === fallbackDomain,
 			};
 		}
 

@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { nothingToCarry, whatTravels } from "../view/carry-flow";
 import { sectionTargets } from "../view/section-edits";
-import { concernsWheel, nodeAtLine } from "../view/vault-watch";
+import { concernsWheel } from "../view/vault-watch";
 import { roundCompleteMessage } from "../view/round";
-import { buildTree } from "../parse/build-tree";
 import { headingsOf } from "../parse/outline";
 import {
 	DEFAULT_PARSE_OPTIONS,
@@ -269,59 +268,6 @@ describe("concernsWheel — is this save this wheel's business", () => {
 
 		expect(concernsWheel("Archief/Oud.md", VAULT_SCOPE, options)).toBe(false);
 		expect(concernsWheel("Werk/Plan.md", VAULT_SCOPE, options)).toBe(true);
-	});
-});
-
-describe("nodeAtLine — the stop a cursor stands in", () => {
-	const tree = buildTree(
-		[
-			{
-				path: "Werk/Plan.md",
-				content: [
-					"## Voorbereiding", // 0
-					"- [ ] Coderen", // 1
-					"", // 2
-					"Wat losse tekst.", // 3
-					"## Review", // 4
-					"- [ ] Terugkoppelen", // 5
-				].join("\n"),
-			},
-		],
-		DEFAULT_PARSE_OPTIONS,
-	);
-
-	const labelAt = (line: number): string | undefined => {
-		const id = nodeAtLine(tree, "Werk/Plan.md", line);
-		return id === null ? undefined : tree.byId.get(id)?.label;
-	};
-
-	it("lands on the task when the cursor is on one", () => {
-		expect(labelAt(1)).toBe("Coderen");
-	});
-
-	it("lands on the nearest stop above, which may be a task", () => {
-		// Prose under a task belongs to that task, not to the heading over it:
-		// the rule is "nearest at or above", not "nearest heading".
-		expect(labelAt(3)).toBe("Coderen");
-	});
-
-	it("lands on the heading when the cursor is on one", () => {
-		expect(labelAt(4)).toBe("Review");
-	});
-
-	it("never looks below the cursor", () => {
-		// The task on line 5 is nearer in absolute distance from line 4 than the
-		// heading on 4 is from anything — nearness only ever counts upwards.
-		expect(labelAt(4)).not.toBe("Terugkoppelen");
-		expect(labelAt(5)).toBe("Terugkoppelen");
-	});
-
-	it("has nothing to offer above the first stop", () => {
-		expect(nodeAtLine(tree, "Werk/Plan.md", -1)).toBeNull();
-	});
-
-	it("ignores every other note", () => {
-		expect(nodeAtLine(tree, "Gezin/Weekend.md", 1)).toBeNull();
 	});
 });
 

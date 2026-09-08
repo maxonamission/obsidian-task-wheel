@@ -1,10 +1,13 @@
+import { boxAction } from "./box-keys";
 import { putIcon } from "./icon";
 import { describe, isFiltering } from "../parse/filter";
 import {
 	DATE_FIELD_LABELS,
 	DUE_LABELS,
+	matchHint,
 	picksADate,
 	STATUS_LABELS,
+	windowLabels,
 } from "./filter-labels";
 import { PRIORITY_LADDER } from "../layout/colour";
 import {
@@ -150,9 +153,14 @@ export function renderFilterPanel(
 	// Right after the words, because it answers the same shape of question —
 	// "only the work about this" — and before the date rules, which are about
 	// when rather than about what (BC_E3_S147).
-	text(body, "Under heading", filter.heading, "Project", (value) => {
-		change({ heading: value });
-	});
+	text(
+		body,
+		"Under heading",
+		filter.heading,
+		"Project",
+		(value) => change({ heading: value }),
+		options,
+	);
 
 	dropdown(body, "Status", STATUS_LABELS, filter.status, (value) => {
 		change({ status: value as StatusRule });
@@ -174,15 +182,18 @@ export function renderFilterPanel(
 	if (filter.due === "soon") {
 		number(body, "Within days", filter.horizon, (value) => {
 			change({ horizon: value });
-		});
+		}, options);
 	}
 
 	// The two ends, only under the rule they belong to, like "Within days"
 	// above: rows that mean nothing seven-eighths of the time are noise in a
 	// panel that has to stay readable on a phone.
 	if (filter.due === "between") {
-		date(body, "From", filter.from, (value) => change({ from: value }));
-		date(body, "Up to", filter.until, (value) => change({ until: value }));
+		// Named for the date the window is pointed at, the same as in the
+		// settings tab (BC_E3_S170).
+		const ends = windowLabels(filter.dateField);
+		date(body, ends.from, filter.from, (value) => change({ from: value }));
+		date(body, ends.until, filter.until, (value) => change({ until: value }));
 	}
 
 	dropdown(
@@ -223,10 +234,12 @@ export function renderFilterPanel(
 	// faster than adding two rows anyway.
 	tags(body, "With tags", filter.withTags, (value) => {
 		change({ withTags: value });
-	});
+	}, options);
 	tags(body, "Without tags", filter.withoutTags, (value) => {
 		change({ withoutTags: value });
-	});
+	}, options);
+
+	hint(body);
 
 	if (on) {
 		const clear = body.createEl("button", {
@@ -249,6 +262,65 @@ export function renderFilterPanel(
 
 /** Counts the search boxes built, to keep their description ids apart. */
 let searches = 0;
+
+/**
+ * Enter applies and leaves; Escape leaves without applying (BC_E3_S182).
+ *
+ * One wiring for every box you can type in. The search box had this and the
+ * other five did not, so Enter there applied the filter — the browser fires
+ * `change` on it, measured — and then left the reader standing in the box with
+ * a wheel that had moved on without them.
+ *
+ * `apply` first, then the jump. `change` fires when a field is *left*, and
+ * pressing Enter is not leaving it, so without applying here the jump would
+ * look for what the previous value matched (BC_E3_S121).
+ *
+ * The wheel's own keys are bound to the canvas, which this panel is a sibling
+ * of rather than a child — measured 8 sep 2026, against my own reading of the
+ * story. Nothing typed here could reach the wheel to begin with. The
+ * `stopPropagation` stays as the cheap half of that promise, not as the fix for
+ * anything observed.
+ */
+function leaves(
+	input: HTMLInputElement,
+	apply: () => void,
+	options: FilterPanelOptions,
+): void {
+	input.addEventListener("keydown", (event) => {
+		const action = boxAction(event.key);
+
+		if (action === "submit") {
+			event.preventDefault();
+			apply();
+			options.onSubmit?.(input.value.trim());
+		} else if (action === "cancel") {
+			event.preventDefault();
+			options.onEscape?.();
+		}
+
+		event.stopPropagation();
+	});
+}
+
+/**
+ * What a bare word does, in the panel that asks for one (BC_E3_S181).
+ *
+ * Three boxes, and the rule was different in each without a word said about
+ * it: someone typed `may`, watched `#maybe` not be found, and reasonably
+ * concluded the filter was broken (eigenaarsmelding 8 sep 2026). Two rules now,
+ * and this line is the whole of the difference.
+ *
+ * Visible rather than behind `aria-describedby`, where the search syntax used
+ * to live and where a sighted reader never met it. Once, at the foot of the
+ * panel: a hint under every box would be the same sentence three times, which
+ * is the shape this story is taking out.
+ */
+function hint(parent: HTMLElement): void {
+	parent.createDiv({
+		cls: "task-wheel-controls-hint",
+		text: matchHint(),
+	});
+}
 
 function row(parent: HTMLElement, label: string): HTMLElement {
 	const line = parent.createDiv({ cls: "task-wheel-controls-row" });
@@ -281,15 +353,19 @@ function number(
 	label: string,
 	value: number,
 	onSet: (value: number) => void,
+	options: FilterPanelOptions,
 ): void {
 	const input = row(parent, label).createEl("input", {
 		attr: { type: "number", min: "0", value: String(value), "aria-label": label },
 	});
 
-	input.addEventListener("change", () => {
+	const apply = (): void => {
 		const days = Number.parseInt(input.value, 10);
 		onSet(Number.isFinite(days) ? Math.max(days, 0) : 0);
-	});
+	};
+
+	input.addEventListener("change", apply);
+	leaves(input, apply, options);
 }
 
 /**
@@ -305,12 +381,16 @@ function text(
 	value: string,
 	placeholder: string,
 	onSet: (value: string) => void,
+	options: FilterPanelOptions,
 ): void {
 	const input = row(parent, label).createEl("input", {
 		attr: { type: "text", value, placeholder, "aria-label": label },
 	});
 
-	input.addEventListener("change", () => onSet(input.value.trim()));
+	const apply = (): void => onSet(input.value.trim());
+
+	input.addEventListener("change", apply);
+	leaves(input, apply, options);
 }
 
 /**
@@ -370,27 +450,15 @@ function search(
 		},
 	});
 
-	input.addEventListener("change", () => onSet(input.value.trim()));
+	const apply = (): void => onSet(input.value.trim());
+
+	input.addEventListener("change", apply);
 
 	// Enter takes you to what you searched for; Escape hands the wheel back.
 	// Both are the same complaint from opposite sides: a search box you cannot
-	// leave without reaching for the mouse (eigenaar, 3 sep 2026).
-	input.addEventListener("keydown", (event) => {
-		if (event.key === "Enter") {
-			event.preventDefault();
-			// Apply first, then jump. `change` fires when the field is *left*,
-			// and pressing Enter is not leaving it — without this the jump would
-			// look for what the previous words matched.
-			onSet(input.value.trim());
-			options.onSubmit?.(input.value.trim());
-		} else if (event.key === "Escape") {
-			event.preventDefault();
-			options.onEscape?.();
-		}
-		// The wheel listens for the arrows and for space on its own surface. A
-		// key pressed while typing in this box is never a move on the wheel.
-		event.stopPropagation();
-	});
+	// leave without reaching for the mouse (eigenaar, 3 sep 2026). Every box in
+	// the panel says this now, out of `leaves` — this one merely said it first.
+	leaves(input, apply, options);
 
 	return input;
 }
@@ -400,6 +468,7 @@ function tags(
 	label: string,
 	value: string[],
 	onSet: (value: string[]) => void,
+	options: FilterPanelOptions,
 ): void {
 	const input = row(parent, label).createEl("input", {
 		attr: {
@@ -410,12 +479,15 @@ function tags(
 		},
 	});
 
-	input.addEventListener("change", () => {
+	const apply = (): void => {
 		onSet(
 			input.value
 				.split(",")
 				.map((tag) => tag.trim())
 				.filter((tag) => tag.length > 0),
 		);
-	});
+	};
+
+	input.addEventListener("change", apply);
+	leaves(input, apply, options);
 }

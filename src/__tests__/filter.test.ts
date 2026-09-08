@@ -416,10 +416,22 @@ group("matches — tags", () => {
 		expect(matches(werk, filter({ withTags: ["werk/klant"] }), TODAY)).toBe(false);
 	});
 
-	it("does not treat a name prefix as a namespace", () => {
-		expect(matches(fields("- [ ] E #werkgroep"), filter({ withTags: ["werk"] }), TODAY)).toBe(
-			false,
-		);
+	/**
+	 * The rule this test used to assert the opposite of (BC_E3_S181).
+	 *
+	 * It wanted the whole tag or a namespace step below it, so `may` found
+	 * nothing while `#maybe` sat right there — in a panel where the box above
+	 * had always been happy with part of a word, and with nothing to say the
+	 * two differed (eigenaarsmelding 8 sep 2026). A tag now matches from its
+	 * start, which is the namespace rule widened by one character rather than a
+	 * different rule.
+	 */
+	it("matches a tag from its start, name prefixes included", () => {
+		const group = fields("- [ ] E #werkgroep");
+		expect(matches(group, filter({ withTags: ["werk"] }), TODAY)).toBe(true);
+		expect(matches(group, filter({ withTags: ["groep"] }), TODAY)).toBe(false);
+		// The star is the way to ask for the middle of one.
+		expect(matches(group, filter({ withTags: ["*groep"] }), TODAY)).toBe(true);
 	});
 
 	it("ignores case and a leading hash, the way Obsidian does", () => {
@@ -680,10 +692,21 @@ group("under a heading", () => {
 		expect(under([], "Project")).toBe(false);
 	});
 
-	it("ignores case, and widens on a star like the skip lists do", () => {
+	/**
+	 * The other half of the same revision (BC_E3_S181).
+	 *
+	 * The heading box borrowed the skip lists' rule, which wants the whole name
+	 * unless a star says otherwise. A skip list is written once in the settings;
+	 * this is a box typed into mid-round, under a box where a bare word has
+	 * always matched part of a word. A heading is prose, so part of one is what
+	 * a bare word asks for here too.
+	 */
+	it("matches part of a heading, and ignores case", () => {
 		expect(under(["project"], "Project")).toBe(true);
 		expect(under(["Project 2026"], "Project*")).toBe(true);
-		expect(under(["Project 2026"], "Project")).toBe(false);
+		expect(under(["Project 2026"], "Project")).toBe(true);
+		expect(under(["Project bonnetjes"], "bonnetjes")).toBe(true);
+		expect(under(["Project bonnetjes"], "kwartaal")).toBe(false);
 	});
 
 	/**

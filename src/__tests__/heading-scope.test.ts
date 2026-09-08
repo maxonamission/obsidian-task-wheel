@@ -55,7 +55,9 @@ describe("stepping into a heading wedge", () => {
 		);
 
 		expect(isRefused(answer)).toBe(false);
-		expect(answer).toEqual({ kind: "heading", heading: "Thuis", path: "" });
+		// `loose` is false on a wedge that names a real heading: the loose
+		// bucket is a different wheel (BC_E3_S157).
+		expect(answer).toEqual({ kind: "heading", heading: "Thuis", path: "", loose: false });
 	});
 
 	it("keeps to the folder it was opened from", () => {
@@ -65,7 +67,12 @@ describe("stepping into a heading wedge", () => {
 			"heading",
 		);
 
-		expect(answer).toEqual({ kind: "heading", heading: "Thuis", path: "Planning" });
+		expect(answer).toEqual({
+			kind: "heading",
+			heading: "Thuis",
+			path: "Planning",
+			loose: false,
+		});
 	});
 
 	it("still refuses for the sources that name no place", () => {
@@ -214,9 +221,21 @@ describe("the rung it is on", () => {
 
 	it("survives being read back from a reopened tab", () => {
 		const scope = { kind: "heading", heading: "Thuis", path: "Planning" };
-		expect(readScope({ scope })).toEqual(scope);
+		expect(readScope({ scope })).toEqual({ ...scope, loose: false });
 		// Half a scope is no scope: the reader would land somewhere they never
 		// asked for, and silently.
 		expect(readScope({ scope: { kind: "heading", heading: "Thuis" } })).toBeNull();
+	});
+
+	/**
+	 * And the loose bucket comes back as the loose bucket (BC_E3_S157).
+	 *
+	 * A tab reopened on the fallback wedge would otherwise become a wheel over a
+	 * heading that mostly does not exist — empty, and saying nothing about the
+	 * work it was opened for.
+	 */
+	it("reads the loose bucket back as itself", () => {
+		const scope = { kind: "heading", heading: "Overig", path: "", loose: true };
+		expect(readScope({ scope })).toEqual(scope);
 	});
 });

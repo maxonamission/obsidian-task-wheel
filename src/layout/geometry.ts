@@ -79,6 +79,18 @@ export function outerRadius(maxDepth: number, config: RingConfig): number {
  * An arc-then-line rather than a bezier because it makes the ring structure
  * legible — you can see which ring a branch leaves from, which is the whole
  * point of a node-link tree over a sunburst (kaderdocument §4).
+ *
+ * **The short way round, always** (BC_E3_S179). A child sits inside its
+ * parent's wedge, so the arc between them is a few degrees — except where the
+ * wedge lies across the seam at 0°, and the wheel turns, so some wedge always
+ * does. Subtracting the raw angles there gives 350° to 10° as a journey of
+ * *340 degrees*, and the path drew exactly that: a thin line all the way round
+ * the wheel, through every other domain (eigenaar, 8 sep 2026, with a
+ * screenshot of the blue one).
+ *
+ * `angleDelta` is the answer and it was already in this file, ten lines up.
+ * It gives the signed shortest way, which is both halves of what an SVG arc
+ * needs: the sign is the sweep, and a shortest way is never the large arc.
  */
 export function branchPath(
 	parentRadius: number,
@@ -88,18 +100,19 @@ export function branchPath(
 ): string {
 	const from = pointAt(parentRadius, parentAngle);
 	const to = pointAt(childRadius, childAngle);
-	const sweep = childAngle > parentAngle ? 1 : 0;
-	const delta = Math.abs(childAngle - parentAngle);
+	const delta = angleDelta(parentAngle, childAngle);
 
-	if (delta < 1e-9 || parentRadius < 1e-9) {
+	if (Math.abs(delta) < 1e-9 || parentRadius < 1e-9) {
 		return `M${round(from.x)},${round(from.y)}L${round(to.x)},${round(to.y)}`;
 	}
 
 	const elbow = pointAt(parentRadius, childAngle);
-	const largeArc = delta > 180 ? 1 : 0;
+	// Clockwise when the child lies ahead of the parent, and never the long way:
+	// `angleDelta` already answered which side is nearer.
+	const sweep = delta > 0 ? 1 : 0;
 	return (
 		`M${round(from.x)},${round(from.y)}` +
-		`A${round(parentRadius)},${round(parentRadius)} 0 ${largeArc} ${sweep} ` +
+		`A${round(parentRadius)},${round(parentRadius)} 0 0 ${sweep} ` +
 		`${round(elbow.x)},${round(elbow.y)}` +
 		`L${round(to.x)},${round(to.y)}`
 	);

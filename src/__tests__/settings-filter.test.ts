@@ -12,6 +12,7 @@ import {
 	type TaskWheelSettings,
 } from "../settings";
 import { NO_FILTER, VAULT_SCOPE, type WheelScope } from "../model/types";
+import { windowLabels } from "../view/filter-labels";
 
 /**
  * The settings tab's filter group and the panel beside the wheel (BC_E3_S177).
@@ -176,5 +177,64 @@ describe("changing the filter from the settings tab", () => {
 		await tab.setControlValue("fallbackDomain", "Overig");
 
 		expect(s.fallbackDomain).toBe("Overig");
+	});
+});
+
+/**
+ * The two ways into the same filter offer the same thing (BC_E3_S170).
+ *
+ * The tab had `Priority at least` and not its ceiling, while the panel has
+ * both — so a ceiling set beside the wheel was invisible in the settings and
+ * could only be undone with *Clear*. And the tab's two window rows said "Due"
+ * flat out, while the window has been able to read ⏳ or 🛫 since BC_E3_S126:
+ * the same lie BC_E3_S140 took out of the rule names, still standing in the
+ * rows below them.
+ */
+describe("the tab and the panel beside the wheel", () => {
+	const src = (name: string): string =>
+		readFileSync(join(__dirname, "..", name), "utf8");
+
+	/** Every filter key a file wires a control to. */
+	const wired = (text: string): Set<string> => {
+		const keys = new Set<string>();
+		for (const m of text.matchAll(/\bkey: "(filter[A-Za-z]*)"/g)) keys.add(m[1]);
+		return keys;
+	};
+
+	it("offers every filter field in the tab, the ceiling included", () => {
+		const tab = wired(src("settings.ts"));
+		const missing = Object.keys(FILTER_FIELDS).filter((key) => !tab.has(key));
+
+		// The lists live in `filterWithTags.N` rows and are wired per row, so
+		// they are checked by the map test above rather than here.
+		expect(missing).toEqual([]);
+	});
+
+	it("names the ends of a date window after the date they read", () => {
+		expect(windowLabels("due")).toEqual({
+			from: "Due from",
+			until: "Due up to",
+		});
+		expect(windowLabels("scheduled")).toEqual({
+			from: "Scheduled from",
+			until: "Scheduled up to",
+		});
+		expect(windowLabels("start")).toEqual({
+			from: "Start from",
+			until: "Start up to",
+		});
+	});
+
+	/**
+	 * And both surfaces ask that helper rather than writing the words out.
+	 * Two names in two files is how these two drifted apart in the first place.
+	 */
+	it("has both surfaces asking the same helper for those names", () => {
+		for (const file of ["settings.ts", "view/filter-panel.ts"]) {
+			const text = src(file);
+			expect(text, file).toContain("windowLabels(");
+			expect(text, file).not.toContain('"Due from"');
+			expect(text, file).not.toContain('"Due up to"');
+		}
 	});
 });

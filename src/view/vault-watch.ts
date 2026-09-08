@@ -6,7 +6,7 @@ import {
 	type WorkspaceLeaf,
 	debounce,
 } from "obsidian";
-import type { ParseOptions, WheelScope, WheelTree } from "../model/types";
+import type { ParseOptions, WheelScope } from "../model/types";
 import { inScope, isExcludedFolder } from "../parse/domain";
 
 /**
@@ -118,29 +118,4 @@ export function watchVault(host: WatchHost): void {
 			host.leafChanged(leaf);
 		}),
 	);
-}
-
-/**
- * The wheel's stop for a place in a note.
- *
- * The nearest node whose own line is at or above it — a task if the cursor is
- * on one, otherwise the heading it sits under. A cursor sits on a line and the
- * wheel has stops only for tasks and headings: standing halfway down a
- * paragraph means standing in the section that paragraph belongs to.
- */
-export function nodeAtLine(
-	tree: WheelTree,
-	path: string,
-	line: number,
-): string | null {
-	let best: { line: number; id: string } | null = null;
-
-	for (const [id, node] of tree.byId) {
-		const source = node.source;
-		if (source === undefined || source.path !== path) continue;
-		if (source.line > line) continue;
-		if (best === null || source.line > best.line) best = { line: source.line, id };
-	}
-
-	return best?.id ?? null;
 }

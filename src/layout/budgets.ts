@@ -18,12 +18,27 @@
  */
 
 import type { WheelTree } from "../model/types";
+import { hueIndex, MAX_HUES } from "./colour";
 import { FULL_CIRCLE } from "./geometry";
 
 export interface DomainBudget {
 	domain: string;
-	/** Position in the wedge order. Also the index of the domain's hue. */
+	/**
+	 * Position in the wedge order.
+	 *
+	 * Only the position. It used to be the hue as well, and those two came
+	 * apart the moment a palette was shorter than the number of domains: on a
+	 * circle the last wedge sits beside the first, so position-as-hue put two of
+	 * the same colour side by side (BC_E3_S180). `hue` below answers that half
+	 * of the question now, and this one is left saying what it says.
+	 */
 	index: number;
+	/**
+	 * Which hue of the palette this wedge is drawn in.
+	 *
+	 * The same as `index` until the hues run out; see `hueIndex`.
+	 */
+	hue: number;
 	/** Width of the wedge in degrees. */
 	degrees: number;
 	/** Wedge start, degrees clockwise from twelve o'clock. */
@@ -101,6 +116,12 @@ export function assignBudgets(
 	domains: readonly string[],
 	overrides: Readonly<Record<string, number>> = {},
 	division?: WedgeDivision,
+	/**
+	 * How many hues the chosen palette holds, so a wedge can be given one that
+	 * its neighbours do not have (BC_E3_S180). Defaults to the theme's full set,
+	 * which is what every caller that does not choose a palette is drawing with.
+	 */
+	hues: number = MAX_HUES,
 ): DomainBudget[] {
 	const unique = [...new Set(domains)];
 	if (unique.length === 0) return [];
@@ -134,6 +155,7 @@ export function assignBudgets(
 		budgets.push({
 			domain,
 			index,
+			hue: hueIndex(index, unique.length, hues),
 			degrees: endAngle - startAngle,
 			startAngle,
 			endAngle,

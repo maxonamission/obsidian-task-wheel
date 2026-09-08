@@ -45,6 +45,7 @@ import {
 	type TaskFields,
 	type TaskState,
 	type WheelNode,
+	type WheelScope,
 	type WheelTree,
 } from "../model/types";
 
@@ -148,7 +149,7 @@ export function buildTreeFrom(
 			options.scope.kind === "section"
 				? withinSection(shaped, options.scope.heading)
 				: options.scope.kind === "heading"
-					? underHeading(shaped, options.scope.heading)
+					? underHeading(shaped, options.scope)
 					: shaped;
 
 		const open = selectTasks(onTopic, options);
@@ -277,14 +278,19 @@ function withoutTitleHeading(
  * the same name wherever it was written. Matched on the outermost step only,
  * because that is the step the wedge was made of — a deeper heading of the same
  * name belongs to its own branch and says something else.
+ *
+ * The **scope**, not its name. It used to take the heading and build a fresh
+ * scope from it, which was the same thing right up to the moment the scope grew
+ * a second field: the loose-work flag was dropped on the way in, so the wheel
+ * over the fallback wedge stayed empty after the flag was added to fix exactly
+ * that (BC_E3_S157). A value rebuilt from one of its own fields is a second
+ * place deciding what a scope is.
  */
 function underHeading(
 	tasks: readonly OutlinedTask[],
-	heading: string,
+	scope: WheelScope & { kind: "heading" },
 ): OutlinedTask[] {
-	return tasks.filter((task) =>
-		withinBlikveld(task.headingPath, { kind: "heading", heading, path: "" }),
-	);
+	return tasks.filter((task) => withinBlikveld(task.headingPath, scope));
 }
 
 /**

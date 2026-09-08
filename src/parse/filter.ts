@@ -1,5 +1,6 @@
 import { addDays, isIsoDate } from "../model/dates";
-import { matchesPattern, projectLabel } from "./domain";
+import { projectLabel } from "./domain";
+import { type Looseness, looselyMatches } from "./glob";
 import { describeQuery, isEmpty, matchesQuery, parseQuery } from "./query";
 import {
 	type DateField,
@@ -230,6 +231,19 @@ function wantedHeading(raw: string): string {
 }
 
 /**
+ * How loose each of the two name boxes is (BC_E3_S181).
+ *
+ * Exported because the panel has to *say* this, and a sentence written out by
+ * hand beside a rule written in code is two places deciding one thing — the
+ * shape of the bug this story came from. The hint under the boxes is built from
+ * these two values, so flipping one rewrites the sentence with it.
+ */
+export const HEADING_MATCH: Looseness = "anywhere";
+
+/** How loose a tag box is. See `HEADING_MATCH`. */
+export const TAG_MATCH: Looseness = "prefix";
+
+/**
  * Whether the task stands under the heading the reader asked for.
  *
  * **Any** heading above the task, not only the outermost (herzien BC_E3_S176,
@@ -250,9 +264,13 @@ function wantedHeading(raw: string): string {
  * is one question answered a little too widely, against a filter that answered
  * nothing at all.
  *
- * `matchesPattern` is the skip lists' rule, borrowed whole: an exact name by
- * default, `Project*` where the reader wants everything like it. Two spellings of
- * "a name with a star" in one plugin would be one too many.
+ * **Part of a name**, not the whole of it (herzien BC_E3_S181,
+ * eigenaarsmelding 8 sep 2026). It borrowed the skip lists' rule, which wants
+ * the whole name unless you write a star — and a skip list is a setting you
+ * write once, while this is a box you type into mid-round, right under a box
+ * where a bare word has always matched part of a word. Nothing said the two
+ * differed. A heading is prose, so *bonnetjes* now finds *Project bonnetjes*,
+ * which is what the label promises.
  */
 function matchesHeading(
 	headingPath: readonly string[],
@@ -262,7 +280,7 @@ function matchesHeading(
 	if (wanted.length === 0) return true;
 
 	return headingPath.some((heading) =>
-		matchesPattern(heading.trim().toLowerCase(), wanted),
+		looselyMatches(heading.trim().toLowerCase(), wanted, HEADING_MATCH),
 	);
 }
 
@@ -354,14 +372,20 @@ function isParked(fields: TaskFields, today: string): boolean {
 }
 
 /**
- * A tag matches its own children too.
+ * A tag matches from its start.
  *
  * `#werk` catches `#werk/klant`, because someone who filters on a namespace
- * means the namespace. Comparison is case-insensitive: Obsidian treats `#Werk`
- * and `#werk` as one tag and so must this.
+ * means the namespace — and now `may` catches `#maybe` as well, because the
+ * box gave no sign that it wanted the whole tag while the two boxes above it
+ * were happy with part of one (herzien BC_E3_S181). From the start rather than
+ * anywhere: a tag is an identifier with structure, and `#thuismaybe` is not
+ * what someone hunting for *may* is after.
+ *
+ * Comparison is case-insensitive: Obsidian treats `#Werk` and `#werk` as one
+ * tag and so must this.
  */
 function hasTag(tags: string[], wanted: string): boolean {
-	return tags.some((tag) => tag === wanted || tag.startsWith(`${wanted}/`));
+	return tags.some((tag) => looselyMatches(tag, wanted, TAG_MATCH));
 }
 
 function clean(tags: string[]): string[] {

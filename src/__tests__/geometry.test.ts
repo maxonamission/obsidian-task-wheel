@@ -92,6 +92,40 @@ describe("branchPath", () => {
 	it("is a straight line out of the hub", () => {
 		expect(branchPath(0, 0, 40, 90)).not.toContain("A");
 	});
+
+	/**
+	 * The seam at 0°, and the line that went all the way round (BC_E3_S179).
+	 *
+	 * A child sits inside its parent's wedge, so the arc between them is a few
+	 * degrees — except where that wedge lies across 0°, and since the wheel
+	 * turns, some wedge always does. Subtracting the raw angles made 350° to
+	 * 10° a journey of 340 degrees, and the path drew it: a thin line right
+	 * round the wheel, through every other domain (eigenaar, 8 sep 2026).
+	 */
+	describe("across the seam at zero", () => {
+		/** The two arc flags: large-arc, then sweep. */
+		const flags = (path: string): string | undefined =>
+			path.match(/A[\d.,-]+ 0 (\d \d) /)?.[1];
+
+		it("never takes the long way round", () => {
+			expect(flags(branchPath(40, 350, 80, 10))).toBe("0 1");
+			expect(flags(branchPath(40, 10, 80, 350))).toBe("0 0");
+			expect(flags(branchPath(40, 0, 80, 359))).toBe("0 0");
+		});
+
+		it("turns the way the child actually lies", () => {
+			// 350° → 10° is twenty degrees clockwise, not 340 the other way.
+			expect(flags(branchPath(40, 350, 80, 10))).toBe("0 1");
+			// And back again is twenty degrees the other way.
+			expect(flags(branchPath(40, 10, 80, 350))).toBe("0 0");
+		});
+
+		it("leaves an ordinary branch exactly as it was", () => {
+			expect(flags(branchPath(40, 0, 80, 30))).toBe("0 1");
+			expect(flags(branchPath(40, 30, 80, 0))).toBe("0 0");
+			expect(flags(branchPath(40, 170, 80, 190))).toBe("0 1");
+		});
+	});
 });
 
 describe("arcPath — an arc's centre is derived from its endpoints", () => {

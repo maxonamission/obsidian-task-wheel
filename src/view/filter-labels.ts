@@ -1,4 +1,6 @@
 import type { DateField, DateRule, StatusRule } from "../model/types";
+import { HEADING_MATCH, TAG_MATCH } from "../parse/filter";
+import type { Looseness } from "../parse/glob";
 
 /**
  * What the filter's choices are called, in one place.
@@ -60,4 +62,42 @@ export const STATUS_LABELS: Record<StatusRule, string> = {
  */
 export function picksADate(rule: DateRule): boolean {
 	return rule !== "any" && rule !== "parked" && rule !== "ready";
+}
+
+/**
+ * What the two ends of a date window are called (BC_E3_S170).
+ *
+ * They name the date the window is pointed at, because that is what they read.
+ * The settings tab said "Due from" and "Due up to" flat out, and the window has
+ * been able to read ⏳ or 🛫 since BC_E3_S126 — the same lie BC_E3_S140 took out
+ * of the rule names, still standing in the two rows below them. The panel said
+ * "From" and "Up to", which is not untrue but says nothing.
+ *
+ * One helper rather than two names in two files, for the reason at the top of
+ * this module.
+ */
+export function windowLabels(field: DateField): { from: string; until: string } {
+	const what = field === "due" ? "Due" : field === "scheduled" ? "Scheduled" : "Start";
+	return { from: `${what} from`, until: `${what} up to` };
+}
+
+/**
+ * What a bare word does in each box, in one sentence (BC_E3_S181).
+ *
+ * Built from the rules rather than written beside them. The panel has to say
+ * what its boxes accept — a reader typed `may`, watched `#maybe` not be found,
+ * and concluded the filter was broken (eigenaarsmelding 8 sep 2026) — and a
+ * sentence typed out by hand next to a rule kept in code is exactly the two
+ * places deciding one thing that this story is taking out. Change
+ * `HEADING_MATCH` or `TAG_MATCH` and the sentence follows.
+ */
+export function matchHint(): string {
+	const how = (rule: Looseness): string =>
+		rule === "anywhere" ? "part of a name" : "from its start";
+
+	return [
+		`Words and headings match ${how(HEADING_MATCH)};`,
+		`a tag matches ${how(TAG_MATCH)}.`,
+		"* stands for any run of characters.",
+	].join(" ");
 }

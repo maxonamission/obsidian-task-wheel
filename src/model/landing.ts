@@ -69,32 +69,42 @@ function nodes(tree: WheelTree): WheelNode[] {
 }
 
 /**
- * Whatever sits on this line, or the task it has just walked past.
+ * Whatever sits on this line, or the last thing above it.
  *
- * Exact first, and on **any** kind of node: a task line names its task, a
- * heading line names that heading. That is what makes one lookup serve both
- * callers — a cursor points at a line, and a step out points at the line the
- * item you were reading came from (BC_E3_S109).
+ * **The** answer to "which node is at this line", for every caller that asks —
+ * opening the wheel on the cursor, stepping out onto what you were reading, and
+ * the wheel following the cursor as you move around a note. There used to be
+ * two of these, this one and `nodeAtLine` in the view, and they disagreed on
+ * five lines out of twelve in an ordinary note (audit 6 sep 2026, BC_E3_S159).
+ * Each had a test pinning its own answer and neither tested the other's.
  *
- * Failing an exact hit, the last *task* at or above: a cursor three lines into
- * a task's notes, or on a blank line under it, still means that task. Never
- * anything *below* the line — that is guessing forward about something the
- * reader has not reached.
+ * They disagreed in two places, and the merged rule below is not a compromise:
+ * each was right about one of them and the two corrections do not collide.
+ *
+ *  - **Line 0.** `raw === null` says a node is not really *on* its line: a note
+ *    ring carries `line: 0` to mean "this document starts here", and so does the
+ *    bucket above the first heading. Skipping those is what stops a cursor on
+ *    line 0 landing on the note instead of on the task that is actually there —
+ *    and every note has a line 0.
+ *  - **A paragraph under a heading.** The nearest node above, *whatever kind*.
+ *    Reaching back for the last **task** instead walked straight past the
+ *    heading in between and answered with work from the previous section:
+ *    measured, a cursor in a paragraph under *Volgende week* pointed at a task
+ *    under *Deze week*. Standing halfway down a paragraph means standing in the
+ *    section that paragraph belongs to.
+ *
+ * A cursor three lines into a task's notes still means that task, which falls
+ * out of the same rule rather than needing one of its own: the task *is* the
+ * nearest node above. Never anything below the line — that is guessing forward
+ * about something the reader has not reached.
  */
-function nodeAt(tree: WheelTree, path: string, line: number): string | null {
+export function nodeAt(tree: WheelTree, path: string, line: number): string | null {
 	let best: WheelNode | null = null;
 
 	for (const node of nodes(tree)) {
 		const source = node.source;
 		if (source === undefined || source.path !== path) continue;
-
-		// `raw === null` means the node is not really *on* that line: a note
-		// ring carries `line: 0` to say "this document starts here", and the
-		// bucket above the first heading does the same. Without this a cursor on
-		// line 0 lands on the note instead of on the task that is actually
-		// there — and every note has a line 0.
-		if (source.line === line && source.raw !== null) return node.id;
-		if (node.kind !== "task" || source.line > line) continue;
+		if (source.raw === null || source.line > line) continue;
 		if (best === null || source.line > (best.source?.line ?? -1)) best = node;
 	}
 

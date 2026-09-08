@@ -316,17 +316,25 @@ export interface WheelLayout {
  */
 const stableByTree = new WeakMap<WheelTree, Map<string, Visible>>();
 
-function stableFor(tree: WheelTree, room: VisibleOptions): Visible {
-	// The folds belong in the key. Since BC_E3_S153 the selection knows about
-	// them — a folded branch buys no budget — so two calls with the same tree
-	// and the same room but different folds are two different answers, and
-	// leaving them out would serve the first one for ever.
-	const key = `${room.budget}|${room.maxDepth}|${room.depthBonus}|${JSON.stringify(
+/**
+ * Everything a selection depends on, as one string.
+ *
+ * The folds belong in it. Since BC_E3_S153 the selection knows about them — a
+ * folded branch buys no budget — so two calls with the same tree and the same
+ * room but different folds are two different answers, and leaving them out
+ * would serve the first one for ever.
+ */
+function roomKey(room: VisibleOptions): string {
+	return `${room.budget}|${room.maxDepth}|${room.depthBonus}|${JSON.stringify(
 		room.rings,
 	)}|${[...room.share]
 		.sort(([a], [b]) => (a < b ? -1 : 1))
 		.map(([domain, part]) => `${domain}:${part.toFixed(6)}`)
 		.join(",")}|${[...room.collapsed].sort().join(",")}`;
+}
+
+function stableFor(tree: WheelTree, room: VisibleOptions): Visible {
+	const key = roomKey(room);
 
 	let forTree = stableByTree.get(tree);
 	if (forTree === undefined) {
@@ -342,6 +350,71 @@ function stableFor(tree: WheelTree, room: VisibleOptions): Visible {
 	return built;
 }
 
+const stableSpansByTree = new WeakMap<WheelTree, Map<string, number[]>>();
+
+/**
+ * How wide the items are on a wheel nobody is looking at (BC_E3_S155).
+ *
+ * The same `walk` that lays the real wheel out, given the stable selection as
+ * what to draw — so the widths come from the one division of the circle rather
+ * than from a second sum written out here. What is thrown away is everything
+ * `walk` builds besides the spans; that is cheaper than it looks, and it is
+ * cached per tree and room, exactly like the selection it is built from.
+ */
+function stableSpans(
+	tree: WheelTree,
+	config: LayoutOptions,
+	wedges: ReadonlyMap<string, DomainBudget>,
+	stable: Visible,
+	room: VisibleOptions,
+): number[] {
+	// The pitch and the padding decide widths as much as the selection does, so
+	// they belong in the key beside it.
+	const key = `${roomKey(room)}|${config.itemPitch}|${config.wedgePadding}`;
+
+	let forTree = stableSpansByTree.get(tree);
+	if (forTree === undefined) {
+		forTree = new Map();
+		stableSpansByTree.set(tree, forTree);
+	}
+
+	const already = forTree.get(key);
+	if (already !== undefined) return already;
+
+	const nodes: LaidOutNode[] = [];
+	const sink: Sink = {
+		config,
+		field: NO_DOI,
+		visible: stable,
+		stable,
+		nodes,
+		links: [],
+		byId: new Map(),
+		weights: new Map(),
+	};
+
+	const hub = place(tree.root, 0, 360, -1, null, sink);
+	sink.byId.set(hub.id, hub);
+
+	for (const domain of orderedChildren(tree.root)) {
+		const wedge = wedges.get(domain.label);
+		if (wedge === undefined) continue;
+		const padding = Math.min(config.wedgePadding, wedge.degrees / 4);
+		walk(
+			domain,
+			wedge.startAngle + padding,
+			wedge.endAngle - padding,
+			wedge.hue,
+			tree.root.id,
+			sink,
+		);
+	}
+
+	const spans = nodes.filter((laid) => laid.depth > 1).map((laid) => laid.span);
+	forTree.set(key, spans);
+	return spans;
+}
+
 /** Lay the whole wheel out. */
 export function layoutWheel(
 	tree: WheelTree,
@@ -352,6 +425,7 @@ export function layoutWheel(
 		roundOrder(config.roundDomains, tree.domains),
 		config.budgets,
 		config.division,
+		config.palette.length,
 	);
 	const wedges = budgetsByDomain(budgets);
 
@@ -400,7 +474,9 @@ export function layoutWheel(
 			domain,
 			wedge.startAngle + padding,
 			wedge.endAngle - padding,
-			wedge.index,
+			// The hue, not the position: with a palette shorter than the number
+			// of domains those two are different numbers (BC_E3_S180).
+			wedge.hue,
 			tree.root.id,
 			{ ...plan, nodes, links, byId, weights },
 		);
@@ -412,9 +488,16 @@ export function layoutWheel(
 	// room to spare is drawn exactly where its angles say. The wedges are left
 	// out of the reckoning — they are always wide, and they are not what the
 	// reader is trying to read.
-	const warp = warpFor(
-		nodes.filter((laid) => laid.depth > 1).map((laid) => laid.span),
-	);
+	//
+	// And from the wheel **with nobody looking**, not from what is drawn right
+	// now (BC_E3_S155). The angles are already handed out from the stable
+	// selection, but *which* items get drawn is not: standing in a crowded
+	// branch draws more narrow items there, which drags the median down and
+	// pulls the strength up. Measured on the busier fixture: 0,519 at rest,
+	// 0,487 in one note and 0,961 in another — nearly double, and `warp.ts`
+	// says in so many words that a magnifier whose strength changed as you
+	// turned would be the shuffling all over again.
+	const warp = warpFor(stableSpans(tree, config, wedges, stable, room));
 
 	const deepest = reachableDepth(tree, config);
 	const radius = ringRadius(deepest, config.rings);

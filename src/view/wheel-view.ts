@@ -9,6 +9,7 @@ import {
 	type WorkspaceLeaf,
 } from "obsidian";
 import { putIcon } from "./icon";
+import { isKeyboardControl, isTextBox } from "./typing";
 import {
 	type CarryPreset,
 	type DomainSource,
@@ -53,7 +54,7 @@ import {
 	scopeFor,
 } from "../model/scope";
 import { paneChange } from "../model/detour";
-import { type Landing, landingId, readLanding } from "../model/landing";
+import { type Landing, landingId, nodeAt, readLanding } from "../model/landing";
 import { openAround } from "../model/resume";
 import { inScope } from "../parse/domain";
 import { describe, isFiltering } from "../parse/filter";
@@ -92,7 +93,7 @@ import { type CarryHost, carryToPreset } from "./carry-flow";
 import {
 	type SectionHost,
 } from "./section-edits";
-import { nodeAtLine, watchVault } from "./vault-watch";
+import { watchVault } from "./vault-watch";
 import {
 	arrive,
 	roundRestartedMessage,
@@ -489,24 +490,43 @@ export class TaskWheelView extends ItemView {
 		const path = view.file?.path;
 		if (path === undefined || !inScope(path, this.wheelScope)) return;
 
-		const id = nodeAtLine(tree, path, view.editor.getCursor().line);
+		const id = nodeAt(tree, path, view.editor.getCursor().line);
 		if (id === null || id === this.focusId) return;
 
 		this.arriveAt(id);
 	}
 
 	/**
+	 * Whether the reader is typing in one of our own boxes, right now.
+	 *
+	 * One question instead of one class name (BC_E3_S161). The guard below used
+	 * to look for `.task-wheel-card-rename` in the card, which answered for the
+	 * rename box and for nothing else — and the search box in the filter panel
+	 * is the one this actually matters for.
+	 *
+	 * *Focus*, not presence: a rename box that is open but not focused is not
+	 * being typed in, and holding a rescan for it would keep a wheel stale over
+	 * a box the reader has already left.
+	 */
+	private isTyping(within: HTMLElement | null): boolean {
+		if (within === null) return false;
+
+		const active = within.ownerDocument.activeElement;
+		return active !== null && isTextBox(active) && within.contains(active);
+	}
+
+	/**
 	 * Re-read, unless doing so would take something away from the reader.
 	 *
-	 * A redraw replaces the card, so a rename half typed would vanish under the
-	 * hands of the person typing it. That is worth staying stale for: the flag
-	 * survives, and the next event — or finishing the rename, which writes and
-	 * refreshes anyway — picks it up.
+	 * A redraw rebuilds the card and the panel, so a box being typed in is
+	 * replaced under the hands of the person typing. That is worth staying
+	 * stale for: the flag survives, and the next event — or finishing what is
+	 * being typed, which writes and refreshes anyway — picks it up.
 	 */
 	private async catchUp(): Promise<void> {
 		if (!this.stale) return;
 		if (!this.containerEl.isShown()) return;
-		if (this.cardEl?.querySelector(".task-wheel-card-rename") != null) return;
+		if (this.isTyping(this.containerEl)) return;
 
 		await this.refresh();
 	}
@@ -523,7 +543,7 @@ export class TaskWheelView extends ItemView {
 	 * could still be typing in: a filter box, a dropdown, an editor in the next
 	 * pane. Stealing focus is worse than not returning it.
 	 */
-	private takeBackKeyboard(): void {
+	private takeBackKeyboard(asked = false): void {
 		const canvas = this.canvasEl;
 		if (canvas === null) return;
 
@@ -531,14 +551,14 @@ export class TaskWheelView extends ItemView {
 		const nobody = active === null || active === canvas.ownerDocument.body;
 		if (!nobody && !this.containerEl.contains(active)) return;
 
-		if (
-			active instanceof HTMLInputElement ||
-			active instanceof HTMLTextAreaElement ||
-			active instanceof HTMLSelectElement ||
-			(active instanceof HTMLElement && active.isContentEditable)
-		) {
-			return;
-		}
+		// Unless the reader asked (BC_E3_S182). The refusal is about *guessing*
+		// wrong — a redraw or a tab switch cannot know whether a half-typed word
+		// still matters. Enter and Escape in a filter box are not a guess: they
+		// are the reader saying they are done with the box, and until now this
+		// guard turned that down too. On that path the refusal was the whole of
+		// the outcome, so the wheel turned to the match and the cursor stayed
+		// behind in the box (eigenaarsmelding 8 sep 2026).
+		if (!asked && isKeyboardControl(active)) return;
 
 		canvas.focus();
 	}
@@ -713,6 +733,7 @@ export class TaskWheelView extends ItemView {
 			},
 			this.wheelScope,
 			this.plugin.settings.domainSource,
+			this.plugin.settings.fallbackDomain,
 		);
 
 		if (isRefused(scope)) {
@@ -970,11 +991,17 @@ export class TaskWheelView extends ItemView {
 	 *
 	 * For the panel's colour key. Empty before the first draw, which is the
 	 * honest answer: there are no domains until the vault has been read.
+	 *
+	 * The hue travels with the name (BC_E3_S180). It used to hand back names
+	 * only and let the panel work the colour out from the position, which is
+	 * the same sum done in a second place — and once a palette runs short those
+	 * two answers are different numbers, so the key would name a colour the
+	 * wheel is not drawing that wedge in.
 	 */
-	domainNames(): string[] {
+	domainKeys(): Array<{ name: string; hue: number }> {
 		return [...(this.layout?.budgets ?? [])]
 			.sort((a, b) => a.index - b.index)
-			.map((budget) => budget.domain);
+			.map((budget) => ({ name: budget.domain, hue: budget.hue }));
 	}
 
 	/**
@@ -1295,7 +1322,15 @@ export class TaskWheelView extends ItemView {
 		this.diagnostics.safely("drawing the key", () =>
 			renderLegend(legendEl, layout, this.filterLine()),
 		);
-		this.diagnostics.safely("drawing the filter panel", () => this.drawControls());
+		// Not while the reader is in the search box (BC_E3_S161). Rebuilding the
+		// panel replaces that box, and measured in Chromium the removal fires
+		// `change` on the way out — so a sync landing mid-word *applies* half a
+		// search term, which is a new selection and so a new round. The count of
+		// what the filter leaves out goes one draw stale for it, and comes right
+		// at the next one.
+		if (!this.isTyping(this.controlsEl)) {
+			this.diagnostics.safely("drawing the filter panel", () => this.drawControls());
+		}
 		this.diagnostics.safely("drawing the way out", () => this.drawOut());
 		this.diagnostics.safely("naming the wheel", () => this.drawScopeTitle());
 
@@ -1397,7 +1432,7 @@ export class TaskWheelView extends ItemView {
 				},
 				onChange: (next) => void this.changeFilter(next),
 				onSubmit: (text) => void this.jumpToSearch(text),
-				onEscape: () => this.takeBackKeyboard(),
+				onEscape: () => this.takeBackKeyboard(true),
 			},
 		);
 	}
@@ -1458,7 +1493,7 @@ export class TaskWheelView extends ItemView {
 		}
 
 		this.controller?.goTo(next.id);
-		this.takeBackKeyboard();
+		this.takeBackKeyboard(true);
 	}
 
 	/**
@@ -2027,10 +2062,11 @@ export function readScope(state: unknown): WheelScope | null {
 	const raw = (state as { scope?: unknown }).scope;
 	if (typeof raw !== "object" || raw === null) return null;
 
-	const { kind, path, heading } = raw as {
+	const { kind, path, heading, loose } = raw as {
 		kind?: unknown;
 		path?: unknown;
 		heading?: unknown;
+		loose?: unknown;
 	};
 	if (kind === "vault") return VAULT_SCOPE;
 	if ((kind === "folder" || kind === "note") && typeof path === "string") {
@@ -2049,7 +2085,11 @@ export function readScope(state: unknown): WheelScope | null {
 	// whole vault (BC_E3_S146). Read back exactly as strictly as the rest: a
 	// state that does not say both is no state at all.
 	if (kind === "heading" && typeof heading === "string" && typeof path === "string") {
-		return { kind, heading, path };
+		// Whether the loose work belongs here travels with the scope, so a wheel
+		// reopened from a saved tab is the wheel that was closed (BC_E3_S157). A
+		// state written before that flag existed simply has none, and a heading
+		// wheel without it is what it always was.
+		return { kind, heading, path, loose: loose === true };
 	}
 	return null;
 }

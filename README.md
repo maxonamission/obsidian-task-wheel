@@ -109,7 +109,7 @@ rewrite the words, change the priority, push a week out, or open the note.
 | **Fold a branch away** | Space, or the button on the card |
 | **Open a wheel over the note you are in** | The command *Open the wheel over this note* — it lands on the task under your cursor |
 | **Open the filter** | Ctrl/Cmd + F, or the panel in the corner — the cursor lands in the search box |
-| **Jump to what you searched for** | Enter in the search box: the next match in the turn direction. Escape hands the wheel back |
+| **Jump to what you searched for** | Enter in any filter box: it applies what you typed, gives the wheel its keyboard back and goes to the next match in the turn direction. Escape hands the wheel back without applying |
 | **One stop in the flat order** | PageUp / PageDown |
 | **Jump to the first or last** | Home / End |
 | **Carry to a named place** | The ⋯ button, or a key you bind yourself |
@@ -210,8 +210,9 @@ wherever it is written: *"give me everything in this scope that sits under a
 heading Project"*. That is the one question the other rules cannot ask — the
 same subject, scattered over a dozen notes in half as many folders. It reads
 **any** heading above the task, so a section deep in a note that opens with a
-title heading is found as readily as one at the top. Exact by default, and
-`Project*` takes everything that starts with it, exactly as the skip lists do.
+title heading is found as readily as one at the top. A heading is prose, so a
+bare word matches **part** of the name: *bonnetjes* finds *Project bonnetjes*.
+A `*` widens it further.
 Paste the heading in with its `##` if that is how you have it: the hashes are
 markdown's way of writing the level and are taken off. It works whatever
 the domain comes from, and it combines with the rest, so "this subject, high
@@ -265,7 +266,10 @@ quietly drag in everything living in *Plan.md*.
 
 A `*` means here what it means in the settings: any run of characters. A bare
 word already matches part of a word, so the star earns its keep in the middle —
-`week*report`. A box holding nothing but a star asks for everything, which is
+`week*report`. It works in every box of the panel, and one line under them says
+what a bare word does in each: **with tags** matches a tag from its start, so
+`may` finds `#maybe` and `#may/urgent` and leaves `#thuismaybe` alone — a tag is
+a name with structure, and `#werk` has always covered `#werk/klant`. A box holding nothing but a star asks for everything, which is
 what an empty box already does, so the filter stays off. Inside quotes a star is
 an ordinary character, which is how you search for a literal one.
 

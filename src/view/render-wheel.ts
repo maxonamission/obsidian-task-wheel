@@ -787,14 +787,14 @@ export class WheelRenderer {
 			});
 			band.style.setProperty(
 				"--tw-colour",
-				branchColour(budget.index, this.palette),
+				branchColour(budget.hue, this.palette),
 			);
 			// And a stronger mix beside it, for the one band the reading wedge is
 			// standing in. Both values are set here and the stylesheet picks —
 			// this module says *which colour*, never *how it is painted*.
 			band.style.setProperty(
 				"--tw-strong",
-				readingBandColour(budget.index, this.palette),
+				readingBandColour(budget.hue, this.palette),
 			);
 
 			const inner = pointAt(HUB_RADIUS, budget.startAngle);
@@ -843,7 +843,7 @@ export class WheelRenderer {
 		// The same faded hue its band is drawn in, so the name reads as belonging
 		// to that slice rather than floating above it — and quieter than a wedge
 		// with work on it, because that is the honest difference between them.
-		el.style.setProperty("--tw-colour", branchColour(budget.index, this.palette));
+		el.style.setProperty("--tw-colour", branchColour(budget.hue, this.palette));
 
 		this.labels.push({
 			el,

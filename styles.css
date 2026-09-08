@@ -1744,3 +1744,12 @@
 	stroke: var(--tw-strong, var(--tw-colour));
 	stroke-width: 4.5;
 }
+
+/* What a bare word does in the boxes above it (BC_E3_S181). A footnote, not an
+   instruction: muted and small, so it is there when the rule surprises you and
+   out of the way when it does not. */
+.task-wheel-controls-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	line-height: var(--line-height-tight);
+}

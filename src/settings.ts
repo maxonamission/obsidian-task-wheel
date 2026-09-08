@@ -11,6 +11,7 @@ import {
 	DUE_LABELS,
 	picksADate,
 	STATUS_LABELS,
+	windowLabels,
 } from "./view/filter-labels";
 import {
 	DEFAULT_PALETTE,
@@ -921,7 +922,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Wedge colours",
-						desc: "Which hues the wedges are handed. A palette selects from the colours your own theme defines, so retuning the theme retunes the wheel and both light and dark keep working from one rule. Colour-blind friendly leaves out red and green — the pair that collapses for the two most common kinds — and leads with blue and orange, which stay apart. Hue says which domain a task belongs to, never how urgent it is; urgency is the lightness. Past the end of a palette the hues start over and the wedge position tells those apart, as it always has past eight.",
+						desc: "Which hues the wedges are handed. A palette selects from the colours your own theme defines, so retuning the theme retunes the wheel and both light and dark keep working from one rule. Colour-blind friendly leaves out red and green — the pair that collapses for the two most common kinds — and leads with blue and orange, which stay apart. Hue says which domain a task belongs to, never how urgent it is; urgency is the lightness. Past the end of a palette the hues start over, so two wedges far apart on the circle can share one; neighbours never do. This chooses the wedge colours and nothing else: the sweep and the reading ring are drawn in your theme's accent colour, whatever that is, and how red or green a hue looks is your theme's answer rather than ours.",
 						control: {
 							type: "dropdown",
 							key: "wedgePalette",
@@ -1020,8 +1021,12 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Due from",
-						desc: "The start of the window, as YYYY-MM-DD. Both ends count as inside it, and leaving this empty means the window is open at the early end. Tasks without a due date are never in a window.",
+						// Named for the date the window is pointed at, the same as
+						// in the panel beside the wheel (BC_E3_S170). It said "Due"
+						// flat out, and the window has been able to read ⏳ or 🛫
+						// since BC_E3_S126.
+						name: windowLabels(settings.filterDateField ?? "due").from,
+						desc: "The start of the window, as YYYY-MM-DD. Both ends count as inside it, and leaving this empty means the window is open at the early end. A task without the date the window reads is never in one.",
 						visible: () => settings.filterDue === "between",
 						control: {
 							type: "text",
@@ -1030,7 +1035,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Due up to",
+						name: windowLabels(settings.filterDateField ?? "due").until,
 						desc: "The end of the window, as YYYY-MM-DD, and it counts as inside it. Empty means open at the late end. An end before the start selects nothing, and the line under the wheel says so.",
 						visible: () => settings.filterDue === "between",
 						control: {
@@ -1045,6 +1050,20 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						control: {
 							type: "dropdown",
 							key: "filterMinPriority",
+							options: PRIORITY_OPTIONS,
+						},
+					},
+					{
+						// The other half of the band, which lived only in the panel
+						// (BC_E3_S170). One bound alone selects "this and up", so a
+						// ceiling set beside the wheel was invisible here and could
+						// only be undone with *Clear* — the tab showed a filter it
+						// was not showing all of.
+						name: "Priority at most",
+						desc: "Tasks above this stay out of the round. With the row above it this makes a band, which is what sweeping a batch of low-priority work into a someday note asks for.",
+						control: {
+							type: "dropdown",
+							key: "filterMaxPriority",
 							options: PRIORITY_OPTIONS,
 						},
 					},

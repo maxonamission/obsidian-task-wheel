@@ -330,7 +330,29 @@ export type WheelScope =
 	 * zooming in from a folder wheel does not quietly widen back out to
 	 * everything. Going out again returns to exactly that.
 	 */
-	| { kind: "heading"; heading: string; path: string };
+	| {
+			kind: "heading";
+			heading: string;
+			path: string;
+			/**
+			 * Whether work that stands under **no** heading belongs here too
+			 * (BC_E3_S157).
+			 *
+			 * True for the fallback wedge, and only for it. In heading mode a
+			 * task under no heading lands in the fallback domain, so that wedge
+			 * holds two kinds of work at once: whatever heading happens to carry
+			 * the fallback's name, and everything loose. Without this the step in
+			 * showed only the first — and where there was no such heading, which
+			 * is the ordinary case, that was an empty wheel with nothing said
+			 * (audit 6 sep 2026, gemeten: wig *Overig* met twee items, 0 getoond
+			 * en 0 weggefilterd).
+			 *
+			 * Part of the scope rather than worked out on arrival, because it is
+			 * a fact about the wedge that was tapped, and the wheel that opens
+			 * has no way back to it.
+			 */
+			loose?: boolean;
+	  };
 
 export const VAULT_SCOPE: WheelScope = { kind: "vault" };
 
@@ -340,7 +362,11 @@ export function scopeKey(scope: WheelScope): string {
 	if (scope.kind === "section") {
 		return `section:${scope.path}#${scope.heading.join("#")}`;
 	}
-	if (scope.kind === "heading") return `heading:${scope.path}#${scope.heading}`;
+	if (scope.kind === "heading") {
+		// The loose bucket is a different wheel from a heading of the same name,
+		// so it keeps its own round.
+		return `heading:${scope.path}#${scope.heading}${scope.loose === true ? "+loose" : ""}`;
+	}
 	return `${scope.kind}:${scope.path}`;
 }
 
@@ -350,7 +376,12 @@ export function scopeLabel(scope: WheelScope): string {
 	if (scope.kind === "section") {
 		return scope.heading[scope.heading.length - 1] ?? scope.path;
 	}
-	if (scope.kind === "heading") return scope.heading;
+	// The fallback wedge names itself, and the wheel over it says what it also
+	// holds — otherwise "Overig" would be the whole of what a reader is told
+	// about a wheel that is mostly loose work (BC_E3_S157).
+	if (scope.kind === "heading") {
+		return scope.loose === true ? `${scope.heading} and loose work` : scope.heading;
+	}
 
 	const base = scope.path.slice(scope.path.lastIndexOf("/") + 1);
 	return scope.kind === "note" ? base.replace(/\.md$/i, "") : base;
@@ -472,10 +503,13 @@ export interface TaskFilter {
 	 * note opening with an `# H1` carries that title as its outermost heading, so
 	 * every section name matched nothing and the wheel came up empty.
 	 *
-	 * A `*` widens it, exactly as it does in the skip lists — one spelling of
-	 * "a name with a star" for the whole plugin. Leading `#` are taken off what
-	 * the reader types: a heading is written `## Deze week` in a note, and that
-	 * is what gets pasted in.
+	 * A bare word matches **part** of a heading's name, and a `*` widens it
+	 * further (herzien BC_E3_S181). It used to want the whole name unless a star
+	 * said otherwise, which is the skip lists' rule — and a skip list is written
+	 * once in the settings, while this is a box typed into mid-round, right under
+	 * one where a bare word has always matched part of a word. Leading `#` are
+	 * taken off what the reader types: a heading is written `## Deze week` in a
+	 * note, and that is what gets pasted in.
 	 */
 	heading: string;
 	/** Which statuses count. */
