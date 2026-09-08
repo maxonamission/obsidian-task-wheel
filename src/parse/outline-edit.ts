@@ -32,6 +32,7 @@
 import { headingsOf, type NoteHeading } from "./outline";
 import {
 	baseIndent,
+	fitsAfterShift,
 	fold,
 	nearestHeadingAbove,
 	ownBody,
@@ -554,11 +555,29 @@ export function moveHeading(
  * depth changes. Levels are clamped to the six markdown has; a section pushed
  * past that keeps its shape as far as markdown can express it.
  */
-export function moveHeadingUnder(
+export interface MoveUnderPlan {
+	/** Levels every heading in the block moves by. */
+	shift: number;
+	/** Whether the block keeps its shape at that shift (BC_E3_S168). */
+	fits: boolean;
+}
+
+/**
+ * What a move under this heading would do, before doing it (BC_E3_S168).
+ *
+ * Exported so the view can *say* why a move is refused. `moveHeadingUnder`
+ * reads the same answer rather than working the shift out a second time: two
+ * places deciding one thing is how a refusal comes to disagree with the reason
+ * given for it.
+ *
+ * `null` for a move that is impossible for a different reason — one of the two
+ * headings is not there, or the target sits inside what is being moved.
+ */
+export function planMoveUnder(
 	lines: readonly string[],
 	headingLine: number,
 	targetLine: number,
-): string[] | null {
+): MoveUnderPlan | null {
 	const headings = headingsOf(lines);
 	const self = headings.find((heading) => heading.line === headingLine);
 	const target = headings.find((heading) => heading.line === targetLine);
@@ -568,10 +587,26 @@ export function moveHeadingUnder(
 	// that would delete the note from under the reader.
 	if (target.line >= self.line && target.line <= self.end) return null;
 
-	const level = subLevel(headings, target);
-	const shift = level - self.level;
+	const shift = subLevel(headings, target) - self.level;
+	const block = lines.slice(self.line, self.end + 1);
 
-	const block = relevel(lines.slice(self.line, self.end + 1), shift);
+	return { shift, fits: fitsAfterShift(block, shift) };
+}
+
+export function moveHeadingUnder(
+	lines: readonly string[],
+	headingLine: number,
+	targetLine: number,
+): string[] | null {
+	const plan = planMoveUnder(lines, headingLine, targetLine);
+	if (plan === null || !plan.fits) return null;
+
+	const headings = headingsOf(lines);
+	const self = headings.find((heading) => heading.line === headingLine);
+	const target = headings.find((heading) => heading.line === targetLine);
+	if (self === undefined || target === undefined) return null;
+
+	const block = relevel(lines.slice(self.line, self.end + 1), plan.shift);
 
 	const rest = [
 		...lines.slice(0, self.line),

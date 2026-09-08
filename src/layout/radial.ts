@@ -57,21 +57,6 @@ export interface LayoutOptions {
 	wedgePadding: number;
 	/** Below this span a node keeps its dot but loses its label, ever. */
 	labelSpan: number;
-	/**
-	 * How tall an ordinary label is painted, in the same units as the radii.
-	 *
-	 * Labels are horizontal, so two of them clash when their *vertical* gap is
-	 * smaller than the room they take up — whatever their angle. `stripsClash`
-	 * compares exactly that, per turn of the wheel, and it asks each label for
-	 * its own height: a wedge title is bigger than a task's name, and one number
-	 * for both is either too tight for the one or too generous for the other.
-	 *
-	 * Measured, not guessed (19 aug 2026): a task's label is 10,4 units high and
-	 * a wedge title 13, both painted with a 3-unit halo around them. This is the
-	 * first of those, and it stands in for any label the browser has not yet been
-	 * able to measure.
-	 */
-	labelHeight: number;
 	/** Below this span a node degrades to a tick on its ring. */
 	tickSpan: number;
 	/**
@@ -143,7 +128,6 @@ export const DEFAULT_LAYOUT_OPTIONS: LayoutOptions = {
 	maxDepth: 6,
 	wedgePadding: 1.5,
 	labelSpan: 5,
-	labelHeight: 13,
 	tickSpan: 1.4,
 	itemPitch: 12,
 	labelSteps: 1,

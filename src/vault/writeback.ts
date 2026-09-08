@@ -327,7 +327,7 @@ export interface CarryAmount {
  */
 export type CarryOutcome =
 	/** Nothing was written anywhere. */
-	| { kind: "refused"; why: "stale" | "missing" | "nothing" }
+	| { kind: "refused"; why: "stale" | "missing" | "nothing" | "too-deep" }
 	/** It is in the other note, and the source was meant to keep it. */
 	| ({ kind: "copied" } & CarryAmount)
 	/** It is in the other note and gone from this one. */
@@ -392,7 +392,7 @@ export async function writeCarry(
 	// A box rather than plain locals: what the callback writes has to survive the
 	// await, and a `let` assigned only inside a closure is a thing the type
 	// checker is right to be suspicious of.
-	const landing = { created: [] as string[], written: false };
+	const landing = { created: [] as string[], written: false, tooDeep: false };
 
 	await app.vault.process(target, (current) => {
 		const result = reshapeNote(current, (into) => {
@@ -402,6 +402,14 @@ export async function writeCarry(
 			// first one had to write rather than writing it again.
 			for (const block of blocks) {
 				const pasted = pasteInto(out, headingPath ?? block.path, block);
+				// A section that cannot keep its shape where it is going stops the
+				// whole carry, not just its own block (BC_E3_S168). Half a carry is
+				// the worst of the three outcomes: work in two notes, and a sentence
+				// that can only be true about one of them.
+				if (pasted.refused !== undefined) {
+					landing.tooDeep = true;
+					return into;
+				}
 				out = pasted.lines;
 				made.push(...pasted.created);
 			}
@@ -412,6 +420,7 @@ export async function writeCarry(
 		return result.data;
 	});
 
+	if (landing.tooDeep) return { kind: "refused", why: "too-deep" };
 	if (!landing.written) return { kind: "refused", why: "nothing" };
 
 	const amount: CarryAmount = {

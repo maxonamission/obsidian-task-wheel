@@ -50,6 +50,27 @@ export function stateOf(statusChar: string): TaskState {
 }
 
 /**
+ * The bracket character each state wears on a line — the inverse of `stateOf`.
+ *
+ * Beside it, and exported, because three places knew this mapping and only one
+ * of them said so: `stateOf` read it one way, a private table in `build-tree`
+ * read it the other, and the card's own actions wrote the characters out as
+ * literals (audit 6 sep 2026, BC_E3_S172). Three copies of an alphabet is how a
+ * fifth status comes to mean two things.
+ *
+ * `stateOf` stays the wider of the two: it takes *any* character, because a
+ * vault may define statuses of its own and an unknown one is open work rather
+ * than a reason to drop it. This table is the narrow direction — what the wheel
+ * writes when it is the one deciding.
+ */
+export const STATUS_CHAR: Readonly<Record<TaskState, string>> = {
+	open: " ",
+	"in-progress": "/",
+	done: "x",
+	cancelled: "-",
+};
+
+/**
  * Emoji signifiers, longest first so a two-code-point emoji is never shadowed
  * by a one-code-point prefix. Several dates accept more than one glyph because
  * Tasks itself does.

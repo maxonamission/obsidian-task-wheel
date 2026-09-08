@@ -134,27 +134,82 @@ export function baseIndent(lines: readonly string[], body: OwnBody): string {
  * had gone well (found by audit, 6 sep 2026). A block always starts at its own
  * heading, so the fence state at its first line is "outside".
  *
- * Levels are clamped to the six markdown has, for the reason in `subLevel`.
+ * Levels are clamped to the six markdown has, for the reason in `subLevel`. A
+ * caller that would lose a section's shape to that clamp asks `fitsAfterShift`
+ * first and refuses rather than flattening it (BC_E3_S168).
  */
 export function relevel(block: readonly string[], shift: number): string[] {
+	const levels = new Map(
+		[...headingsIn(block)].map((heading) => [heading.at, heading.level]),
+	);
+
+	return block.map((line, at) => {
+		const level = levels.get(at);
+		if (level === undefined) return line;
+
+		const wanted = Math.min(MAX_LEVEL, Math.max(1, level + shift));
+		return `${"#".repeat(wanted)}${line.slice(level)}`;
+	});
+}
+
+/** The deepest markdown gives you. A seventh hash is prose, not a heading. */
+export const MAX_LEVEL = 6;
+
+/**
+ * Every heading of a block, with the fences skipped.
+ *
+ * One walk, read by `relevel` and by `fitsAfterShift` below. They ask the same
+ * question of the same lines and a second copy of "which lines are headings"
+ * would be a second answer waiting to happen — the two patterns `relevel`
+ * replaced were exactly that (audit 6 sep 2026).
+ */
+function* headingsIn(
+	block: readonly string[],
+): Generator<{ at: number; level: number }> {
 	let fence: string | null = null;
 
-	return block.map((line) => {
+	for (let at = 0; at < block.length; at++) {
+		const line = block[at] ?? "";
+
 		if (fence !== null) {
 			if (line.trimStart().startsWith(fence)) fence = null;
-			return line;
+			continue;
 		}
 
 		const fenceMatch = FENCE.exec(line);
 		if (fenceMatch !== null) {
 			fence = fenceMatch[1];
-			return line;
+			continue;
 		}
 
 		const match = HEADING.exec(line);
-		if (match === null) return line;
+		if (match !== null) yield { at, level: match[1].length };
+	}
+}
 
-		const wanted = Math.min(6, Math.max(1, match[1].length + shift));
-		return `${"#".repeat(wanted)}${line.slice(match[1].length)}`;
-	});
+/**
+ * Whether shifting this block that far still leaves it the shape it had
+ * (BC_E3_S168, audit 6 sep 2026).
+ *
+ * `relevel` clamps at six, which is right — a seventh hash is not a heading —
+ * but a clamp is silent, and what it silences is a *structure*. Measured: a
+ * `#####` holding two `######` moved under another `#####` came out as three
+ * `######` side by side. Its subsections were no longer its children, and
+ * moving it back took only the heading, leaving them behind under the parent it
+ * had visited. No text was lost and nothing said a word.
+ *
+ * So the callers ask first. A move that would flatten is refused with a
+ * sentence of its own; a move that fits happens exactly as before. Only a
+ * downward shift can flatten: going shallower has a floor at one, and a heading
+ * clamped up to level one is still above everything it holds.
+ */
+export function fitsAfterShift(block: readonly string[], shift: number): boolean {
+	if (shift <= 0) return true;
+
+	let deepest = 0;
+	for (const heading of headingsIn(block)) {
+		deepest = Math.max(deepest, heading.level);
+	}
+
+	return deepest === 0 || deepest + shift <= MAX_LEVEL;
 }

@@ -74,7 +74,7 @@ export function duplicateReport(
 		// heading rule keeps out was never part of a round, so a copy hiding
 		// there cannot break one either.
 		if (!inScope(note.path, options.scope)) continue;
-		if (isExcludedFolder(note.path, options)) continue;
+		if (isExcludedFolder(note.path, options, options.scope)) continue;
 		if (isExcludedType(note.frontmatterType, options)) continue;
 
 		for (const task of outlineNote(note.content)) {

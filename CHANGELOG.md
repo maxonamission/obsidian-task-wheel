@@ -4,6 +4,55 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.7]
+
+The second audit of the code, finished. Most of what follows you would only
+have met on a particular day with a particular vault — which is what an audit is
+for — but three of them are things you could walk into this afternoon.
+
+- **Fixed**: with the domain coming from headings, the wedge that collects work
+  standing under no heading opened on an empty wheel. It holds two kinds of work
+  at once — whatever heading happens to share its name, and everything loose —
+  and stepping in showed only the first, which for most vaults is nothing at
+  all. It now opens on what the wedge was drawing.
+- **Fixed**: moving a section that holds sections of its own could flatten it.
+  Markdown stops at six levels of heading, and a move that would push past that
+  quietly made the subsections into neighbours instead of children — with a
+  notice saying all had gone well. Moving it back then took only the heading and
+  left them behind. Such a move is now refused, and the refusal says why and
+  what to do about it. This covers both routes: within one note, and carrying a
+  section to another.
+- **Fixed**: a skip rule meant something slightly different on the note wheel
+  than on every other wheel. A note whose own title matches one of your
+  *Note types to skip* or *Skip checkboxes under these headings* rules was
+  emptied everywhere else and still drew its headings as empty wedges on its
+  own wheel.
+- **Fixed**: Enter on a note that is itself a task said "open it to edit its
+  text" and stopped there, while clicking that same title renamed it on the
+  spot. Enter now opens the same box. And Alt with an arrow on a heading did
+  nothing at all — the card's own menu has offered *Move up* and *Move down* on
+  a heading all along; now the key does too, and where it cannot, it says so.
+- **Fixed**: each wheel keeps its own zoom, and stepping into a folder or a note
+  in the same tab did not bring it along. Worse, the first pinch after that
+  wrote the wheel you came from over the one you had arrived at.
+- **Fixed**: the note list that appears while you type a `[[link]]` could be
+  left floating over the card after a redraw.
+- **Fixed**: after finishing a task, the wheel moved on to the next one in the
+  wrong order when a new domain had appeared while the round was running. A
+  round freezes the wedges it began with, so such a domain is added at the end
+  of the circle rather than slipped into the middle — the arrows knew that and
+  the step after an action did not.
+- **Fixed**: the help panel's *Scope* row said "The whole vault" in English
+  whatever language the panel was in. It had that phrase translated all along.
+- **Fixed**: on a wheel over one section, the button that opens the note it
+  belongs to appeared above the pane but not beside the drawing.
+- **Changed**: the settings no longer put two different questions under one
+  heading. *Include finished tasks* has left the group about how the wheel is
+  drawn and now sits directly above the words that define what "finished" means
+  for a task document — they were nine groups apart, so adding a word to
+  *Other values that also mean finished* and seeing nothing change sent you
+  hunting under a heading called *Structure*. Nothing you have set is affected.
+
 ## [0.2.6]
 
 Four of these came from using the plugin — a stray line, two wedges of the same

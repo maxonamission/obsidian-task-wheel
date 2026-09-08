@@ -35,7 +35,11 @@ import {
 } from "./domain";
 import { isFiltering, matches } from "./filter";
 import { showsFinishedWork, withinBlikveld } from "./round";
-import { TASK_LINE } from "./task-line";
+// A note has no brackets, but everything downstream — the badge, the started
+// ring, the status filter — reads `state`, and `statusChar` beside it keeps the
+// shape of a task whole rather than half-filled. The table itself lives beside
+// `stateOf`, its inverse (BC_E3_S172).
+import { STATUS_CHAR, TASK_LINE } from "./task-line";
 import { isTaskNote, taskNoteLabel, taskNoteState } from "./task-note";
 import {
 	isFinished,
@@ -391,7 +395,14 @@ function countRoundItems(
 	tasks: OutlinedTask[],
 	showsFinished: boolean,
 ): number {
-	return tasks.filter((task) => showsFinished || !isFinished(task.fields)).length;
+	// Through `isRoundItem` rather than beside it (BC_E3_S172). The rule was
+	// written out a second time here and the two happened to agree; a rule that
+	// happens to agree is the state every drift in this repo started from. An
+	// outlined task is a task by construction, which is the one thing
+	// `isRoundItem` asks that this list cannot answer for itself.
+	return tasks.filter((task) =>
+		isRoundItem({ kind: "task", fields: task.fields }, showsFinished),
+	).length;
 }
 
 /**
@@ -433,20 +444,6 @@ interface TaskGroup {
 	firstLine: number;
 	tasks: OutlinedTask[];
 }
-
-/**
- * The bracket character each state would have worn on a line.
- *
- * A note has no brackets, but everything downstream — the badge, the started
- * ring, the status filter — reads `state`, and `statusChar` beside it keeps the
- * shape of a task whole rather than half-filled.
- */
-const STATUS_CHAR: Readonly<Record<TaskState, string>> = {
-	open: " ",
-	"in-progress": "/",
-	done: "x",
-	cancelled: "-",
-};
 
 /** A note standing as one task: what to call it, and what it says about itself. */
 interface NoteTask {
@@ -625,7 +622,18 @@ function outlineGroups(note: NoteInput, options: ParseOptions): TaskGroup[] {
 			if (!within) continue;
 		}
 
-		if (isExcludedHeading(path, options)) continue;
+		// The **full** path, title heading and all — the same reading the tasks
+		// get, and the same one the skip report gives (BC_E3_S167). It used to
+		// test the stripped path, which mattered for exactly one case and got it
+		// wrong: a note whose own title matches a rule. Measured, a note titled
+		// *Acceptatiecriteria* under a rule `*criteria` drew nothing on the vault
+		// wheel and two empty wedges on its own — the same note, two answers.
+		//
+		// Stripping the title is a *drawing* decision (BC_E3_S70): a heading that
+		// repeats the note's name costs a ring and says nothing. A skip rule is
+		// the reader saying what is not work, and a note called *Acceptance
+		// criteria* is a checklist however the wheel chooses to draw it.
+		if (isExcludedHeading(found.path, options)) continue;
 
 		const wedge = headingWedge(path[base], base + 1);
 		groups.push({

@@ -38,6 +38,10 @@ export function carryMessage(
 				return `Task wheel: nothing was carried — ${target} was left alone, because this note changed while you were choosing. Try again.`;
 			case "nothing":
 				return "Task wheel: nothing to carry there.";
+			case "too-deep":
+				// Nothing was written anywhere: the paste puts the note back
+				// untouched rather than place half a shape (BC_E3_S168).
+				return `Task wheel: nothing was carried — ${target} was left alone, because that section holds headings of its own and there they would run past the six levels markdown has. Carry it to a shallower place, or move its subsections first.`;
 		}
 	}
 

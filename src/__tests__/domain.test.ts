@@ -27,7 +27,7 @@ describe("topFolder", () => {
 
 describe("projectLabel", () => {
 	it("is the basename without the extension", () => {
-		expect(projectLabel("Werk/DDI job aid.md")).toBe("DDI job aid");
+		expect(projectLabel("Werk/Handleiding.md")).toBe("Handleiding");
 		expect(projectLabel("Losse notitie.md")).toBe("Losse notitie");
 	});
 });

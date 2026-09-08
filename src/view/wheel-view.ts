@@ -51,7 +51,9 @@ import {
 	isNoteTask,
 	isRefused,
 	type NoScope,
+	noteOf,
 	scopeFor,
+	wedgeSource,
 } from "../model/scope";
 import { paneChange } from "../model/detour";
 import { type Landing, landingId, nodeAt, readLanding } from "../model/landing";
@@ -250,6 +252,16 @@ export class TaskWheelView extends ItemView {
 			this.focusId = null;
 			this.laidOutFor = null;
 			this.syncHeaderAction();
+
+			// Every blikveld keeps its own zoom, and the settings say so out
+			// loud. Reusing the tab changed the scope and left the controller at
+			// the previous one's zoom (audit 6 sep 2026) — and it was not merely
+			// stale: the next pinch writes through to `stateFor` under the *new*
+			// scope, so the zoom the reader had set for this blikveld was
+			// overwritten by the one they came from (BC_E3_S172).
+			this.controller?.setZoom(
+				stateFor(this.plugin.settings, this.wheelScope).zoom,
+			);
 		}
 
 		await super.setState(state, result);
@@ -665,7 +677,14 @@ export class TaskWheelView extends ItemView {
 		// reader was just looking at.
 		const land =
 			after.advance === true && before !== null
-				? taskAfter(before.root, this.focusId)
+				? // The round's own wedge order, so "the next task" is the next one
+					// on the circle the reader is looking at rather than the next
+					// one alphabetically (BC_E3_S172).
+					taskAfter(
+						before.root,
+						this.focusId,
+						this.layout?.budgets.map((budget) => budget.domain) ?? [],
+					)
 				: null;
 
 		await this.refresh();
@@ -797,15 +816,14 @@ export class TaskWheelView extends ItemView {
 		this.headerAction?.detach();
 		this.headerAction = null;
 
-		if (this.wheelScope.kind !== "note" && this.wheelScope.kind !== "section") {
-			return;
-		}
+		if (noteOf(this.wheelScope) === null) return;
 
 		this.headerAction = this.addAction("file-text", "Open this note", () => {
-			const scope = this.wheelScope;
-			if (scope.kind === "note" || scope.kind === "section") {
-				this.showNote(scope.path, null);
-			}
+			// Read again at press time rather than captured: the scope may have
+			// changed since the action was made, and the note to open is the one
+			// this wheel is about *now*.
+			const path = noteOf(this.wheelScope);
+			if (path !== null) this.showNote(path, null);
 		});
 	}
 
@@ -976,10 +994,11 @@ export class TaskWheelView extends ItemView {
 			// Named as a blikveld rather than as a tab title: `scopeLabel` answers
 			// "what does this tab say", and on the vault wheel that is the plugin's
 			// own name, which reads as nothing at all under the word "Scope".
-			scope:
-				this.wheelScope.kind === "vault"
-					? "The whole vault"
-					: scopeLabel(this.wheelScope),
+			//
+			// `null` says *the whole vault* without saying it in English: the
+			// panel has that phrase in thirteen languages and the view has no
+			// business choosing between them (BC_E3_S172).
+			scope: this.wheelScope.kind === "vault" ? null : scopeLabel(this.wheelScope),
 			filter: this.filterLine(),
 			folded: stateFor(this.plugin.settings, this.wheelScope).collapsed.length,
 			outward: wider === null ? null : scopeLabel(wider),
@@ -1363,9 +1382,12 @@ export class TaskWheelView extends ItemView {
 		if (el === null) return;
 
 		el.empty();
-		if (this.wheelScope.kind !== "note") return;
+		// `noteOf`, the same question the header action asks (BC_E3_S172). This
+		// one used to ask only about a note wheel, so a section wheel offered the
+		// note above the pane and not beside the drawing.
+		const path = noteOf(this.wheelScope);
+		if (path === null) return;
 
-		const path = this.wheelScope.path;
 		const button = el.createEl("button", {
 			cls: "task-wheel-scope",
 			attr: { type: "button", "aria-label": `Open ${path}` },
@@ -1596,20 +1618,24 @@ export class TaskWheelView extends ItemView {
 		}
 
 		const ref = lineRefOf(laid);
-		if (ref === null) {
-			// A task note is the one task with a whole file behind it, so the
-			// sentence says where its text lives rather than that there is none
-			// (BC_E3_S130). Every refusal has a reason and every reason has a
-			// sentence the reader can act on.
-			new Notice(
-				isNoteTask(laid.node)
-					? "Task wheel: this task is a note — open it to edit its text."
-					: "Task wheel: that task has no line to edit.",
-			);
+
+		// A task note has no line, and for a while that was the end of the
+		// answer: Enter said *this task is a note — open it to edit its text*
+		// and stopped there, while a click on the same title on the card renamed
+		// it on the spot (BC_E3_S132). The keyboard was poorer than the mouse
+		// about the very item both were pointing at, which is what BC_E3_S99
+		// forbids — so it falls through to the card's own box, exactly as a
+		// task on a line does (BC_E3_S171).
+		if (ref === null && !isNoteTask(laid.node)) {
+			// Still a refusal where there is genuinely nothing: a task with
+			// neither a line nor a file behind it. Every refusal has a reason and
+			// every reason has a sentence the reader can act on.
+			new Notice("Task wheel: that task has no line to edit.");
 			return;
 		}
 
 		if (
+			ref !== null &&
 			this.plugin.settings.editTask === "tasks" &&
 			editsThroughTasks(this.app)
 		) {
@@ -2038,13 +2064,12 @@ function refusalText(refusal: NoScope): string {
 		case "no-section":
 			return "these tasks sit above the first heading — there is no section to open for them.";
 		case "not-a-folder":
-			// One arm per source, because a two-way ternary here quietly called a
-			// heading wedge a property when the fourth source arrived (BC_E3_S144).
-			return refusal.source === "tag"
-				? "a tag domain is not a folder, so there is no wheel to open for it."
-				: refusal.source === "heading"
-					? "this wedge is a heading, not a folder, so there is no folder to open for it."
-					: "this wedge comes from a note property, not from a folder, so there is no folder to open for it.";
+			// One sentence, and the source named by `wedgeSource` (BC_E3_S172).
+			// A two-way ternary here quietly called a heading wedge a property
+			// when the fourth source arrived (BC_E3_S144); the arms that replaced
+			// it still ended in a silent `else`, which is the same shape one
+			// source further along.
+			return `this wedge comes from ${wedgeSource(refusal.source)}, not from a folder, so there is no folder to open for it.`;
 		case "no-source":
 			return "nothing on this item says which note it came from.";
 	}

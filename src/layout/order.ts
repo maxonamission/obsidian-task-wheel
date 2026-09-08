@@ -72,10 +72,36 @@ export function deepestFirst(node: WheelNode, out: WheelNode[] = []): WheelNode[
  * where you are", and saying that as an id would send the wheel to an item that
  * may not be there any more.
  */
-export function taskAfter(root: WheelNode, id: string | null): string | null {
+export function taskAfter(
+	root: WheelNode,
+	id: string | null,
+	/**
+	 * The wedge order this round froze, as `wheelOrder` reads it (BC_E3_S172).
+	 *
+	 * Without it this walk went round the wedges in *structural* order while the
+	 * drawing went round them in the round's own, and a domain that turned up
+	 * mid-round sits last on the circle but sorted here. Measured on a vault of
+	 * three domains with one of them new: three of the four stops disagreed
+	 * about what comes next (audit 6 sep 2026).
+	 *
+	 * The drawing wins, because "next" is a claim about the circle in front of
+	 * the reader. Empty by default, which ranks every wedge alike and so falls
+	 * back to structural order — exactly what a caller that names no round
+	 * meant.
+	 */
+	domains: readonly string[] = [],
+): string | null {
 	if (id === null) return null;
 
-	const tasks = deepestFirst(root).filter((node) => node.kind === "task");
+	const walk: WheelNode[] = [];
+	for (const wedge of wedgesInRoundOrder(root, domains)) {
+		// Children before their parents, which is the half of this order that is
+		// `taskAfter`'s own: a task with subtasks is not done until they are.
+		deepestFirst(wedge, walk);
+		walk.push(wedge);
+	}
+
+	const tasks = walk.filter((node) => node.kind === "task");
 	if (tasks.length < 2) return null;
 
 	const at = tasks.findIndex((task) => task.id === id);
@@ -121,7 +147,18 @@ function compare(a: string, b: string): number {
  * rings, so on those rings nothing else is drawn at all. A step read off the
  * drawing changed the reader's depth and had no way back (eigenaar, 1 sep 2026).
  */
-export function wheelOrder(
+/**
+ * The root's wedges in the order the round deals them.
+ *
+ * One place, read by `wheelOrder` and by `taskAfter` (BC_E3_S172). A wedge order
+ * worked out twice is two orders, and these two were: a domain that turned up
+ * mid-round stood last on the circle and sorted in the walk an action used.
+ *
+ * A domain the round never froze ranks last, which is what a wedge that was not
+ * there when the round began *is* — added to the end rather than slipped into
+ * the middle of a circle the reader has already been walking (BC_E3_S82).
+ */
+function wedgesInRoundOrder(
 	root: WheelNode,
 	domains: readonly string[],
 ): WheelNode[] {
@@ -130,9 +167,16 @@ export function wheelOrder(
 		return at < 0 ? domains.length : at;
 	};
 
-	const wedges = [...root.children].sort(
+	return [...root.children].sort(
 		(a, b) => rank(a) - rank(b) || byStructuralKey(a, b),
 	);
+}
+
+export function wheelOrder(
+	root: WheelNode,
+	domains: readonly string[],
+): WheelNode[] {
+	const wedges = wedgesInRoundOrder(root, domains);
 
 	const out: WheelNode[] = [];
 	for (const wedge of wedges) {

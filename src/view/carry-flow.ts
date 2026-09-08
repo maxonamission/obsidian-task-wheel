@@ -454,9 +454,12 @@ async function finish(
 	new Notice(carryMessage(outcome, mode, target.basename, held));
 
 	// A refusal wrote nothing, so there is nothing to redraw — except when the
-	// note moved under us, which is exactly what a rescan is for.
+	// note moved under us, which is exactly what a rescan is for. `too-deep`
+	// is the second refusal that leaves the vault exactly as it found it
+	// (BC_E3_S168): the section is still where it was, at the level it was.
 	if (outcome.kind === "refused") {
-		if (outcome.why !== "nothing") await host.refresh();
+		const moved = outcome.why !== "nothing" && outcome.why !== "too-deep";
+		if (moved) await host.refresh();
 		return;
 	}
 

@@ -76,7 +76,7 @@ describe("buildTree — the rings", () => {
 	it("makes headings a ring between the note and its tasks", () => {
 		const section = find(tree.root, "Voorbereiding");
 		expect(section.kind).toBe("group");
-		// root → domain → project → section. The note opens with `# DDI job aid`,
+		// root → domain → project → section. The note opens with `# Handleiding`,
 		// a heading that only says its name again, and such a heading gets no
 		// ring of its own (BC_E3_S70) — see `title-heading.test.ts`.
 		expect(section.depth).toBe(3);
@@ -92,11 +92,11 @@ describe("buildTree — the rings", () => {
 
 	it("attaches tasks straight to the note when headings are switched off", () => {
 		const flat = buildTree(VAULT, { ...OPTIONS, useHeadingsAsGroups: false });
-		const project = find(flat.root, "DDI job aid");
+		const project = find(flat.root, "Handleiding");
 		expect(project.children.map((child) => child.label)).toEqual([
 			"Interviews coderen",
 			"Stappenplan schrijven",
-			"Review bij twee bonden",
+			"Review met twee lezers",
 		]);
 	});
 });

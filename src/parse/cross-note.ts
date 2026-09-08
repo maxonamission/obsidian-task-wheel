@@ -23,6 +23,7 @@
 import { HEADING, headingsOf, type NoteHeading } from "./outline";
 import {
 	baseIndent,
+	fitsAfterShift,
 	fold,
 	nearestHeadingAbove,
 	ownBody,
@@ -76,6 +77,17 @@ export interface Pasted {
 	line: number;
 	/** Headings that had to be made, outermost first. Empty when none were. */
 	created: string[];
+	/**
+	 * Why nothing was placed, when nothing was (BC_E3_S168).
+	 *
+	 * `too-deep`: the section holds headings of its own and the level it would
+	 * land at leaves no room for them under the six markdown has. Flattening
+	 * them into siblings is the thing this refuses to do quietly, and landing
+	 * the section shallower than the parent it was aimed at would put it outside
+	 * that parent — a different place from the one that was asked for. So it
+	 * places nothing and says so, and `lines` comes back untouched.
+	 */
+	refused?: "too-deep";
 }
 
 /**
@@ -367,7 +379,10 @@ export function removeBlocks(
  *
  * A section arriving somewhere is re-levelled as a whole — a `###` with two
  * `####` under it becomes a `##` with two `###` if that is what fits — so the
- * shape it had survives even though its depth does not.
+ * shape it had survives even though its depth does not. Where it does *not*
+ * fit, because the levels would run past the six markdown has, nothing is
+ * placed and the answer says why (BC_E3_S168): a shape half kept is a shape
+ * lost, and losing it in silence is what that story came from.
  */
 export function pasteInto(
 	lines: readonly string[],
@@ -464,6 +479,12 @@ function placeSection(
 	const level =
 		forced ?? (parent === null ? commonLevel(headings) : subLevel(headings, parent));
 	const shift = level - (own === null ? level : own[1].length);
+
+	// The shape is the promise this function makes, so it refuses rather than
+	// keep half of it (BC_E3_S168). See `refused` on `Pasted`.
+	if (!fitsAfterShift(block, shift)) {
+		return { lines: [...lines], line: -1, created, refused: "too-deep" };
+	}
 
 	const shifted = relevel(block, shift);
 

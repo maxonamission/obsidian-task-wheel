@@ -136,7 +136,18 @@ export class ItemView {
 export class MarkdownView {}
 
 export class Notice {
-	constructor(public message: string) {}
+	/**
+	 * Every notice raised, in order (BC_E3_S171).
+	 *
+	 * The plugin's rule is that a refusal always carries a sentence, and a test
+	 * that wants to hold it to that needs the sentence. Cleared by whoever cares;
+	 * a test that does not look at it pays nothing for it being here.
+	 */
+	static shown: string[] = [];
+
+	constructor(public message: string) {
+		Notice.shown.push(message);
+	}
 }
 
 export class TAbstractFile {

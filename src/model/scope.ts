@@ -103,6 +103,33 @@ export type NoRename =
 	/** Anything else with no name of its own. */
 	| { refused: "nameless" };
 
+/**
+ * What a wedge is made of, in words (BC_E3_S172).
+ *
+ * Two refusals name this — the one about renaming and the one about opening —
+ * and both used to end in a silent `else`: anything that was not a tag or a
+ * heading was called a note property. Today that is true, because a folder
+ * wedge is refused a step earlier; a fifth domain source would have been called
+ * a note property without a word said. A `switch` over the union makes that a
+ * compile error instead (audit 6 sep 2026).
+ *
+ * The noun phrase only. What it *means* — no name to rewrite, no folder to open
+ * — is each refusal's own sentence, because they are answering different
+ * questions about the same wedge.
+ */
+export function wedgeSource(source: DomainSource): string {
+	switch (source) {
+		case "folder":
+			return "a folder";
+		case "tag":
+			return "a tag";
+		case "property":
+			return "a note property";
+		case "heading":
+			return "a heading in several notes at once";
+	}
+}
+
 export function renameRefusal(
 	node: TappedNode,
 	within: WheelScope,
@@ -133,6 +160,22 @@ export function renameRefusal(
 	}
 
 	return { refused: "nameless" };
+}
+
+/**
+ * The note this wheel is about, if it is about one (BC_E3_S172).
+ *
+ * A note wheel and a section wheel are both about one file — a section is a
+ * part of one — so both offer a way into it. Two places asked this and gave two
+ * answers: the header action counted a section wheel, the button in the corner
+ * did not, so on a section wheel the reader was offered the note above the pane
+ * and not beside the drawing (audit 6 sep 2026).
+ *
+ * `null` for the three that are about no single file: the vault, a folder, and
+ * a heading wheel, which is one name across many notes.
+ */
+export function noteOf(scope: WheelScope): string | null {
+	return scope.kind === "note" || scope.kind === "section" ? scope.path : null;
 }
 
 export function scopeFor(

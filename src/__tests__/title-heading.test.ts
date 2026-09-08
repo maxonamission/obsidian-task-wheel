@@ -44,8 +44,8 @@ function ringsOf(root: WheelNode): number[] {
 describe("titleHeadingOf", () => {
 	it("finds the heading that only says the note's name again", () => {
 		expect(
-			titleHeadingOf("Werk/VRG-014.md", "# VRG-014\n- [ ] Iets"),
-		).toBe("VRG-014");
+			titleHeadingOf("Werk/Plan 2027.md", "# Plan 2027\n- [ ] Iets"),
+		).toBe("Plan 2027");
 	});
 
 	it("ignores case and surrounding space, as a reader would", () => {

@@ -14,6 +14,7 @@ import {
 	type WheelLayout,
 } from "../layout/radial";
 import { containsAngle, pointAt, ringRadius } from "../layout/geometry";
+import { LEAF_HEIGHT } from "../layout/labels";
 import {
 	DEFAULT_PARSE_OPTIONS,
 	type NoteInput,
@@ -384,7 +385,10 @@ describe("labelStrip and stripsClash — the other kind of neighbour", () => {
 		return {
 			...point,
 			width,
-			height: DEFAULT_LAYOUT_OPTIONS.labelHeight,
+			// `LEAF_HEIGHT`, which is where this number lives now: the layout
+			// option that used to carry it was superseded by the label engine and
+			// read by nothing but this line (BC_E3_S172).
+			height: LEAF_HEIGHT,
 			side: angle < 180 ? "start" : "end",
 		};
 	};

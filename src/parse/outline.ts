@@ -192,7 +192,7 @@ export function headingsOf(lines: readonly string[]): NoteHeading[] {
  * The heading that only says the note's own name again, if there is one.
  *
  * A great many notes open with a heading that repeats their title —
- * `VRG-019 Privacy by Design.md` beginning with `# VRG-019 Privacy by Design`.
+ * `Werk/Plan 2027.md` beginning with `# Plan 2027`.
  * Drawn as its own ring it is a container holding everything and saying
  * nothing, and it costs every task in that note a ring: notes that follow the
  * convention put their work one ring further out than notes that do not. On a

@@ -33,7 +33,9 @@ const wheel = (over: Partial<HelpRoundState> = {}): HelpRoundState => ({
 	read: true,
 	seen: 12,
 	total: 40,
-	scope: "The whole vault",
+	// `null` is the vault wheel: the panel picks the words, in its own
+	// language (BC_E3_S172).
+	scope: null,
 	folded: 0,
 	outward: null,
 	...over,
@@ -249,5 +251,27 @@ describe("the thirteen languages", () => {
 		expect(carried).toEqual(
 			["ar", "de", "en", "es", "fr", "hi", "it", "ja", "ko", "nl", "pt", "ru", "zh"],
 		);
+	});
+});
+
+/**
+ * The words for "the whole vault" come from the panel, not from the view.
+ *
+ * They sat translated into thirteen languages and were read by nobody: the view
+ * handed in the English phrase, so a panel in any other language showed one
+ * English row (audit 6 sep 2026, BC_E3_S172).
+ */
+describe("the scope row on the vault wheel", () => {
+	it("takes its words from the panel's own catalogue", () => {
+		const nl = HELP_LOCALES.nl;
+		const rows = roundBlock(wheel({ scope: null }), nl).rows ?? [];
+		const scope = row(rows, nl.labelScope);
+		expect(scope.text).toBe(nl.wholeVault);
+		expect(scope.text).not.toBe(EN.wholeVault);
+	});
+
+	it("uses the blikveld's own name where there is one", () => {
+		const rows = roundBlock(wheel({ scope: "Werk" }), EN).rows ?? [];
+		expect(row(rows, EN.labelScope).text).toBe("Werk");
 	});
 });

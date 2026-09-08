@@ -401,8 +401,9 @@ indentation as the depth, so it is offered in a wheel over one note or one
 section and nowhere else.
 
 - **Move** a task up or down among its siblings, carrying everything underneath
-  it, including plain prose lines. `Alt` with an arrow, or the `⋯` button. This
-  is the one the wheel does better than the editor. Dragging is deliberately not
+  it, including plain prose lines. `Alt` with an arrow, or the `⋯` button — and
+  on a heading the same key moves the whole section, which is what its own menu
+  has always offered. This is the one the wheel does better than the editor. Dragging is deliberately not
   offered: it fights with turning, and on a phone it is fiddly.
 - **Move it to another heading** — a different operation from the one above,
   not an extension of it: the task loses its parent, so it lands at the end of
@@ -434,7 +435,9 @@ task to it, or give it a subheading. That includes the note's top headings, whic
 so in a note's wheel the wedges sit in the note's own order rather than
 alphabetically, and moving one is something you can see. A section travels with everything under it and is renumbered as it
 goes — a `###` with two `####` becomes a `##` with two `###`, so the shape
-survives and only the depth changes.
+survives and only the depth changes. Where it cannot survive, because the levels
+would run past the six markdown has, the move is refused and says so: a section
+flattened into its own neighbours is worse than one that stayed where it was.
 
 Opening the note reuses its tab if it is already open, rather than stacking a
 new one every time; and coming back to the wheel lands on the item your cursor
@@ -470,8 +473,10 @@ else reads as a whole path from the top (`Werk/Klanten`).
 
 One action carries a task with its subtasks, or a whole heading with everything
 under it, subheadings included — those are renumbered as a block, so a `###`
-with two `####` becomes a `##` with two `###`. A heading left empty in the
-source note stays: it may carry prose or meaning the wheel never sees.
+with two `####` becomes a `##` with two `###`. Where the block would not fit
+under the six levels markdown has, nothing is carried and the refusal says which
+note was left alone. A heading left empty in the source note stays: it may carry
+prose or meaning the wheel never sees.
 
 **A filter narrows what a branch carries.** Filter on *finished*, stand on a
 heading and move it, and the finished work goes to the archive while the open
@@ -556,9 +561,9 @@ in the note — which is what *open the note* is for.
 - **Detail** — how many items may be drawn at once (compact 120, balanced 240,
   dense 400).
 - **Which notes the wheel reads** — *Folders to read*, *Excluded folders* and
-  *Notes to skip*, in that order and next to each other, because they answer one
-  question. In a large vault, naming the four folders that hold your tasks beats
-  naming the ninety that do not; *Notes to skip* reads the note's own
+  *Note types to skip*, in that order and next to each other, because they
+  answer one question. In a large vault, naming the four folders that hold your
+  tasks beats naming the ninety that do not; the third reads the note's own
   front-matter `type`, so a vault that already marks its templates and review
   forms needs no tagging by hand. None of the three is a wall: point the wheel at
   a skipped note or folder from its own context menu and you get it, because

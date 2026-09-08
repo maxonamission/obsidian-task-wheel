@@ -365,8 +365,19 @@ function isTheSubject(path: string, scope: WheelScope): boolean {
 export function isExcludedFolder(
 	path: string,
 	options: ParseOptions,
-	/** The wheel this is for, so a folder it was pointed at is exempt. */
-	scope?: WheelScope,
+	/**
+	 * The wheel this is for, so a folder it was pointed at is exempt.
+	 *
+	 * Required, and that is the whole change (BC_E3_S172). It was optional and
+	 * two callers left it out — the skip report and the duplicate report — which
+	 * costs nothing today, because both always run over the whole vault. But the
+	 * reports answer *"what do my rules take out"*, and the day one of them is
+	 * given the wheel's own blikveld they would quietly answer it about a
+	 * different one. A parameter that must be named makes that day impossible
+	 * rather than unlikely; `VAULT_SCOPE` is a perfectly good answer, and now it
+	 * is one somebody wrote down.
+	 */
+	scope: WheelScope,
 ): boolean {
 	// An include list narrows the vault before anything else is considered.
 	// Empty means the whole vault, so the setting costs nothing until it is used.

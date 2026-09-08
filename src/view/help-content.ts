@@ -47,8 +47,16 @@ export interface HelpRoundState {
 	read: boolean;
 	seen: number;
 	total: number;
-	/** What this wheel is over, as the reader would name it. */
-	scope: string;
+	/**
+	 * What this wheel is over, as the reader would name it — or `null` for the
+	 * whole vault, which has no name of its own (BC_E3_S172).
+	 *
+	 * `null` rather than the words, because the words are this module's to
+	 * choose. The view used to hand in a hard-coded *"The whole vault"*, so a
+	 * panel in Dutch showed one English row — while `wholeVault` sat translated
+	 * into thirteen languages, read by nobody (audit 6 sep 2026).
+	 */
+	scope: string | null;
 	/** Absent when nothing is being filtered out. */
 	filter?: { text: string; shown: number; left: number };
 	/** Branches folded away in *this* wheel. */
@@ -97,7 +105,7 @@ export function roundBlock(
 	const rows: RoundRow[] = [
 		{
 			label: s.labelScope,
-			text: state.scope,
+			text: state.scope ?? s.wholeVault,
 			...(state.outward === null
 				? {}
 				: {

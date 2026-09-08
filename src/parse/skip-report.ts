@@ -76,7 +76,7 @@ export function skipReport(
 		// Folders and the wheel's own scope are a different setting with its own
 		// visible list; a note they exclude is not part of this question at all.
 		if (!inScope(note.path, options.scope)) continue;
-		if (isExcludedFolder(note.path, options)) continue;
+		if (isExcludedFolder(note.path, options, options.scope)) continue;
 
 		const open = outlineNote(note.content).filter((task) => !isFinished(task.fields));
 		if (open.length === 0) continue;

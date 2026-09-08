@@ -8,14 +8,14 @@ import type { NoteInput } from "../../model/types";
  */
 export const VAULT: NoteInput[] = [
 	{
-		path: "Werk/DDI job aid.md",
+		path: "Werk/Handleiding.md",
 		frontmatterTags: ["domein/werk"],
 		content: [
 			"---",
 			"tags: [domein/werk]",
 			"---",
 			"",
-			"# DDI job aid",
+			"# Handleiding",
 			"",
 			"## Voorbereiding",
 			"",
@@ -26,7 +26,7 @@ export const VAULT: NoteInput[] = [
 			"",
 			"## Review",
 			"",
-			"- [ ] Review bij twee bonden 📅 2026-09-01 🔽",
+			"- [ ] Review met twee lezers 📅 2026-09-01 🔽",
 			"",
 			"```markdown",
 			"- [ ] Dit is een voorbeeld in een codeblok en telt niet mee",

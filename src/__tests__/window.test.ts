@@ -18,8 +18,8 @@ import { DEFAULT_PARSE_OPTIONS, type NoteInput } from "../model/types";
  * The drawing's window must not move while you turn (BC_E3_S70).
  *
  * The owner's differential pair made the mechanism visible: a note whose extra
- * branch carries long-labelled tasks (VRG-013) made the thick outer band lurch
- * on scroll, while its neighbour without one (VRG-012) did not. The branch
+ * branch carries long-labelled tasks (Plan.md) made the thick outer band lurch
+ * on scroll, while its neighbour without one (Notulen.md) did not. The branch
  * unfolds only while the focus stands in it — and a window computed over what
  * is *drawn* therefore changed size exactly when the turn crossed that branch,
  * rescaling the whole drawing. The wheel's items barely moved; the band, being
@@ -31,8 +31,8 @@ function note(path: string, lines: string[]): NoteInput {
 }
 
 // The quiet neighbour: four short tasks under one heading, nothing deep.
-const CALM = note("RFI/VRG-012 Rapportages.md", [
-	"## Status beantwoording",
+const CALM = note("Werk/Notulen.md", [
+	"## Voortgang",
 	"- [ ] Concept opgesteld",
 	"- [ ] Intern afgestemd",
 	"- [ ] Definitief vastgesteld",
@@ -41,12 +41,12 @@ const CALM = note("RFI/VRG-012 Rapportages.md", [
 
 // The trigger: a second heading whose tasks carry long labels and run deep —
 // past the ring cap, so the tail is drawn only while the focus stands in it.
-const DEEP = note("RFI/VRG-013 MDS.md", [
-	"## Status beantwoording",
+const DEEP = note("Werk/Plan.md", [
+	"## Voortgang",
 	"- [ ] Concept opgesteld",
 	"- [ ] Intern afgestemd",
 	"## Antwoord",
-	"- [ ] INTERN TE VALIDEREN: Beschikbare connectiemogelijkheden (API, database-export, directe connectie)",
+	"- [ ] TE VALIDEREN: beschikbare koppelvormen (interface, bestandsexport, directe verbinding, handmatig)",
 	"    - [ ] eerste verdieping van de validatie met een ruime naam",
 	"        - [ ] tweede verdieping van de validatie met een ruime naam",
 	"            - [ ] derde verdieping die alleen bij focus wordt getekend",
@@ -70,7 +70,7 @@ const FOCUSES = [
 	null,
 	idOf("Concept opgesteld"),
 	idOf("Verzonden"),
-	idOf("INTERN TE VALIDEREN"),
+	idOf("TE VALIDEREN"),
 	idOf("derde verdieping"),
 ];
 

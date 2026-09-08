@@ -2,8 +2,13 @@ import { type App, Menu, Notice, TFile } from "obsidian";
 import { aWeekOut, today } from "../model/dates";
 import { type AfterWrite } from "../model/carry";
 import type { Priority, TaskState, WheelScope } from "../model/types";
-import { isNoteTask, type NoRename, renameRefusal } from "../model/scope";
-import { parseTaskLine } from "../parse/task-line";
+import {
+	isNoteTask,
+	type NoRename,
+	renameRefusal,
+	wedgeSource,
+} from "../model/scope";
+import { parseTaskLine, STATUS_CHAR } from "../parse/task-line";
 import { attachLinkSuggest } from "./link-suggest";
 import {
 	actOnSection,
@@ -394,7 +399,10 @@ export function actionsFor(
 				? undefined
 				: () =>
 						void act(host,
-							{ kind: "status", char: state === "in-progress" ? " " : "/" },
+							{
+								kind: "status",
+								char: STATUS_CHAR[state === "in-progress" ? "open" : "in-progress"],
+							},
 							ref,
 						),
 		cancel:
@@ -402,7 +410,10 @@ export function actionsFor(
 				? undefined
 				: () =>
 						void act(host,
-							{ kind: "status", char: state === "cancelled" ? " " : "-" },
+							{
+								kind: "status",
+								char: STATUS_CHAR[state === "cancelled" ? "open" : "cancelled"],
+							},
 							ref,
 							on,
 						),
@@ -952,10 +963,33 @@ export function moveFocused(
 ): void {
 	const focus = host.focusId();
 	const laid = focus === null ? null : (host.layout()?.byId.get(focus) ?? null);
-	const ref = laid === null ? null : lineRefOf(laid);
-	if (ref === null) return;
+	if (laid === null) return;
 
-	void act(host, { kind: "move", direction }, ref);
+	const ref = lineRefOf(laid);
+	if (ref !== null) {
+		void act(host, { kind: "move", direction }, ref);
+		return;
+	}
+
+	// A heading moves too — the card's own menu has offered *Move up* and *Move
+	// down* on one all along, and the key claimed the press and then did nothing
+	// (BC_E3_S171). The same action object, so the two cannot drift: what the
+	// menu item calls is what the key calls.
+	const section = actionsFor(host, laid).section;
+	if (section !== undefined) {
+		section.move(direction);
+		return;
+	}
+
+	// And where neither exists, a sentence rather than a swallowed press. The
+	// controller has already called `preventDefault` by the time this runs, so
+	// silence here is not "the key was free for something else" — it is the
+	// wheel doing nothing and saying nothing (kaderdocument §3.3).
+	new Notice(
+		laid.node.kind === "group" || laid.node.kind === "domain"
+			? "Task wheel: open the wheel over this note to move its headings."
+			: "Task wheel: there is nothing here to move.",
+	);
 }
 
 /**
@@ -1011,11 +1045,12 @@ function noRenameText(refusal: NoRename): string {
 		case "folder":
 			return "a folder is renamed in the file list.";
 		case "wedge":
-			return refusal.source === "tag"
-				? "this wedge comes from a tag, so there is no name written down to change."
-				: refusal.source === "heading"
-					? "this wedge is a heading in several notes at once, so there is no one name to change. Rename it in a note, and the wheel follows."
-					: "this wedge comes from a note property, so there is no name written down to change.";
+			// The heading keeps its extra half-sentence: it is the one source
+			// where there *is* somewhere to do it, so saying only "no" would be
+			// a refusal that leaves the reader with nowhere to go.
+			return refusal.source === "heading"
+				? `this wedge is ${wedgeSource(refusal.source)}, so there is no one name to change. Rename it in a note, and the wheel follows.`
+				: `this wedge comes from ${wedgeSource(refusal.source)}, so there is no name written down to change.`;
 		case "nameless":
 			return "there is nothing here to rename.";
 	}

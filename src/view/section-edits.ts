@@ -2,6 +2,7 @@ import { type App, Notice, TFile } from "obsidian";
 import type { LaidOutNode } from "../layout/radial";
 import type { AfterWrite } from "../model/carry";
 import { headingsOf } from "../parse/outline";
+import { planMoveUnder } from "../parse/outline-edit";
 import { linesOf } from "../parse/lines";
 import {
 	type LineRef,
@@ -166,6 +167,21 @@ export async function moveSectionUnder(
 		host.trace("section: nothing chosen");
 		return;
 	}
+
+	// Markdown stops at six hashes, and a section that would be pushed past that
+	// keeps only as much of its shape as fits — which is to say it loses the
+	// rest, in silence, with a notice saying all went well (BC_E3_S168). Asked
+	// here rather than after the write, so the sentence can name the heading the
+	// reader actually picked.
+	const plan = planMoveUnder(lines, self.line, choice.heading.line);
+	if (plan !== null && !plan.fits) {
+		host.trace("section: refused, too deep to keep its shape");
+		new Notice(
+			`Task wheel: this section holds headings of its own, and under ${choice.heading.text} they would run past the six levels markdown has. Its subsections would become its neighbours. Move it under something less deep.`,
+		);
+		return;
+	}
+
 	host.trace("section: writing");
 
 	await actOnSection(host, laid, (line) => ({

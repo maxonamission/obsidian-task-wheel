@@ -16,7 +16,7 @@
  *     turn crossed such a branch, the whole drawing rescaled with it, and the
  *     owner saw the thick outer band lurch while the wheel stood still
  *     (27 aug 2026, BC_E3_S70: reproduced with one note carrying long-labelled
- *     tasks under a second heading — VRG-013 — against one without — VRG-012).
+ *     tasks under a second heading against one without).
  *  3. So now it is worked out from the **tree**: every node the wheel could
  *     ever draw, at the outermost ring it could ever stand on, with the
  *     longest label form it is ever given. Whether the focus happens to be

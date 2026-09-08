@@ -183,6 +183,24 @@ export function attachLinkSuggest(
 	field.addEventListener("input", onInput);
 	field.addEventListener("click", onInput);
 
+	/**
+	 * The list belongs to a field somebody is standing in (BC_E3_S172).
+	 *
+	 * It hangs off `document.body` rather than off the card, because it has to
+	 * float above everything and be positioned in page coordinates. That also
+	 * means a redraw which replaces the card never takes the list with it: only
+	 * `detach` did, and a redraw does not call it. The list would have stayed
+	 * behind, floating over a box that no longer exists (audit 6 sep 2026).
+	 *
+	 * `blur` is the signal, and it is one the browser gives for free: measured in
+	 * Chromium, removing a focused field from the document fires `blur` on it.
+	 * Choosing with the mouse does not blur — the row's `mousedown` calls
+	 * `preventDefault` precisely so it cannot — so this closes only when the
+	 * field is really left or really gone.
+	 */
+	const onBlur = (): void => close();
+	field.addEventListener("blur", onBlur);
+
 	return {
 		open: () => list !== null,
 		close,
@@ -191,6 +209,7 @@ export function attachLinkSuggest(
 			field.removeEventListener("keydown", onKeyDown);
 			field.removeEventListener("input", onInput);
 			field.removeEventListener("click", onInput);
+			field.removeEventListener("blur", onBlur);
 		},
 	};
 }

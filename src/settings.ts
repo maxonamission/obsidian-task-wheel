@@ -851,24 +851,18 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group",
-				heading: "Structure",
+				heading: "What the wheel draws",
 				items: [
+					// Was the first row of a group called *Structure*, beside
+					// *Include finished tasks* (BC_E3_S174). Those are the two axes
+					// BC_E3_S152 pulled apart everywhere else: this one is about
+					// the drawing, the other about who is in the round. Here it is
+					// among its own kind.
 					{
 						name: "Use headings as a grouping ring",
 						desc: "Headings that contain tasks become an extra ring between the note and its tasks. Turn this off to attach tasks straight to their note.",
 						control: { type: "toggle", key: "useHeadingsAsGroups" },
 					},
-					{
-						name: "Include finished tasks",
-						desc: "Off by default: the wheel reviews outstanding work. Finished means ticked off ([x]) or cancelled ([-]) — one you did, one you decided not to do, and neither leaves anything to look at. Started work ([/]) is not finished and always counts. A finished task that still has open subtasks stays visible whatever this says.",
-						control: { type: "toggle", key: "includeCompleted" },
-					},
-				],
-			},
-			{
-				type: "group",
-				heading: "What the wheel draws",
-				items: [
 					{
 						name: "Open the wheel when Obsidian starts",
 						desc: "Off by default. On, the wheel over the whole vault is there when you open the vault — the review that begins the day. A wheel that is already open is used rather than a second one opened. Obsidian brings back the tabs you closed with anyway; this is for the wheel that should be there whatever the last session looked like.",
@@ -1108,6 +1102,14 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 				],
 			},
+			// The first of the two axes BC_E3_S152 named. Its three rows want one
+			// heading over them and cannot have one: Obsidian's `SettingGroupItem`
+			// takes plain rows and pages, never a list, so the two folder pickers
+			// cannot sit inside a group with the text row (BC_E3_S174, measured
+			// against `obsidian.d.ts`). What is left is to make the three headings
+			// read as three rows of one question rather than as two lists and a
+			// new topic — and to say the tie once, in the last of them, instead of
+			// explaining the layout in every description.
 			this.folderList(
 				"Folders to read",
 				"Leave empty to read the whole vault. Naming the few folders that hold your tasks is usually easier than excluding the many that do not. Pick a folder or start typing its name; the path is relative to the vault root.",
@@ -1117,18 +1119,18 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 			),
 			this.folderList(
 				"Excluded folders",
-				"Skipped even when they sit inside a folder above. Keeps templates, archives or an inbox off the wheel. Pick a folder or start typing its name. Open a wheel on one of these from its own context menu and you still get it: naming a folder is asking for it, and only the one you named steps out of the rule.",
+				"Skipped even when they sit inside a folder above. Keeps templates, archives or an inbox off the wheel. Pick a folder or start typing its name.",
 				"Add folder",
 				"Archive/2025",
 				"excludeFolders",
 			),
 			{
 				type: "group",
-				heading: "Notes to skip",
+				heading: "Note types to skip",
 				items: [
 					{
 						name: "Skip notes of these types",
-						desc: "Comma-separated, matched against the note's own front-matter 'type'. A vault that keeps a document standard already says which notes are stories, templates or review forms — and their checkboxes are the document's own checklist, not work on your plate. Nothing has to be tagged by hand. A '*' stands for the rest of the word: 'review*' covers 'review' and 'review-actie'. This and the two folder lists above are one question — which notes the wheel reads at all — and none of them is a wall: point the wheel at a skipped note or folder from its own context menu and you get it, because naming it is asking for it.",
+						desc: "The third row of the same question as the two folder lists above: which notes the wheel reads at all. Comma-separated, matched against the note's own front-matter 'type'. A vault that keeps a document standard already says which notes are stories, templates or review forms — and their checkboxes are the document's own checklist, not work on your plate. Nothing has to be tagged by hand. A '*' stands for the rest of the word: 'review*' covers 'review' and 'review-actie'. None of the three is a wall: point the wheel at a skipped note or folder from its own context menu and you get it, because naming it is asking for it.",
 						control: {
 							type: "text",
 							key: "excludeNoteTypes",
@@ -1173,6 +1175,24 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 							key: "taskNoteValue",
 							placeholder: "task",
 						},
+					},
+				],
+			},
+			// Was three groups higher, in one called *Structure*, beside a row about
+			// how the wheel is drawn (BC_E3_S174). It is question two of the three
+			// a round asks — who is in it — and the words that answer *when is
+			// something finished* are in the group below this one. Nine groups
+			// used to separate them, so a reader who added 'afgerond' to the extra
+			// list and saw nothing change had to find a switch under a heading
+			// called *Structure*. They are neighbours now, and each says so.
+			{
+				type: "group",
+				heading: "Finished work",
+				items: [
+					{
+						name: "Include finished tasks",
+						desc: "Off by default: the wheel reviews outstanding work. Finished means ticked off ([x]) or cancelled ([-]) — one you did, one you decided not to do, and neither leaves anything to look at. Started work ([/]) is not finished and always counts. A finished task that still has open subtasks stays visible whatever this says. For a note that is itself a task there are no brackets to read, and the words that stand in for them are in the group below.",
+						control: { type: "toggle", key: "includeCompleted" },
 					},
 				],
 			},
@@ -1227,7 +1247,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Other values that also mean finished",
-						desc: "Comma-separated, and only needed when your documents end in more ways than the two words above — 'archived', say, or 'wontfix'. These are read, never written. A status the wheel does not recognise at all counts as open, so a vault that also knows 'backlog' or 'on hold' keeps seeing that work.",
+						desc: "Comma-separated, and only needed when your documents end in more ways than the two words above — 'archived', say, or 'wontfix'. These are read, never written. A status the wheel does not recognise at all counts as open, so a vault that also knows 'backlog' or 'on hold' keeps seeing that work. Whether finished work is in the round at all is one group up, under *Finished work*: adding a word here changes what counts as finished, not whether the finished are shown.",
 						control: {
 							type: "text",
 							key: "taskNoteDoneValues",
