@@ -510,6 +510,15 @@ what is there now.
 New notes are not made from here: a note has a name, a folder and often a
 template behind it, and none of those decisions belong on a review card.
 
+**Named destinations** are the places you carry to often, set up under
+*Destinations* in the settings: a note, optionally a heading inside it, and
+whether work is moved or copied. Each gets an entry on the ⋯ menu and a command
+of its own, so you can bind a key to *Carry to Someday*. A destination points at
+the **note**, not at the path it happened to have: rename that note, or a folder
+above it, and the destination follows, the way Obsidian carries your `[[links]]`
+along. A destination whose note you delete outright still refuses rather than
+writing a new one, and says which one it was.
+
 ## The round
 
 Coming to rest on an item is having reviewed it — there is no second confirming
@@ -555,7 +564,13 @@ in the note — which is what *open the note* is for.
   next three groups: checkboxes under a checklist heading are the document's own
   list, a note carrying the property you name is itself a task, and its status
   says when it is finished.
-- **Filter** — date, priority and tags. Always visible when it is on.
+- **Filter of the vault wheel** — the same fields as the panel beside that
+  wheel, not a second, wider one. Whatever you set here you can clear there and
+  the other way round, and no other wheel is touched: a wheel over a folder, a
+  note, a section or a heading keeps its own filter beside its own round.
+  Changing it here is a new round for the vault wheel, exactly as it is in the
+  panel, and the plugin says how many marks that cost. Whatever is on is always
+  visible under the wheel.
 
 ## Install
 

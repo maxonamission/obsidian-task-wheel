@@ -702,7 +702,48 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 		return (this.plugin.settings as unknown as Record<string, unknown>)[key];
 	}
 
+	/**
+	 * A filter change from the tab, put through the round boundary (BC_E3_S177).
+	 *
+	 * The same call the panel beside the wheel makes, with the same words: a new
+	 * selection is a new round, and the reader is told what it cost rather than
+	 * finding the count back at zero. Only the vault wheel's filter lives in
+	 * these fields; every other wheel keeps its own beside its round, and this
+	 * tab does not reach them.
+	 */
+	private async setVaultFilter(next: TaskFilter): Promise<void> {
+		const { restarted } = setFilter(this.plugin.settings, VAULT_SCOPE, next);
+		if (restarted > 0) {
+			new Notice(roundRestartedMessage(restarted, "a new selection"));
+		}
+		// Saving rereads the open wheels, so the new selection is on screen
+		// without a redraw of our own.
+		await this.plugin.saveSettings();
+		this.refreshDomState();
+	}
+
 	async setControlValue(key: string, value: unknown): Promise<void> {
+		const field = FILTER_FIELDS[key];
+		if (field !== undefined) {
+			await this.setVaultFilter({
+				...filterOf(this.plugin.settings, VAULT_SCOPE),
+				[field]: value,
+			});
+			return;
+		}
+
+		// One row of a tag list. The row is written into a copy, so `setFilter`
+		// still sees what the filter was and can tell whether anything changed.
+		const tagRow = indexed(key);
+		if (tagRow !== null && FILTER_LISTS[tagRow.key] !== undefined) {
+			const listField = FILTER_LISTS[tagRow.key];
+			const current = filterOf(this.plugin.settings, VAULT_SCOPE);
+			const rows = [...current[listField]];
+			rows[tagRow.index] = typeof value === "string" ? value.trim() : "";
+			await this.setVaultFilter({ ...current, [listField]: rows });
+			return;
+		}
+
 		if (TEXT_LISTS.has(key)) {
 			// A text control always hands back a string; anything else is not a
 			// value we put there.
@@ -912,6 +953,16 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 				heading: "Filter of the vault wheel",
 				items: [
 					{
+						// A description-only row, which is the pattern for a
+						// section-wide note (obsidian-settings-patroon). Here
+						// because the group's name says which wheel but not what
+						// kind of setting this is, and the owner had to ask
+						// whether filling something in here was a one-way door
+						// (8 sep 2026, BC_E3_S177).
+						name: "These are the same fields as the filter panel",
+						desc: "Not a second, wider filter: this is the vault wheel's own filter, shown here as well as in the panel beside that wheel. Whatever you set here you can clear there, and the other way round. No other wheel is touched — a wheel over a folder, a note, a section or a heading keeps its own filter beside its own round. And changing anything here is a new round for the vault wheel, exactly as it is in the panel: the marks of what you had already been past are given up, and the plugin says how many.",
+					},
+					{
 						name: "Words in the task",
 						desc: "Every word has to appear in the task's own text or its tags, in any order, and a word may be typed slightly wrong. OR (in capitals) offers an alternative; quotes hold a phrase together and are matched exactly. This narrows a round; it is not a vault search — use Obsidian's own for that.",
 						control: {
@@ -931,7 +982,7 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					},
 					{
 						name: "Only tasks under this heading",
-						desc: "The outermost heading a task stands under — the same step the wedges are made of, so what you filter on is what you read on the rim. Exact by default; 'Project*' takes everything that starts with it, as in the skip lists. Empty means any heading, and a task that stands under none is left out while this is set.",
+						desc: "Any heading a task stands under, however deep. Exact by default; 'Project*' takes everything that starts with it, as in the skip lists, and the '##' you paste in with a heading is taken off. Empty means any heading, and a task that stands under none is left out while this is set.",
 						control: {
 							type: "text",
 							key: "filterHeading",
@@ -1433,9 +1484,18 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 					void this.plugin.saveSettings().then(() => this.rerender());
 				},
 			},
+			// Deleting a row can change the selection, so it goes through the
+			// round boundary like every other filter change (BC_E3_S177).
+			// Adding one cannot: an empty row selects nothing either way, which
+			// is why it still writes straight to the list.
 			onDelete: (index: number) => {
-				tags.splice(index, 1);
-				void this.plugin.saveSettings().then(() => this.rerender());
+				const current = filterOf(this.plugin.settings, VAULT_SCOPE);
+				const field = FILTER_LISTS[key];
+				const rows = [...current[field]];
+				rows.splice(index, 1);
+				void this.setVaultFilter({ ...current, [field]: rows }).then(() =>
+					this.rerender(),
+				);
 			},
 			items: tags.map((_tag, index) => ({
 				name: "",
@@ -1469,6 +1529,39 @@ type TagListKey = "filterWithTags" | "filterWithoutTags";
  * — `emptyState` is shown *instead of* the rows, which is exactly the wrong way
  * round for text that explains what to type.
  */
+/**
+ * Which filter field each of the tab's controls writes (BC_E3_S177).
+ *
+ * The tab shows the vault wheel's filter beside its other settings, and wrote
+ * straight onto the field. The panel beside the wheel writes those same fields
+ * through `setFilter`, which treats a new selection as a new round: it gives up
+ * the seen-marks deliberately and says how many. Writing past that left the
+ * marks standing on a tree they no longer matched, to be pruned away at the
+ * next read without a word — the disappearance BC_E3_S15 closed for the panel
+ * and BC_E3_S160 for the angle.
+ *
+ * A map rather than a "starts with filter" test, because that would also catch
+ * `filterPanelOpen`, which is furniture and not a selection.
+ */
+export const FILTER_FIELDS: Readonly<Record<string, keyof TaskFilter>> = {
+	filterText: "text",
+	filterDue: "due",
+	filterHorizon: "horizon",
+	filterFrom: "from",
+	filterUntil: "until",
+	filterDateField: "dateField",
+	filterHeading: "heading",
+	filterStatus: "status",
+	filterMinPriority: "minPriority",
+	filterMaxPriority: "maxPriority",
+};
+
+/** The two filter fields that are a list of rows rather than one value. */
+export const FILTER_LISTS: Readonly<Record<string, "withTags" | "withoutTags">> = {
+	filterWithTags: "withTags",
+	filterWithoutTags: "withoutTags",
+};
+
 const TEXT_LISTS: ReadonlySet<string> = new Set([
 	"excludeNoteTypes",
 	"excludeHeadings",

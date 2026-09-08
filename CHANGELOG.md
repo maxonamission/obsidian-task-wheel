@@ -4,6 +4,35 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.5]
+
+Two things found by using the plugin rather than by reading it. A named
+destination now follows the note it points at, and the filter in the settings
+says what it is and stops throwing a round away without telling you.
+
+- **Fixed**: a named destination held a *path*, so renaming the note it pointed
+  at, or any folder above it, broke it. Carrying then refused with a sentence
+  about a note that was "not there any more" — true, and unhelpful, since it was
+  there under another name. A destination now follows the note, the way Obsidian
+  carries your `[[links]]` along on a rename. Renaming a whole folder is covered
+  too, which is the ordinary case: Obsidian fires one event for the folder and
+  none for the files inside it. A destination whose note you delete outright
+  still refuses rather than writing a new one you did not ask for.
+- **Fixed**: changing the filter under *Filter of the vault wheel* in the
+  settings gave up your round in silence. The panel beside the wheel has treated
+  a new selection as a new round since August: it drops the marks deliberately
+  and says how many. The settings wrote straight past that, so the marks stood
+  on a wheel they no longer matched and were quietly discarded at the next read.
+  Both doors now behave the same way.
+- **Changed**: that settings group now says what it is. It is not a second,
+  wider filter: it is the vault wheel's own filter, shown in two places. What
+  you set there you can clear in the panel and the other way round, and no other
+  wheel is touched — a wheel over a folder, a note, a section or a heading keeps
+  its own filter beside its own round.
+- **Changed**: the description of *Only tasks under this heading* in the
+  settings still described the rule as it was before 0.2.4, when it read only
+  the outermost heading. It now says what it does.
+
 ## [0.2.4]
 
 Repairs, and a round of names. The heading filter did nothing at all in most

@@ -393,7 +393,7 @@ export function actionsFor(
 			ref === null
 				? undefined
 				: () =>
-						void act(host, 
+						void act(host,
 							{ kind: "status", char: state === "in-progress" ? " " : "/" },
 							ref,
 						),
@@ -401,7 +401,7 @@ export function actionsFor(
 			ref === null
 				? undefined
 				: () =>
-						void act(host, 
+						void act(host,
 							{ kind: "status", char: state === "cancelled" ? " " : "-" },
 							ref,
 							on,
@@ -410,7 +410,7 @@ export function actionsFor(
 			ref === null
 				? undefined
 				: () =>
-						void act(host, 
+						void act(host,
 							{ kind: "defer", scheduled: laid.node.fields?.scheduled },
 							ref,
 							on,
@@ -419,7 +419,7 @@ export function actionsFor(
 			ref === null
 				? undefined
 				: (step) => {
-						void act(host, 
+						void act(host,
 							{ kind: "priority", from: laid.priority, step },
 							ref,
 						);
@@ -669,7 +669,7 @@ export async function moveToHeading(
 	}
 	host.trace(`heading: ${choice.kind}, writing`);
 
-	await act(host, 
+	await act(host,
 		choice.kind === "existing"
 			? { kind: "moveTo", target: anchorAt(lines, choice.heading.line) }
 			: { kind: "moveToNew", title: choice.title },
@@ -712,7 +712,7 @@ export async function moveUnderTask(
 	}
 
 	host.trace(`subtask: under line ${parent.line}, writing`);
-	await act(host, 
+	await act(host,
 		{ kind: "moveUnder", target: anchorAt(lines, parent.line) },
 		ref,
 		ADVANCING,

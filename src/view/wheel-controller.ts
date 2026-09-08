@@ -1283,4 +1283,3 @@ function unwrap(from: number, to: number): number {
 	const raw = normaliseAngle(to - from);
 	return raw > 180 ? raw - 360 : raw;
 }
-

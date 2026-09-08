@@ -29,6 +29,19 @@ export class PluginSettingTab {
 	display(): void {
 		/* nothing to draw without a real Obsidian */
 	}
+	/**
+	 * Obsidian 1.13 redraws the rows whose `visible` predicate may have flipped.
+	 * There are no rows here, so there is nothing to redraw — but the tab calls
+	 * it after every write, and a test that reaches `setControlValue` has to get
+	 * past it (BC_E3_S177).
+	 */
+	refreshDomState(): void {
+		/* no rows drawn, nothing to refresh */
+	}
+	/** Same, for a change to the *set* of definitions rather than their state. */
+	update(): void {
+		/* nothing rendered to update */
+	}
 }
 
 export class Setting {

@@ -53,6 +53,7 @@ import type { CardActions } from "./view/reading-card";
 import { pickCarryHow } from "./view/carry-how";
 import { deferWrites } from "./model/deferred";
 import { presetCommandId, reconcileCommands } from "./model/commands";
+import { presetsAfterRename } from "./model/presets";
 import {
 	HELP_LOCALES,
 	type HelpLanguage,
@@ -318,6 +319,28 @@ export default class TaskWheelPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("file-menu", (menu, file) => {
 				this.offerLocalWheel(menu, file);
+			}),
+		);
+
+		// A named destination holds a path, and a path is not what the reader
+		// meant: they pointed at a note (BC_E3_S178). Obsidian carries `[[links]]`
+		// along on a rename and this is the same kind of reference, so it travels
+		// too. Registered here rather than in the wheel's own watcher because
+		// destinations belong to the plugin, not to one wheel — a rename must
+		// reach them with no wheel open at all.
+		this.registerEvent(
+			this.app.vault.on("rename", (file, oldPath) => {
+				const { presets, moved } = presetsAfterRename(
+					this.settings.presets,
+					oldPath,
+					file.path,
+				);
+				// Most renames touch no destination at all, and a write there
+				// would serialise every setting for nothing (BC_E3_S45).
+				if (moved === 0) return;
+
+				this.settings.presets = presets;
+				this.persist();
 			}),
 		);
 
@@ -1126,4 +1149,3 @@ const FOCUS_COMMANDS: readonly {
 		pick: (a) => a.carry?.move,
 	},
 ];
-
