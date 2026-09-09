@@ -4,6 +4,18 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.9]
+
+One line of text, and the guard that should have caught it. Nothing about the
+plugin itself changed.
+
+- **Fixed**: the short description no longer contains the word *Obsidian*. The
+  directory review of 0.2.8 rejected it — inside a plugin directory the word is
+  implied, and saying it is redundant. It had been put there to be findable for
+  people searching for the Tasks plugin; the description now says *Tasks
+  syntax* without the brand name in front, and the README, where the word is
+  allowed, still carries it.
+
 ## [0.2.8]
 
 Nine things that had been waiting, worked off in one go. Two of them are the
