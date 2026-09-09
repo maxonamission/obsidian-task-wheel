@@ -258,3 +258,73 @@ group("Reveal in navigation, per kind of item (BC_E3_S134)", () => {
 		expect(actionsFor(host({ kind: "note", path: PATH }, heading), heading).file).toBeUndefined();
 	});
 });
+
+group("what the title on the card can rewrite (BC_E3_S119)", () => {
+	/**
+	 * The owner's question of 2 sep 2026 — *"kunnen we via het kaartje
+	 * documentnamen, headings en eventueel tags aanpassen?"* — answered yes for
+	 * names and no for tags. What that means per kind of item is the rule, and
+	 * the rule is what these pin: three kinds gain a `rename`, and the two with
+	 * no name written down anywhere keep a sentence instead.
+	 */
+	const renames = (scope: WheelScope, label: string) => {
+		const laid = find(scope, label);
+		const actions = actionsFor(host(scope, laid), laid);
+		return {
+			title: actions.rename !== undefined,
+			words: actions.outline?.rename !== undefined,
+			refuses: actions.onTitleRefused !== undefined,
+		};
+	};
+
+	it("renames a heading, and from the vault wheel too", () => {
+		// Deliberately not gated on the wheel, unlike moving a heading. A rename
+		// rewrites one line in place and leaves the level alone, so it belongs
+		// with the task-line edits that write into the item's own note from
+		// every wheel — not with the moves that reshape a document.
+		expect(renames(VAULT_SCOPE, "Deze week")).toEqual({
+			title: true,
+			words: false,
+			refuses: false,
+		});
+		expect(renames({ kind: "note", path: PATH }, "Deze week")).toEqual({
+			title: true,
+			words: false,
+			refuses: false,
+		});
+	});
+
+	it("renames a note ring, where the links follow the file", () => {
+		expect(renames(VAULT_SCOPE, "Plan")).toEqual({
+			title: true,
+			words: false,
+			refuses: false,
+		});
+	});
+
+	it("renames a task document, which is a file wearing a task's clothes", () => {
+		const laid = find(VAULT_SCOPE, "Groot project");
+		expect(isNoteTask(laid.node)).toBe(true);
+		expect(actionsFor(host(VAULT_SCOPE, laid), laid).rename).toBeTypeOf(
+			"function",
+		);
+	});
+
+	it("leaves a task's own words to the outline, not to the title action", () => {
+		// One rename per thing: a task line goes through `outline.rename`, which
+		// writes the words and keeps the dates and priority in place.
+		expect(renames(VAULT_SCOPE, "Bellen")).toEqual({
+			title: false,
+			words: true,
+			refuses: false,
+		});
+	});
+
+	it("says why a folder wedge has no name to change here", () => {
+		expect(renames(VAULT_SCOPE, "Werk")).toEqual({
+			title: false,
+			words: false,
+			refuses: true,
+		});
+	});
+});

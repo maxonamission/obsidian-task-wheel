@@ -1,7 +1,7 @@
 {
 	"id": "task-wheel",
 	"name": "Task Wheel",
-	"version": "0.2.9",
+	"version": "0.2.10",
 	"minAppVersion": "1.13.0",
 	"description": "See every open task once, on purpose. Task Wheel draws the checkboxes you already write, in Tasks syntax: each is a stop on a wheel you turn, so nothing hides at the bottom of a long list.",
 	"author": "Max Kloosterman",

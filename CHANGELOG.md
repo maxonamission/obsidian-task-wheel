@@ -4,6 +4,30 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.10]
+
+One thing, and it is the answer to a question that had been open a while: the
+title on the card now renames more than a task.
+
+- **Added**: clicking the title renames **a heading**, **a note** and **a task
+  document**, next to the task it already renamed. A heading keeps its level —
+  everything under a `##` hangs there because of those two characters, so the
+  rename rewrites the words and leaves the hashes alone; changing the depth is
+  what *Move under another heading* is for. A note and a task document are both
+  a file, so both go through Obsidian's own rename and every link that pointed
+  there follows. A name already in use is reported rather than forced.
+- **Added**: renaming a heading works from **every** wheel, not only from a
+  wheel over one note. The four moves on a heading stay note-wheel work,
+  because each of them reshapes a document; a rename does not. The typo you
+  spot mid-round should not depend on which wheel you spotted it from.
+- **Changed**: the title on a folder wedge, or one that stands for a tag or a
+  note property, still says why there is nothing to rename there — and now that
+  is the only thing it says, because the two cases that used to point you
+  elsewhere ("open the note", "use the file list") do the job themselves.
+- **Note**: tags stay out on purpose. On a task they are part of the line and
+  the line is already the editor; on a note they would mean editing the note
+  itself, which is what opening it is for.
+
 ## [0.2.9]
 
 One line of text, and the guard that should have caught it. Nothing about the

@@ -454,6 +454,16 @@ section and nowhere else.
   edits the words as written, tags included; the dates, priority and recurrence
   keep their place.
 
+That last one is not only for tasks. Clicking the title renames **a heading**
+(its own line, keeping its level, from any wheel), **a note** and **a task
+document** (both the file name, through Obsidian's own rename, so every link
+that pointed there follows). A name already in use is reported rather than
+forced. On a folder wedge, or one that stands for a tag or a note property, the
+title says why there is nothing to rename: a folder is file management, and a
+tag is a name written down nowhere at all. Tags stay out on purpose — on a task
+they are part of the line and the line is the editor; on a note they would mean
+editing the note itself, which is what opening it is for.
+
 Renaming and moving change what the wheel calls an item — identity is built
 from its place and its text — so the round's seen-marks and the reading wedge
 are carried across to whatever the items became. An edit never quietly undoes
@@ -468,6 +478,10 @@ goes — a `###` with two `####` becomes a `##` with two `###`, so the shape
 survives and only the depth changes. Where it cannot survive, because the levels
 would run past the six markdown has, the move is refused and says so: a section
 flattened into its own neighbours is worse than one that stayed where it was.
+
+Those four are note-wheel work, because each of them reshapes a document.
+Renaming a heading is not: it rewrites one line and leaves the level where it
+was, so it works from every wheel, like the edits on a task line.
 
 Opening the note reuses its tab if it is already open, rather than stacking a
 new one every time; and coming back to the wheel lands on the item your cursor

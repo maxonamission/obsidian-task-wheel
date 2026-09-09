@@ -45,15 +45,18 @@ describe("why a title cannot be rewritten", () => {
 		source,
 	});
 
-	it("sends a heading to the note it is a line in", () => {
+	// Turned round by BC_E3_S119, which is what the doc comment on `NoRename`
+	// promised: a heading and a note both have a name worth changing from the
+	// card, and both now change it there. Neither reaches this function any
+	// more — `actionsFor` hands each of them a `rename` — so what is left here
+	// is the catch-all, and that is the honest answer for a shape that is not
+	// supposed to arrive.
+	it("has nothing left to say about a heading or a note", () => {
 		expect(renameRefusal(node("group", 2), VAULT_SCOPE, "folder")).toEqual({
-			refused: "heading",
+			refused: "nameless",
 		});
-	});
-
-	it("sends a note to the file list, where its links follow", () => {
 		expect(renameRefusal(node("project", 2), VAULT_SCOPE, "folder")).toEqual({
-			refused: "note",
+			refused: "nameless",
 		});
 	});
 
@@ -67,12 +70,18 @@ describe("why a title cannot be rewritten", () => {
 		});
 	});
 
-	it("knows that in a note's own wheel a wedge is a heading", () => {
+	it("knows that in a note's own wheel a wedge is a heading, and so renameable", () => {
 		// The same branch `scopeFor` takes, for the same reason: there the top
-		// ring is headings, whatever the domain setting says.
+		// ring is headings, whatever the domain setting says. Since BC_E3_S119
+		// that means there is nothing to refuse — the wedge renames like any
+		// other heading — so this branch answers the catch-all rather than
+		// calling it a folder or a tag, which is what it must never do.
 		expect(
 			renameRefusal(node("domain"), { kind: "note", path: "Plan.md" }, "folder"),
-		).toEqual({ refused: "heading" });
+		).toEqual({ refused: "nameless" });
+		expect(
+			renameRefusal(node("domain"), { kind: "note", path: "Plan.md" }, "tag"),
+		).toEqual({ refused: "nameless" });
 	});
 
 	it("has a sentence left for anything else", () => {

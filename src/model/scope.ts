@@ -86,16 +86,13 @@ export function activates(kind: NodeKind): "edit" | "wheel" {
  * sentence — and where there is somewhere else to do it, the sentence says so
  * rather than only saying no.
  *
- * Two of these five are temporary: a heading and a note both *have* a name
- * worth changing from here, and BC_E3_S119 is the decision to let them. The
- * other three are permanent — a folder is file management, and a tag or a
- * property wedge is a name that is written down nowhere at all.
+ * Three left of the five, and that is the whole of BC_E3_S119. A heading and a
+ * note both *have* a name worth changing from the card, so both now do —
+ * a heading by rewriting its own line, a note through `fileManager.renameFile`
+ * so the links follow. What is left is permanent: a folder is file management,
+ * and a tag or a property wedge is a name that is written down nowhere at all.
  */
 export type NoRename =
-	/** A heading: its name is a line in the note it stands in. */
-	| { refused: "heading" }
-	/** A note: its name is the file's, and links follow when it changes. */
-	| { refused: "note" }
 	/** A wedge standing for a folder. */
 	| { refused: "folder" }
 	/** A wedge standing for a tag or a property value: written down nowhere. */
@@ -203,19 +200,18 @@ export function renameRefusal(
 	within: WheelScope,
 	domainSource: DomainSource,
 ): NoRename {
-	if (node.kind === "group") return { refused: "heading" };
-	if (node.kind === "project") return { refused: "note" };
-
-	// A task that stands for a whole note has no line to rewrite: its name is
-	// the file's (BC_E3_S130). The reader is sent to the file list, where
-	// renaming carries the links along.
-	if (isNoteTask(node)) return { refused: "note" };
+	// A heading, a note ring and a task document all rename from the card now
+	// (BC_E3_S119), so none of them reaches this function any more: `actionsFor`
+	// hands each of them a `rename` and never an `onTitleRefused`. What is left
+	// here are the two kinds with no name written down anywhere, and everything
+	// that has no name at all.
 
 	if (node.kind === "domain" && node.depth === 1) {
 		// In a wheel over one note the top ring *is* headings — the same branch
-		// `scopeFor` takes, for the same reason.
+		// `scopeFor` takes, for the same reason. Those rename like any other
+		// heading, so there is nothing to refuse.
 		if (within.kind === "note" || within.kind === "section") {
-			return { refused: "heading" };
+			return { refused: "nameless" };
 		}
 		// On a folder wheel the wedge *is* a subfolder whatever the domain
 		// source says — `resolveWedge` puts the scope before the setting there

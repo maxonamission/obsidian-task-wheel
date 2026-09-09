@@ -29,7 +29,7 @@
  * task and a subtask is orphaned.
  */
 
-import { headingsOf, type NoteHeading } from "./outline";
+import { HEADING, headingsOf, type NoteHeading } from "./outline";
 import {
 	baseIndent,
 	fitsAfterShift,
@@ -846,6 +846,51 @@ export function removeTaskLine(
 	if (blockLength(lines, index) > 1) return null;
 
 	return [...lines.slice(0, index), ...lines.slice(index + 1)];
+}
+
+/**
+ * Rewrite what a heading is called, and nothing else about it (BC_E3_S119).
+ *
+ * The level is the heading's identity in the outline: everything under a `##`
+ * hangs there because of those two characters, so a rename that touched them
+ * would silently reparent half a note. It is therefore read off the old line
+ * and written back untouched — this function cannot promote or demote, which
+ * is `moveHeadingUnder`'s job and a different question.
+ *
+ * The typed title is cleaned rather than trusted, and each of the three rules
+ * answers a way a reader can hand us something that is not a title:
+ *
+ *  - **Leading `#` come off.** Someone retyping a heading types what they see,
+ *    `## Deze week` and all. Taking the hashes literally would write `## ##
+ *    Deze week`; the filter box already takes them off for the same reason.
+ *  - **Newlines become spaces.** The card's editor is a `textarea`, so a
+ *    pasted line break is reachable, and a heading is one line by definition.
+ *  - **Trailing `#` come off** as well: `HEADING` itself treats them as
+ *    closing syntax, so leaving them in would round-trip into nothing.
+ *
+ * `null` when the line is not a heading, when nothing readable is left, or
+ * when the name already says this — the same three refusals the other edits
+ * here make, and the caller turns each into its own sentence.
+ */
+export function renameHeading(
+	lines: readonly string[],
+	index: number,
+	title: string,
+): string[] | null {
+	const match = HEADING.exec(lines[index] ?? "");
+	if (match === null) return null;
+
+	const wanted = title
+		.replace(/[\r\n]+/g, " ")
+		.replace(/^[\s#]+/, "")
+		.replace(/[\s#]+$/, "")
+		.trim();
+	if (wanted.length === 0) return null;
+	if (wanted === match[2]) return null;
+
+	const out = [...lines];
+	out[index] = `${match[1]} ${wanted}`;
+	return out;
 }
 
 /* ------------------------------------------------------------------ */

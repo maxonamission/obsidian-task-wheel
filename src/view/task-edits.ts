@@ -490,8 +490,16 @@ export function actionsFor(
 							ref,
 						);
 					},
+		// The title of a task goes through `outline.rename`; everything else that
+		// has a name of its own goes through this one (BC_E3_S119).
+		rename: ref !== null ? undefined : titleRename(host, laid),
+		// Only where there is genuinely nothing to rewrite. A tap that quietly
+		// does nothing is the failure this surface avoids (BC_E3_S118), so what
+		// is left of the refusals still speaks.
 		onTitleRefused:
-			ref !== null ? undefined : () => explainNoRename(host, laid),
+			ref !== null || titleRename(host, laid) !== undefined
+				? undefined
+				: () => explainNoRename(host, laid),
 		open: laid.node.source === undefined ? undefined : () => host.openNote(laid),
 		follow:
 			laid.node.source === undefined
@@ -693,6 +701,73 @@ export function noteTaskActions(
 		fold: (id) => host.toggleFold(id),
 		alongRing: (delta) => host.stepFromCard(delta),
 	};
+}
+
+/**
+ * Whether this node *is* a heading, wheel or no wheel (BC_E3_S119).
+ *
+ * Deliberately not the same question as the `section` actions ask. Those are
+ * offered only on a note or section wheel, because moving a heading, hanging it
+ * under another one or giving it a subheading **reshapes a document**, and
+ * doing that is what a document's own wheel is for. A rename reshapes nothing:
+ * it rewrites one line in place and leaves the level alone, so it belongs with
+ * the task-line edits, which write into the item's own note from every wheel
+ * (kaderdocument §4.2, herzien 26 aug 2026 — `ref.path` is the boundary, not
+ * the wheel's scope). Fixing the typo you just read is the whole point of the
+ * card, and it should not depend on which wheel you happened to spot it from.
+ *
+ * Both shapes a heading arrives in are covered: an ordinary `group`, and the
+ * ring-one wedge of a note or section wheel, where the top ring *is* headings —
+ * the same branch `scopeFor` and `renameRefusal` take, for the same reason.
+ */
+function isHeadingNode(laid: LaidOutNode, within: WheelScope): boolean {
+	const source = laid.node.source;
+	if (source === undefined || source.raw === null) return false;
+	if (laid.node.kind === "group") return true;
+
+	return (
+		laid.node.kind === "domain" &&
+		laid.depth === 1 &&
+		(within.kind === "note" || within.kind === "section")
+	);
+}
+
+/**
+ * What clicking the title rewrites, for the things that are not a task line.
+ *
+ * A task's own words go through `outline.rename`; this is the other three
+ * (BC_E3_S119). A note ring and a task document are both a whole file, so both
+ * take the same road — `fileManager.renameFile`, which is the entire difference
+ * between renaming and breaking every link that pointed there. A heading is one
+ * line in a note, so it takes the section road, which re-reads the note and
+ * refuses when the heading has moved since the scan.
+ *
+ * `undefined` for everything else, and that is what leaves `onTitleRefused` to
+ * say why: a folder is file management, and a tag or property wedge is a name
+ * written down nowhere at all.
+ */
+function titleRename(
+	host: EditHost,
+	laid: LaidOutNode,
+): ((text: string) => void) | undefined {
+	const source = laid.node.source;
+	if (source === undefined) return undefined;
+
+	if (laid.node.kind === "project") {
+		return (text) => void renameNoteTitle(host, source.path, text);
+	}
+
+	if (isHeadingNode(laid, host.scope())) {
+		return (title) => {
+			void actOnSection(host.sectionHost(), laid, (line) => ({
+				kind: "rename",
+				line,
+				title,
+			}));
+		};
+	}
+
+	return undefined;
 }
 
 /** Say why this title cannot be rewritten from here (BC_E3_S118). */
@@ -1063,6 +1138,15 @@ export async function renameNoteTitle(
 		);
 		return;
 	}
+	if (outcome === "taken") {
+		// Reported, never forced (BC_E3_S119). Overwriting the other note would
+		// be the one outcome nobody typing a name is asking for, and merging two
+		// notes is not a thing a review card gets to decide.
+		new Notice(
+			`Task wheel: there is already a note called “${title.trim()}” there, so the name is unchanged.`,
+		);
+		return;
+	}
 	if (outcome === "missing") {
 		new Notice(`Task wheel: ${path} is gone. Rescanned.`);
 	} else if (outcome === "unchanged") {
@@ -1223,10 +1307,6 @@ export function carryFrom(
  */
 function noRenameText(refusal: NoRename): string {
 	switch (refusal.refused) {
-		case "heading":
-			return "a heading is renamed in the note itself — open it from the card.";
-		case "note":
-			return "a note is renamed in the file list, so that its links follow.";
 		case "folder":
 			return "a folder is renamed in the file list.";
 		case "wedge":

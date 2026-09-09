@@ -397,6 +397,27 @@ function renderSteps(parent: HTMLElement, actions: CardActions): void {
  * and the drawing underneath does not move.
  */
 /** Answers how to open this title's editor, or null when it has none. */
+/**
+ * What the title being edited belongs to, for the field's own label
+ * (BC_E3_S119).
+ *
+ * Narrower than `kindWord`: that one names every kind of node for the card's
+ * bottom line, and this one only has to finish the sentence "rename this …"
+ * for the three that can be renamed. A task document is a note here, because
+ * what is being rewritten is its file name.
+ */
+function renameNoun(focus: LaidOutNode): string {
+	// A wedge only ever gets a rename when it *is* a heading — on a note or
+	// section wheel, where the top ring is the note's own headings. That is
+	// `titleRename`'s rule; here it means a wedge with an editor open is a
+	// heading, without this function needing to know the scope.
+	if (focus.node.kind === "group" || focus.node.kind === "domain") {
+		return "heading";
+	}
+	if (focus.node.kind === "project") return "note";
+	return focus.node.source?.raw === null ? "note" : "task";
+}
+
 function renderTitle(
 	parent: HTMLElement,
 	focus: LaidOutNode,
@@ -406,7 +427,12 @@ function renderTitle(
 	// Two ways a title can be rewritten, and the card does not care which: the
 	// outline's, for a task on a line, or the plain one a task document brings.
 	const rename = outline?.rename ?? actions.rename;
-	const editable = rename !== undefined && focus.node.fields !== undefined;
+	// Whether there is a name to rewrite, and nothing more. It used to ask for
+	// `fields` as well — which is only true of a task — and that was right while
+	// a task was the only thing that could be renamed. Since BC_E3_S119 a
+	// heading and a note ring can be too, and asking for fields would have held
+	// the editor shut on both while the action behind it worked fine.
+	const editable = rename !== undefined;
 	const refuse = editable ? undefined : actions.onTitleRefused;
 
 	const opensTasks =
@@ -449,7 +475,11 @@ function renderTitle(
 		// extensions that the rest of this file relies on.
 		const input = parent.createEl("textarea", {
 			cls: "task-wheel-card-rename",
-			attr: { "aria-label": "Rename this task" },
+			// Named for what is actually being renamed: the field is now reachable
+			// on a heading and a note ring too, and a screen reader announcing
+			// "rename this task" over a heading would be plainly wrong
+			// (BC_E3_S119).
+			attr: { "aria-label": `Rename this ${renameNoun(focus)}` },
 		});
 		input.value = textOf(focus);
 		title.replaceWith(input);

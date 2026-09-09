@@ -7,6 +7,7 @@ import {
 	insertTaskLine,
 	moveHeading,
 	moveHeadingUnder,
+	renameHeading,
 	type MoveDirection,
 	moveBlock,
 	moveToNewSection,
@@ -54,7 +55,16 @@ export type WriteOutcome =
 	/** The note is gone. */
 	| "missing"
 	/** The line already said what we wanted it to say. */
-	| "unchanged";
+	| "unchanged"
+	/**
+	 * A file of that name is already there (BC_E3_S119).
+	 *
+	 * Apart from `refused`, which is about characters a name cannot hold. This
+	 * one is about a name that is perfectly legal and taken, and the two need
+	 * different sentences: the reader can fix the first by typing something
+	 * else, and the second by looking at what is already there.
+	 */
+	| "taken";
 
 /**
  * Where a task sits, as the wheel remembers it.
@@ -316,7 +326,9 @@ export type SectionEdit =
 	/** The heading it goes under was picked, so it is named by anchor. */
 	| { kind: "under"; line: number; target: LineAnchor }
 	| { kind: "task"; line: number; text: string }
-	| { kind: "sub"; line: number; title: string };
+	| { kind: "sub"; line: number; title: string }
+	/** Rewrite what the heading is called, keeping its level (BC_E3_S119). */
+	| { kind: "rename"; line: number; title: string };
 
 /** Move a heading, or add to what it holds. */
 export async function writeSection(
@@ -337,6 +349,8 @@ export async function writeSection(
 					return addTaskToSection(lines, edit.line, edit.text);
 				case "sub":
 					return addSubheading(lines, edit.line, edit.title);
+				case "rename":
+					return renameHeading(lines, edit.line, edit.title);
 			}
 		},
 		// Getting this one wrong is the loudest of the family: the whole section
@@ -773,6 +787,14 @@ export async function renameNoteTask(
 	if (file.basename === wanted) return "unchanged";
 
 	const folder = path.slice(0, path.lastIndexOf("/") + 1);
-	await app.fileManager.renameFile(file, `${folder}${wanted}.md`);
+	const target = `${folder}${wanted}.md`;
+
+	// Asked before writing rather than caught afterwards (BC_E3_S119).
+	// `renameFile` does refuse a collision, but it refuses by throwing, and what
+	// it throws is Obsidian's own wording about a path — which tells the reader
+	// the rename failed without telling them the name is simply in use.
+	if (app.vault.getAbstractFileByPath(target) !== null) return "taken";
+
+	await app.fileManager.renameFile(file, target);
 	return "written";
 }

@@ -234,7 +234,12 @@ describe("on the wheel", () => {
 		expect(parent?.fields?.raw).toBe("");
 	});
 
-	it("sends a rename to the file list rather than nowhere", () => {
+	it("renames from the card rather than being sent anywhere", () => {
+		// Was a refusal that pointed at the file list; since BC_E3_S119 a task
+		// document renames from the card itself, through `renameNoteTask`, which
+		// goes via `fileManager.renameFile` so the links follow. It therefore
+		// never reaches `renameRefusal` at all, and what that function answers
+		// about it is only the catch-all.
 		const tree = buildTree([doc], MARKED);
 		const parent = find(tree.root, "Migratie") as WheelNode;
 
@@ -244,7 +249,7 @@ describe("on the wheel", () => {
 				VAULT_SCOPE,
 				"folder",
 			),
-		).toEqual({ refused: "note" });
+		).toEqual({ refused: "nameless" });
 	});
 });
 
