@@ -1541,7 +1541,7 @@ export class TaskWheelView extends ItemView {
 
 	/** What the filter is leaving out, when it is leaving anything out. */
 	private filterLine():
-		| { text: string; shown: number; left: number }
+		| { text: string; shown: number; left: number; noDateAnswer: number }
 		| undefined {
 		const filter = filterOf(this.plugin.settings, this.wheelScope);
 		if (!isFiltering(filter)) return undefined;
@@ -1550,6 +1550,7 @@ export class TaskWheelView extends ItemView {
 			text: describe(filter),
 			shown: this.tree?.root.shownTaskCount ?? 0,
 			left: this.tree?.filteredOut ?? 0,
+			noDateAnswer: this.tree?.documentsOutsideDateRule ?? 0,
 		};
 	}
 
@@ -1577,7 +1578,13 @@ export class TaskWheelView extends ItemView {
 		const laid = id === null ? null : (layout.byId.get(id) ?? null);
 		let card: CardHandle = {};
 		this.diagnostics.safely("drawing the card", () => {
-			card = renderReadingCard(cardEl, layout, laid, actionsFor(this.editHost(), laid));
+			card = renderReadingCard(
+				cardEl,
+				layout,
+				laid,
+				actionsFor(this.editHost(), laid),
+				this.plugin.settings.domainSource,
+			);
 		});
 
 		// A task asked to be edited, and the card that can do it has only now

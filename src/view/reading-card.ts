@@ -6,7 +6,13 @@ import { ancestorsOf, type LaidOutNode, type WheelLayout } from "../layout/radia
 import { plainText, splitLinks } from "../parse/links";
 import { textEnd } from "../parse/outline-edit";
 import { TASK_LINE } from "../parse/task-line";
-import type { TaskFields } from "../model/types";
+import type {
+	DomainSource,
+	NodeKind,
+	SourceRef,
+	TaskFields,
+} from "../model/types";
+import { kindWord } from "../model/scope";
 
 /**
  * The reading card, taken from the Instrument impression (kaderdocument §4).
@@ -107,13 +113,17 @@ export interface CardActions {
 	 */
 	carry?: CarryActions;
 	/**
-	 * Obsidian's own file menu for the note this item *is* (BC_E3_S131).
+	 * Obsidian's own file menu for the file or folder this item *is*
+	 * (BC_E3_S131).
 	 *
-	 * Only on a task document, where the item is a file rather than a line.
-	 * Moving one is file management, and Obsidian already does that everywhere
-	 * else in the app — so the wheel opens that menu instead of growing a folder
-	 * picker of its own. One way to move a file in the whole vault, and the
-	 * reader knows it already (eigenaar, 4 sep 2026).
+	 * A task document, a note ring and a folder wedge are the three kinds of
+	 * item with a place of their own in the file list; a tag or a property
+	 * wedge has none, and gets no `file` (BC_E3_S134, `model/scope.ts` decides
+	 * which). Moving a file is file management, and Obsidian already does that
+	 * everywhere else in the app — so the wheel opens that menu instead of
+	 * growing a folder picker of its own. The same menu is also how *Reveal in
+	 * navigation* is reached: reading where something sits, without the wheel
+	 * needing an opinion of its own about it (eigenaar, 4 sep 2026).
 	 */
 	file?: (event: MouseEvent) => void;
 	/**
@@ -185,6 +195,15 @@ export interface OutlineActions {
 	 * loose item to a deeper step of something bigger (owner, 18 aug 2026).
 	 */
 	moveUnder: () => void;
+	/**
+	 * Take this line out of the note entirely (BC_E3_S91).
+	 *
+	 * The one narrow exception to "the wheel reviews and does not delete":
+	 * offered here like every other outline action, but only ever carried out
+	 * when nothing hangs under the line — the refusal, and the line shown
+	 * before it goes, both live where the write happens, not in the menu.
+	 */
+	remove: () => void;
 }
 
 /**
@@ -239,7 +258,16 @@ export function renderReadingCard(
 	parent: HTMLElement,
 	layout: WheelLayout,
 	focus: LaidOutNode | null,
-	actions: CardActions = {},
+	// No default: `domainSource` behind it is required, so an omitted `actions`
+	// was never reachable anyway.
+	actions: CardActions,
+	/**
+	 * Where the wedges come from, so the card can say what a wedge *is*
+	 * (BC_E3_S68). Required rather than defaulted: a wedge called a folder
+	 * when it is a tag is the untruth BC_E3_S92 came from, and a default
+	 * would let a new caller re-introduce it in silence.
+	 */
+	domainSource: DomainSource,
 ): CardHandle {
 	parent.empty();
 	parent.addClass("task-wheel-card");
@@ -277,8 +305,17 @@ export function renderReadingCard(
 	// make the card taller — it makes the last line get sliced through the
 	// middle, which reads as a bug. What is hidden below this item beats where
 	// it lives whenever there is something hidden.
-	if (focus.hiddenCount > 0) renderStump(body, focus, layout.showsFinished);
-	else renderSource(body, focus);
+	// What it is goes in front of both, because it is the one thing that is true
+	// of every item on the wheel (BC_E3_S68). A wedge has neither a stump nor a
+	// path, so before this story its line was simply empty.
+	const parentId = focus.parentId;
+	const kind = kindWord(
+		focus.node,
+		parentId === null ? null : (layout.byId.get(parentId)?.node.kind ?? null),
+		domainSource,
+	);
+	if (focus.hiddenCount > 0) renderStump(body, focus, layout.showsFinished, kind);
+	else renderSource(body, focus, kind);
 	renderActions(parent, layout, focus, actions);
 
 	markClipping(body);
@@ -850,11 +887,18 @@ function renderActions(
 			menu.showAtMouseEvent(event);
 		});
 	} else if (actions.file !== undefined) {
-		// A task that is a whole note: nothing here is a line, so the menu is
-		// the file's own. Without this branch the card had no ⋯ at all
-		// (eigenaar, 4 sep 2026).
+		// A task that is a whole note, or a wedge that is a whole folder:
+		// nothing here is a line, so the menu is the file's or folder's own.
+		// Without this branch the card had no ⋯ at all (eigenaar, 4 sep 2026;
+		// extended to a folder wedge, BC_E3_S134). Only these two kinds reach
+		// here with `file` set and no `carry` of their own — a note ring has
+		// carry, so it meets `actions.file` one branch up instead.
 		const file = actions.file;
-		action(foot, "ellipsis", "Move or rename this file", (event) => {
+		const label =
+			focus.node.kind === "domain"
+				? "Move or rename this folder"
+				: "Move or rename this file";
+		action(foot, "ellipsis", label, (event) => {
 			file(event);
 		});
 	}
@@ -971,6 +1015,18 @@ function openOutlineMenu(
 			.setTitle("Make a subtask of…")
 			.setIcon("indent")
 			.onClick(() => outline.moveUnder()),
+	);
+
+	// Behind its own separator, last among the moves: this is the one that does
+	// not leave the task somewhere else, it leaves it gone. Only ever refused or
+	// confirmed at the write, never here (BC_E3_S91) — the menu offers it the
+	// same way it offers every other outline action.
+	menu.addSeparator();
+	menu.addItem((item) =>
+		item
+			.setTitle("Remove this line from the note")
+			.setIcon("trash-2")
+			.onClick(() => outline.remove()),
 	);
 	addCarry(menu, carry, true, file);
 
@@ -1101,6 +1157,7 @@ function renderStump(
 	parent: HTMLElement,
 	focus: LaidOutNode,
 	showsFinished: boolean,
+	kind: string,
 ): void {
 	// `hiddenCount` counts items of the round, so "open" is only true of a round
 	// that holds no finished work — the same small lie the hub and the branch
@@ -1112,8 +1169,8 @@ function renderStump(
 	parent.createEl("p", {
 		cls: "task-wheel-card-stump",
 		text: focus.collapsed
-			? `Folded away: ${count} below this one.`
-			: `${count} below this one, past the last ring.`,
+			? `${kind} · folded away: ${count} below this one.`
+			: `${kind} · ${count} below this one, past the last ring.`,
 	});
 }
 
@@ -1124,14 +1181,43 @@ function renderStump(
  * three lines while doing it. What it adds is the folders in between and the
  * line number, so that is what is kept.
  */
-function renderSource(parent: HTMLElement, focus: LaidOutNode): void {
-	const source = focus.node.source;
-	if (source === undefined) return;
-
-	const tail = source.path.split("/").slice(-2).join("/");
+function renderSource(
+	parent: HTMLElement,
+	focus: LaidOutNode,
+	kind: string,
+): void {
 	parent.createEl("p", {
 		cls: "task-wheel-card-source",
-		text:
-			focus.node.kind === "task" ? `${tail} · line ${source.line + 1}` : tail,
+		text: sourceLine(focus.node, kind),
 	});
+}
+
+/**
+ * What it is, and where it lives, in one line.
+ *
+ * Split out from the drawing so the sentence itself can be tested: there is no
+ * DOM here, and the two things worth pinning are both in the text (BC_E3_S68).
+ *
+ *  - **A wedge has no file behind it at all**, so before this story its line
+ *    was empty. The word on its own is still an answer to "what am I standing
+ *    on", so the line is written either way.
+ *  - **A line number only where there is a line.** A task document is a whole
+ *    note; its `source.line` is a placeholder zero, and the card reported that
+ *    as *line 1* — a small confident untruth about the one kind of task that
+ *    has no line.
+ */
+export function sourceLine(
+	node: { kind: NodeKind; source?: SourceRef },
+	kind: string,
+): string {
+	const source = node.source;
+	if (source === undefined) return kind;
+
+	const tail = source.path.split("/").slice(-2).join("/");
+	const at =
+		node.kind === "task" && source.raw !== null
+			? ` · line ${source.line + 1}`
+			: "";
+
+	return `${kind} · ${tail}${at}`;
 }

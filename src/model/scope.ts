@@ -130,6 +130,74 @@ export function wedgeSource(source: DomainSource): string {
 	}
 }
 
+/**
+ * What an item *is*, in one word (BC_E3_S68).
+ *
+ * The wheel puts a folder, a note, a heading, a task and a subtask on the same
+ * kind of dot, and on one ring they stand side by side. That is the price of a
+ * drawing where the ring means depth rather than kind, and it is the right
+ * price: the alternative was a ring per kind, which the kaderdocument turned
+ * down for good reasons. But the reader could not read *what* something was
+ * anywhere at all, and the card is the cheapest place to say it out loud
+ * (owner, 27 aug 2026, confirmed 9 sep 2026).
+ *
+ * Two shapes of node need more than their `kind` to answer:
+ *
+ *  - A **wedge** is a folder only when the domain comes from one. With a tag or
+ *    a front-matter property it is a name that lives nowhere on disk, and
+ *    calling it a folder is the very mistake BC_E3_S92 came from. The four
+ *    sources are switched over rather than defaulted, for the reason
+ *    `wedgeSource` gives just above.
+ *  - A **task** is three different things. `raw === null` is a whole note
+ *    (`isNoteTask`), a task under another task is a subtask, and the rest are
+ *    tasks. The first of those also fixes a small untruth on the card: a task
+ *    document has no line, and the card used to say *line 1* about it.
+ *
+ * English, like the rest of the plugin's own interface. The card reads no
+ * translation catalogue, so this costs none.
+ */
+export function kindWord(
+	// Narrower than `TappedNode` on purpose: naming a thing needs no ring and no
+	// label, and asking for them would make every caller find two values it does
+	// not use.
+	node: { kind: NodeKind; source?: SourceRef },
+	/** The kind of the node one ring in, or `null` at the hub. */
+	parentKind: NodeKind | null,
+	domainSource: DomainSource,
+): string {
+	switch (node.kind) {
+		case "root":
+			return "Vault";
+		case "domain":
+			return wedgeWord(domainSource);
+		case "project":
+			return "Note";
+		case "group":
+			return "Heading";
+		case "task":
+			if (isNoteTask(node)) return "Task document";
+			return parentKind === "task" ? "Subtask" : "Task";
+	}
+}
+
+/**
+ * The wedge's own word. `wedgeSource` says the same thing as a noun phrase
+ * inside a sentence ("this wedge is a tag"); this is the label on a line of
+ * fields, so it is capitalised and bare.
+ */
+function wedgeWord(source: DomainSource): string {
+	switch (source) {
+		case "folder":
+			return "Folder";
+		case "tag":
+			return "Tag";
+		case "property":
+			return "Note property";
+		case "heading":
+			return "Heading";
+	}
+}
+
 export function renameRefusal(
 	node: TappedNode,
 	within: WheelScope,

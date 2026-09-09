@@ -4,6 +4,7 @@ import {
 	addTaskToSection,
 	blockLength,
 	insertTask,
+	insertTaskLine,
 	moveBlock,
 	moveHeading,
 	moveHeadingUnder,
@@ -571,6 +572,53 @@ describe("adding a task", () => {
 
 	it("refuses a line that is not a task", () => {
 		expect(insertTask(NOTE, 0, "Iets", false)).toBeNull();
+	});
+});
+
+describe("adding a whole line handed back by the Tasks creation modal", () => {
+	it("places a sibling below the whole block, and re-indents it", () => {
+		// The modal has no notion of outlines, so it hands the line back flush
+		// with the margin — the indentation for where it lands is added here,
+		// not left to whatever the modal happened to send (BC_E3_S115).
+		const out = insertTaskLine(NOTE, 3, "- [ ] Bloemen kopen 📅 2026-09-10", false);
+		expect(out?.line).toBe(6);
+		expect(out?.lines[6]).toBe("- [ ] Bloemen kopen 📅 2026-09-10");
+		expect(out?.lines[5]).toBe("    - [ ] Lijstje maken");
+	});
+
+	it("puts a child straight under the task, one level deeper", () => {
+		const out = insertTaskLine(NOTE, 6, "- [ ] Heg knippen", true);
+		expect(out?.line).toBe(7);
+		expect(out?.lines[7]).toBe("    - [ ] Heg knippen");
+	});
+
+	it("strips whatever indentation the line already carried", () => {
+		const out = insertTaskLine(NOTE, 6, "        - [ ] Heg knippen", true);
+		expect(out?.lines[7]).toBe("    - [ ] Heg knippen");
+	});
+
+	it("keeps the line as it was given, checkbox and fields included", () => {
+		const out = insertTaskLine(NOTE, 6, "- [ ] Heg knippen ⏫ 📅 2026-09-10", true);
+		const parsed = parseTaskLine(out?.lines[7] ?? "");
+		expect(parsed?.fields.priority).toBe("high");
+		expect(parsed?.fields.due).toBe("2026-09-10");
+	});
+
+	it("splices in every line the modal hands back, all re-indented", () => {
+		const out = insertTaskLine(
+			NOTE,
+			6,
+			"- [ ] Heg knippen 🔁 every week\n- [x] Heg knippen",
+			false,
+		);
+		expect(out?.lines.slice(7, 9)).toEqual([
+			"- [ ] Heg knippen 🔁 every week",
+			"- [x] Heg knippen",
+		]);
+	});
+
+	it("refuses a line that is not a task", () => {
+		expect(insertTaskLine(NOTE, 0, "- [ ] Iets", false)).toBeNull();
 	});
 });
 

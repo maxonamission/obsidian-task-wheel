@@ -4,6 +4,7 @@ import {
 	addSubheading,
 	addTaskToSection,
 	insertTask,
+	insertTaskLine,
 	moveHeading,
 	moveHeadingUnder,
 	type MoveDirection,
@@ -11,6 +12,7 @@ import {
 	moveToNewSection,
 	moveUnderTask,
 	moveToSection,
+	removeTaskLine,
 	setText,
 } from "../parse/outline-edit";
 import { type Extracted, pasteInto, removeBlocks } from "../parse/cross-note";
@@ -224,6 +226,23 @@ export async function writeMove(
 }
 
 /**
+ * Take a task's line out of the note entirely (BC_E3_S91).
+ *
+ * `reshape`, not `rewrite`: the note goes from N lines to N-1, so this changes
+ * the note's shape rather than one line's words. The guard — nothing may hang
+ * under the line — is `removeTaskLine`'s, decided in pure text before this is
+ * ever reached; what this adds is only the staleness check every outline edit
+ * already gets, so a note that changed since the scan is rescanned rather than
+ * cut into.
+ */
+export async function writeDeleteLine(
+	app: App,
+	ref: LineRef,
+): Promise<WriteOutcome> {
+	return reshape(app, ref, (lines) => removeTaskLine(lines, ref.line));
+}
+
+/**
  * Add a task beside this one, or a step inside it.
  *
  * Returns where it landed in `outcome` terms only; the caller rescans, and the
@@ -257,6 +276,32 @@ export async function writeInsertAfter(
 
 	const outcome = await reshape(app, ref, (lines) => {
 		const done = insertTask(lines, ref.line, text, asChild);
+		if (done === null) return null;
+		at = { path: ref.path, line: done.line, raw: done.lines[done.line] ?? "" };
+		return done.lines;
+	});
+
+	return { outcome, at: outcome === "written" ? at : null };
+}
+
+/**
+ * The same write as `writeInsertAfter`, for a line that already exists.
+ *
+ * `writeInsertAfter` builds a task line from bare words; this one takes a
+ * whole line handed back by the Tasks plugin's own creation modal and places
+ * it, re-indented, the same way `insertTaskLine` describes. Same anchor and
+ * staleness check, same "caller rescans and finds it again by text" contract.
+ */
+export async function writeInsertLineAfter(
+	app: App,
+	ref: LineRef,
+	line: string,
+	asChild: boolean,
+): Promise<{ outcome: WriteOutcome; at: LineRef | null }> {
+	let at: LineRef | null = null;
+
+	const outcome = await reshape(app, ref, (lines) => {
+		const done = insertTaskLine(lines, ref.line, line, asChild);
 		if (done === null) return null;
 		at = { path: ref.path, line: done.line, raw: done.lines[done.line] ?? "" };
 		return done.lines;
@@ -479,6 +524,7 @@ function tasksToggle(app: App, line: string, path: string): string | null {
 
 type ToggleFn = (line: string, path: string) => unknown;
 type EditFn = (line: string) => unknown;
+type CreateFn = () => unknown;
 
 /**
  * What we use of the Tasks plugin's public API, as we hope to find it.
@@ -493,6 +539,7 @@ type EditFn = (line: string) => unknown;
 interface TasksApiV1 {
 	executeToggleTaskDoneCommand?: ToggleFn;
 	editTaskLineModal?: EditFn;
+	createTaskLineModal?: CreateFn;
 }
 
 function tasksApi(app: App): TasksApiV1 | null {
@@ -516,6 +563,12 @@ function editApi(app: App): EditFn | null {
 	const found = tasksApi(app);
 	const edit = found?.editTaskLineModal;
 	return typeof edit === "function" ? edit.bind(found) : null;
+}
+
+function createApi(app: App): CreateFn | null {
+	const found = tasksApi(app);
+	const create = found?.createTaskLineModal;
+	return typeof create === "function" ? create.bind(found) : null;
 }
 
 /** Whether the Tasks plugin offers the modal that edits a whole task line. */
@@ -549,6 +602,34 @@ export async function editThroughTasks(
 		return typeof result === "string" && result.trim().length > 0 ? result : null;
 	} catch (error) {
 		console.error("Task Wheel: the Tasks plugin refused the edit", error);
+		return null;
+	}
+}
+
+/** Whether the Tasks plugin offers the modal that creates a new task line. */
+export function createsThroughTasks(app: App): boolean {
+	return createApi(app) !== null;
+}
+
+/**
+ * Open the Tasks plugin's own creation modal, and hand back the line it made.
+ *
+ * `editThroughTasks`'s twin, one step earlier: nothing to hand it, because
+ * there is no line yet — the reader fills in a blank modal instead of an open
+ * one. Null means the same three things it means there: no plugin, no method,
+ * or the reader cancelled. The line comes back without knowing where it will
+ * live in the outline; placing it — and re-indenting it if it needs to sit
+ * under a parent — is `writeInsertLineAfter`'s job, not this one's.
+ */
+export async function createThroughTasks(app: App): Promise<string | null> {
+	const create = createApi(app);
+	if (create === null) return null;
+
+	try {
+		const result = await create();
+		return typeof result === "string" && result.trim().length > 0 ? result : null;
+	} catch (error) {
+		console.error("Task Wheel: the Tasks plugin refused the new task", error);
 		return null;
 	}
 }

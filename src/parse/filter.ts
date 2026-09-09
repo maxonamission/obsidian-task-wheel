@@ -331,6 +331,14 @@ function matchesDue(
 	// as "what has to be finished this week", and Tasks carries both dates.
 	const on = dateOf(fields, filter.dateField);
 
+	// Nothing was read here, so there is nothing true to say (BC_E3_S183). Every
+	// rule but *any* asks about a date, and a task document keeps its dates in
+	// front matter the wheel does not read: `undated` used to answer *yes* about
+	// a note due next week, and `ready` *yes* about one scheduled for next year.
+	// Both were confident and wrong, which is worse than being left out — and
+	// being left out is counted and said, so it is not silent either.
+	if (fields.datesUnread === true) return filter.due === "any";
+
 	switch (filter.due) {
 		case "any":
 			return true;

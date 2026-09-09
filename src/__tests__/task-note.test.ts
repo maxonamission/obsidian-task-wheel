@@ -394,13 +394,43 @@ describe("what the filter reaches on a task document", () => {
 		expect(shows({ text: "DBA" })).toBe(false);
 	});
 
-	it("does not yet read its date, and says undated — which is wrong", () => {
-		// BC_E3_S133. The note carries `due: 2026-09-05`; the wheel does not read
-		// it, so `soon` drops the document (counted as filtered out, so at least
-		// visible) and `undated` *shows* it. That second one is a confident wrong
-		// answer to the very question the reader asked.
+	it("gives no date answer at all rather than a wrong one", () => {
+		// Turned round by BC_E3_S183, which is what this test was pinned for. The
+		// note carries `due: 2026-09-05` and `status: doing`; the wheel reads
+		// neither date, so every rule that asks about one now drops the document
+		// instead of answering. `undated` used to *show* it, which was a
+		// confident untruth about a note due tomorrow, and `ready` used to show
+		// it whatever its ⏳ said.
 		expect(shows({ due: "soon" })).toBe(false);
-		expect(shows({ due: "undated" })).toBe(true);
+		expect(shows({ due: "undated" })).toBe(false);
+		expect(shows({ due: "dated" })).toBe(false);
+		expect(shows({ due: "ready" })).toBe(false);
+		expect(shows({ due: "parked" })).toBe(false);
+		// The one rule that asks nothing about dates still keeps it.
+		expect(shows({ due: "any", status: "in-progress" })).toBe(true);
+	});
+
+	it("counts what it could not answer about, and only that", () => {
+		const under = (filter: Partial<typeof NO_FILTER>) =>
+			buildTree([doc], {
+				...MARKED,
+				today: "2026-09-04",
+				filter: { ...NO_FILTER, ...filter },
+			});
+
+		// Dropped by the date rule alone: counted apart, so the legend can say
+		// why one of the "left out" is not the reader's own doing (BC_E3_S183).
+		expect(under({ due: "undated" }).documentsOutsideDateRule).toBe(1);
+		expect(under({ due: "undated" }).filteredOut).toBe(1);
+
+		// Dropped by a tag as well: the reader's own rule explains that one, so
+		// it stays out of this count.
+		expect(
+			under({ due: "undated", withTags: ["thuis"] }).documentsOutsideDateRule,
+		).toBe(0);
+
+		// Nothing to explain when no date rule is running.
+		expect(under({ status: "open" }).documentsOutsideDateRule).toBe(0);
 	});
 
 	it("does not yet read its priority", () => {

@@ -2,6 +2,24 @@ import { nodeColour, PRIORITY_LADDER } from "../layout/colour";
 import type { WheelLayout } from "../layout/radial";
 
 /**
+ * The part of "left out" that no rule of the reader's explains.
+ *
+ * Task documents keep their dates in front matter under names the wheel does
+ * not read, so it answers no date question about them at all rather than a
+ * wrong one (BC_E3_S183). That is the right answer to give, and it is still an
+ * exclusion the reader did not ask for: unsaid it would be exactly the silent
+ * kind §3.3 forbids, so it is said, with its number, beside the rule.
+ *
+ * `null` rather than an empty string when there is nothing to say, so the
+ * caller writes no element at all.
+ */
+export function noDateAnswerText(count: number): string | null {
+	if (count <= 0) return null;
+	const what = `task document${count === 1 ? "" : "s"}`;
+	return `${count} ${what} left out: the wheel reads no dates in front matter`;
+}
+
+/**
  * The key to the two colour channels.
  *
  * Without it the second channel is invisible: a reader can see that two dots
@@ -12,7 +30,13 @@ import type { WheelLayout } from "../layout/radial";
 export function renderLegend(
 	parent: HTMLElement,
 	layout: WheelLayout,
-	filter?: { text: string; shown: number; left: number },
+	filter?: {
+		text: string;
+		shown: number;
+		left: number;
+		/** Task documents the date rule dropped for want of a date it can read. */
+		noDateAnswer?: number;
+	},
 ): void {
 	parent.empty();
 	if (layout.budgets.length === 0) return;
@@ -28,6 +52,11 @@ export function renderLegend(
 			cls: "task-wheel-filter-count",
 			text: `${filter.shown} in this round · ${filter.left} left out`,
 		});
+
+		const blind = noDateAnswerText(filter.noDateAnswer ?? 0);
+		if (blind !== null) {
+			line.createSpan({ cls: "task-wheel-filter-blind", text: blind });
+		}
 	}
 
 	// No list of domains: the wheel writes their names on its own rim, in the

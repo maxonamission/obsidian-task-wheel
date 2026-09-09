@@ -739,6 +739,39 @@ export function insertTask(
 }
 
 /**
+ * Put a whole task line into the note, already written by somebody else.
+ *
+ * `insertTask` above builds the line itself, from bare words; this one is for
+ * a line the Tasks plugin's own creation modal already handed back complete —
+ * checkbox, marker and whatever fields the reader set. So it does not
+ * reconstruct the line, only where it lands: the same block-end-or-straight-
+ * after placement, and the same computed indentation, dropped in place of
+ * whatever indentation the line arrived with. A modal that returns more than
+ * one line (unlikely for a new task, but not ruled out) has every one of them
+ * re-indented and spliced in together, the same way `editInTasks` treats a
+ * multi-line answer.
+ */
+export function insertTaskLine(
+	lines: readonly string[],
+	index: number,
+	line: string,
+	asChild: boolean,
+): { lines: string[]; line: number } | null {
+	const match = TASK_LINE.exec(lines[index] ?? "");
+	if (match === null) return null;
+
+	const whitespace = match[1];
+	const indent = asChild ? `${whitespace}${step(whitespace)}` : whitespace;
+
+	const added = line.split("\n").map((part) => `${indent}${part.trimStart()}`);
+
+	const at = asChild ? index + 1 : index + blockLength(lines, index);
+	const out = [...lines];
+	out.splice(at, 0, ...added);
+	return { lines: out, line: at };
+}
+
+/**
  * Rewrite what a task *says*, leaving everything it *is* alone.
  *
  * The editable part is the text before the first field marker, tags included.
@@ -784,6 +817,35 @@ export function textEnd(body: string): number {
 	// No fields: a trailing block reference is still not part of the text.
 	const ref = /\s*\^[\p{L}\p{N}-]+\s*$/u.exec(body);
 	return ref === null ? body.length : ref.index;
+}
+
+/**
+ * Take one task line out of the note, when nothing hangs beneath it.
+ *
+ * BC_E3_S91: a forum report of "random empty checkboxes" left by a misfired
+ * paste — a `- [ ] ` with no words and nothing indented under it — set
+ * against the README's own argument for having no delete at all: cancelling
+ * (`[-]`) already says "not doing this", and a decision like that is worth
+ * keeping. The owner's answer was narrow, "beperkt akkoord, en
+ * terughoudend": no general delete, and the boundary that makes it safe sits
+ * in the code rather than in judgement made in the moment.
+ *
+ * That boundary is `blockLength`, the same count `moveBlock` and
+ * `moveUnderTask` already trust to know what a task carries with it. A block
+ * of exactly one is the line and nothing else — no subtask, no indented
+ * prose. Anything longer is refused outright, and there is no partial form
+ * of this: taking only the parent would orphan a subtask, and there is no
+ * confirmation that makes that safe to ask for. So the guard sits ahead of
+ * the question, not inside the answer to it.
+ */
+export function removeTaskLine(
+	lines: readonly string[],
+	index: number,
+): string[] | null {
+	if (TASK_LINE.exec(lines[index] ?? "") === null) return null;
+	if (blockLength(lines, index) > 1) return null;
+
+	return [...lines.slice(0, index), ...lines.slice(index + 1)];
 }
 
 /* ------------------------------------------------------------------ */

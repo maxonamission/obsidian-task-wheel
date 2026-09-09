@@ -799,6 +799,14 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* The half of "left out" that no rule of the reader's explains, so it may not
+   read as more of the same number. Warmer than muted, still not a warning:
+   nothing is broken, the wheel simply does not know (BC_E3_S183). */
+.task-wheel-filter-blind {
+	color: var(--text-warning);
+	font-variant-numeric: tabular-nums;
+}
+
 /* The track the reading wedge has already run along this round. Faint on
    purpose: it is a memory of where you have been, not a thing to look at. */
 .task-wheel-sweep path {
@@ -1249,6 +1257,14 @@
 .task-wheel-heading-new code {
 	font-style: normal;
 	color: var(--text-accent);
+}
+
+/* What choosing a heading costs when the work comes from several sections: it
+   arrives as one list. Muted and behind a separator, because it is the price of
+   the row rather than its name (BC_E3_S114). */
+.task-wheel-heading-collapse {
+	color: var(--text-muted);
+	font-style: italic;
 }
 
 /* ------------------------------------------------------------------ */
@@ -1752,4 +1768,23 @@
 	color: var(--text-muted);
 	font-size: var(--font-ui-smaller);
 	line-height: var(--line-height-tight);
+}
+
+/* ------------------------------------------------------------------ */
+/* The remove-line confirmation (BC_E3_S91)                            */
+/* ------------------------------------------------------------------ */
+
+/*
+ * The line as it stands, shown once before it is taken out — the one thing
+ * this narrow modal exists to do, so it gets the same monospace treatment as
+ * a code block rather than reading as plain prose.
+ */
+.task-wheel-remove-line {
+	white-space: pre-wrap;
+	word-break: break-word;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	background: var(--background-secondary);
+	padding: var(--size-4-2);
+	border-radius: var(--radius-s);
 }

@@ -275,6 +275,60 @@ describe("layoutWheel — labels around the focus (BC_E3_S23)", () => {
 		}
 	});
 
+	/**
+	 * The ring you are looking out on (BC_E3_S125, eigenaar 3 sep 2026).
+	 *
+	 * Two good rules were making a third that nobody chose: every child of the
+	 * focus is drawn, and the angles are dealt without regard for where you are
+	 * looking. More dots in a wedge that does not widen means narrower dots, and
+	 * under `labelSpan` the name went — *"anders wordt het gokken wat het is"*.
+	 *
+	 * Measured on this fixture: 49 of 53 children of a focus carried no name,
+	 * and not one of them was below `tickSpan`.
+	 */
+	it("names the children of the focus, however narrow their slice", () => {
+		const busy = layoutOf(BUSIER);
+		const crowded = busy.nodes
+			.filter((laid) => laid.node.children.length > 2 && laid.depth > 1)
+			.sort((a, b) => b.node.children.length - a.node.children.length)[0];
+		expect(crowded).toBeDefined();
+
+		const layout = layoutOf(BUSIER, {}, { focusId: crowded.id });
+		const kids = layout.nodes.filter((laid) => laid.parentId === crowded.id);
+		expect(kids.length).toBeGreaterThan(2);
+
+		// Not vacuous: these are exactly the ones the span rule used to silence.
+		const narrow = kids.filter(
+			(laid) => laid.span < DEFAULT_LAYOUT_OPTIONS.labelSpan,
+		);
+		expect(narrow.length).toBeGreaterThan(0);
+		for (const laid of kids) expect(laid.render).toBe("labelled");
+	});
+
+	/**
+	 * And a hairline child is still a tick.
+	 *
+	 * That is a decision about the *mark*, not about the label: at that width
+	 * there is no room to draw a dot, let alone a name. The rule above reaches
+	 * the reported case and no other.
+	 */
+	it("leaves a child below the tick threshold as a tick", () => {
+		const tiny = { ...DEFAULT_LAYOUT_OPTIONS, tickSpan: 90 };
+		const layout = layoutWheel(buildTree(BUSIER, OPTIONS), tiny);
+		for (const laid of layout.nodes) {
+			if (laid.depth <= 1 || laid.onPath) continue;
+			if (laid.span < 90) expect(laid.render).toBe("tick");
+		}
+	});
+
+	/**
+	 * Untouched by BC_E3_S125, and it is worth saying why.
+	 *
+	 * `anchorIn` picks a **leaf**, so the focus here has no children at all and
+	 * the new rule reaches nothing. The strictness this test protects — a
+	 * container far from the focus stays a dot however generous `labelSteps` is
+	 * — is exactly the strictness that had to survive.
+	 */
 	it("still leaves a container without room as a dot", () => {
 		const focus = anchorIn(layoutOf(BUSIER));
 		const layout = layoutOf(BUSIER, {}, { focusId: focus.id, labelSteps: 9 });

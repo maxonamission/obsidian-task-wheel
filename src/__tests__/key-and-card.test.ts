@@ -198,3 +198,63 @@ group("Alt with an arrow, per kind of node", () => {
 		expect(Notice.shown.join(" ")).not.toContain("nothing here to move");
 	});
 });
+
+group("Reveal in navigation, per kind of item (BC_E3_S134)", () => {
+	/**
+	 * Where the file list can be reached from: a note ring, a task document
+	 * and a folder wedge all have a place in it. A tag or a property wedge
+	 * does not — `scopeFor` already refuses those (`not-a-folder`), so this
+	 * only pins that the refusal reaches `actionsFor` and takes the `file`
+	 * action away with it.
+	 */
+	it("offers it on a note ring", () => {
+		const laid = find(VAULT_SCOPE, "Plan");
+		expect(laid.node.kind).toBe("project");
+		expect(actionsFor(host(VAULT_SCOPE, laid), laid).file).toBeTypeOf("function");
+	});
+
+	it("offers it on a task document", () => {
+		const laid = find(VAULT_SCOPE, "Groot project");
+		expect(isNoteTask(laid.node)).toBe(true);
+		expect(actionsFor(host(VAULT_SCOPE, laid), laid).file).toBeTypeOf("function");
+	});
+
+	it("offers it on a folder wedge", () => {
+		// The default domain source is "folder" (DEFAULT_PARSE_OPTIONS), so
+		// the fixture's own "Werk" wedge already stands for a folder.
+		const laid = find(VAULT_SCOPE, "Werk");
+		expect(laid.node.kind).toBe("domain");
+		expect(actionsFor(host(VAULT_SCOPE, laid), laid).file).toBeTypeOf("function");
+	});
+
+	it("stays absent on a tag wedge: nothing on disk to reveal", () => {
+		const options = {
+			...DEFAULT_PARSE_OPTIONS,
+			scope: VAULT_SCOPE,
+			domainSource: "tag" as const,
+		};
+		const tree = buildTree(
+			[{ path: "Losse map/Idee.md", content: "- [ ] Bellen #domein/werk" }],
+			options,
+		);
+		const laid = layoutWheel(tree, { focusId: null }).nodes.find(
+			(n) => n.node.label === "werk",
+		);
+		if (laid === undefined) throw new Error("no wedge found");
+		expect(laid.node.kind).toBe("domain");
+
+		const tagHost: EditHost = {
+			...host(VAULT_SCOPE, laid),
+			settings: { ...settings(), domainSource: "tag" },
+		};
+		expect(actionsFor(tagHost, laid).file).toBeUndefined();
+	});
+
+	it("stays absent on a plain task line and a heading", () => {
+		// Neither is a whole file or a folder — `revealPath` only answers for
+		// `project`, and for a `domain` wedge that resolves to a folder.
+		expect(actionsFor(host(VAULT_SCOPE, find(VAULT_SCOPE, "Bellen")), find(VAULT_SCOPE, "Bellen")).file).toBeUndefined();
+		const heading = find({ kind: "note", path: PATH }, "Deze week");
+		expect(actionsFor(host({ kind: "note", path: PATH }, heading), heading).file).toBeUndefined();
+	});
+});

@@ -138,6 +138,23 @@ export interface TaskFields {
 	description: string;
 	/** The original line, unmodified. */
 	raw: string;
+	/**
+	 * Set when nobody looked for dates here at all (BC_E3_S183).
+	 *
+	 * Not the same as having none, and the difference is the whole point. A
+	 * checkbox without a 📅 has been read and has no deadline, so *has no date*
+	 * is a true answer about it. A **task document** carries its dates in front
+	 * matter under names the wheel does not read, so the absence in this shape
+	 * says nothing about the note: answering *has no date* there is a confident
+	 * untruth about a note that may well be due tomorrow, and the reader has no
+	 * way to find out (§3.3).
+	 *
+	 * So every date rule but *any* is answered `false` here, and what falls out
+	 * that way is counted and said. Which property names carry a date is a
+	 * separate question, and one that waits on use rather than on invention
+	 * (BC_E3_S133); this flag deliberately answers none of it.
+	 */
+	datesUnread?: true;
 }
 
 /**
@@ -234,6 +251,21 @@ export interface WheelTree {
 	 * work silently would break the one promise the wheel makes (§3.3).
 	 */
 	filteredOut: number;
+	/**
+	 * Task documents the date rule dropped because their dates were never read.
+	 *
+	 * A subset of `filteredOut`, kept apart because the reason is different in
+	 * kind (BC_E3_S183). The rest of that number is work the reader's own rule
+	 * excluded, and they can see why by reading their rule. These fell out
+	 * because the wheel does not know, and no rule of theirs says so — so the
+	 * one thing that keeps this from being a silent exclusion is saying how
+	 * many, out loud, beside the rule.
+	 *
+	 * Only the date rule counts here: a document that would also have failed on
+	 * a tag is not in this number, because for that one the rule really does
+	 * explain it.
+	 */
+	documentsOutsideDateRule: number;
 	/**
 	 * Whether finished work is deliberately part of this round.
 	 *

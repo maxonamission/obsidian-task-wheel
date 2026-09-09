@@ -19,6 +19,7 @@ const outline = (extra: Partial<OutlineActions> = {}): OutlineActions => ({
 	move: nothing,
 	moveTo: nothing,
 	moveUnder: nothing,
+	remove: nothing,
 	...extra,
 });
 

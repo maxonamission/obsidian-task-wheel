@@ -4,8 +4,10 @@ import { type AfterWrite } from "../model/carry";
 import type { Priority, TaskState, WheelScope } from "../model/types";
 import {
 	isNoteTask,
+	isRefused,
 	type NoRename,
 	renameRefusal,
+	scopeFor,
 	wedgeSource,
 } from "../model/scope";
 import { parseTaskLine, STATUS_CHAR } from "../parse/task-line";
@@ -22,6 +24,7 @@ import { headingsOf } from "../parse/outline";
 import {
 	levelForNewSection,
 	type MoveDirection,
+	removeTaskLine,
 	whyNotMoved,
 } from "../parse/outline-edit";
 import { PRIORITY_LADDER } from "../layout/colour";
@@ -31,9 +34,11 @@ import type { CardActions } from "./reading-card";
 import { type CarryHost, carryTo, carryToPreset } from "./carry-flow";
 import { pickHeading } from "./heading-picker";
 import { parentCandidates, pickTask } from "./task-picker";
-import { promptForTasks } from "./prompt";
+import { promptForRemoval, promptForTasks } from "./prompt";
 import type { CarryMode, LineAnchor, LineRef } from "../vault/writeback";
 import {
+	createThroughTasks,
+	createsThroughTasks,
 	editThroughTasks,
 	editsThroughTasks,
 	writeDone,
@@ -41,7 +46,9 @@ import {
 	writeMove,
 	writeMoveTo,
 	writeMoveToNew,
+	writeDeleteLine,
 	writeInsertAfter,
+	writeInsertLineAfter,
 	writeMoveUnder,
 	writeNoteStatus as writeNoteStatusTo,
 	renameNoteTask as renameNoteTaskTo,
@@ -167,7 +174,13 @@ export type Act =
 	/** The heading or parent task a picker named, with the text it showed. */
 	| { kind: "moveTo"; target: LineAnchor }
 	| { kind: "moveUnder"; target: LineAnchor }
-	| { kind: "moveToNew"; title: string };
+	| { kind: "moveToNew"; title: string }
+	/**
+	 * Take the line out of the note (BC_E3_S91). The guard — nothing may hang
+	 * under it — is `removeTaskLine`'s, decided ahead of the confirmation this
+	 * always follows; nothing here needs to say so twice.
+	 */
+	| { kind: "remove" };
 
 /**
  * Say the true thing about a move that did not happen.
@@ -294,6 +307,9 @@ after: AfterWrite = {},
 			case "moveToNew":
 				outcome = await writeMoveToNew(host.app, ref, what.title);
 				break;
+			case "remove":
+				outcome = await writeDeleteLine(host.app, ref);
+				break;
 			case "defer":
 				// A deferral is a decision about attention, not a change to the
 				// deadline: it writes ⏳ and leaves 📅 alone, so the "parked for
@@ -334,7 +350,11 @@ after: AfterWrite = {},
 					? // The picker leaves out the task itself and everything under
 						// it, so the only refusal left is the one that changes nothing.
 						"Task wheel: it already hangs under that task."
-					: "Task wheel: nothing to change on that line.",
+					: what.kind === "remove"
+						? // The one race the confirmation cannot close: something was
+							// added under the line between asking and writing.
+							"Task wheel: this line has something under it now, so it stays."
+						: "Task wheel: nothing to change on that line.",
 		);
 	}
 
@@ -368,6 +388,40 @@ function shift(from: Priority, step: number): Priority {
  * anything here is simply absent — a greyed-out row of five would say the
  * wheel does more than it does.
  */
+
+/**
+ * Where "Reveal in navigation" could point for this item, if anywhere
+ * (BC_E3_S134).
+ *
+ * A note ring and a task document are both a whole note; a folder wedge is a
+ * folder on disk. All three have a place in the file list to open Obsidian's
+ * own menu on. A tag or a property wedge does not — it names nothing on
+ * disk — and `scopeFor` already carries that exact answer
+ * (`refused: "not-a-folder"`), the same question `renameRefusal` asks of the
+ * same wedge. Asking it again here keeps the folder/tag rule written down
+ * once.
+ */
+function revealPath(host: EditHost, laid: LaidOutNode): string | null {
+	if (laid.node.kind === "project") return laid.node.source?.path ?? null;
+
+	// Every wedge is a "domain" node one ring out (`scopeFor`'s own
+	// assumption); anything deeper here is a heading or a task, neither of
+	// which is a file or a folder.
+	if (laid.node.kind !== "domain" || laid.depth !== 1) return null;
+
+	const scope = scopeFor(
+		{
+			kind: laid.node.kind,
+			depth: laid.depth,
+			label: laid.node.label,
+			source: laid.node.source,
+		},
+		host.scope(),
+		host.settings.domainSource,
+	);
+	return !isRefused(scope) && scope.kind === "folder" ? scope.path : null;
+}
+
 export function actionsFor(
 	host: EditHost,
 	laid: LaidOutNode | null,
@@ -376,6 +430,7 @@ export function actionsFor(
 
 	const ref = lineRefOf(laid);
 	const state = laid.node.fields?.state;
+	const reveal = revealPath(host, laid);
 
 	const on = ADVANCING;
 
@@ -486,6 +541,7 @@ export function actionsFor(
 						},
 						moveTo: () => void moveToHeading(host, ref),
 						moveUnder: () => void moveUnderTask(host, ref),
+						remove: () => void removeLine(host, ref),
 					},
 		// The same offering Obsidian's own editor makes: type `[[` and the
 		// notes come to you (BC_E3_S29).
@@ -545,11 +601,20 @@ export function actionsFor(
 		// and making folders is not. On a note ring the same menu is one
 		// right-click away in the file list, so the convenience was not
 		// worth the tap. Here it is the only way, so it stays.
-		file: isNoteTask(laid.node)
-			? (event: MouseEvent) => {
-					openFileMenu(host, laid.node.source?.path ?? "", event);
-				}
-			: undefined,
+		//
+		// **Herzien BC_E3_S134** (eigenaar, 4 sep 2026): worth the tap after all,
+		// for a reason the paragraph above never weighed — *Reveal in
+		// navigation* is a row in this same menu, and it reads, full stop. The
+		// hazard above is still real for *Move file to…*, exactly as it always
+		// was on a task document; opening the menu is not itself a move, and
+		// the reader still picks the row. `revealPath` decides which items have
+		// a place in the file list to reveal at all — a note ring or a folder
+		// wedge, never a tag or a property wedge, which is `scopeFor`'s answer
+		// and not a second one of ours.
+		file:
+			reveal === null
+				? undefined
+				: (event: MouseEvent) => openFileMenu(host, reveal, event),
 		carry:
 			laid.node.source === undefined ||
 			laid.node.kind === "root" ||
@@ -731,6 +796,45 @@ export async function moveUnderTask(
 }
 
 /**
+ * Take a task's line out of the note, once the reader has seen it and said yes
+ * (BC_E3_S91).
+ *
+ * The note is read again here, the same as `moveToHeading` and
+ * `moveUnderTask` above: the guard needs the *current* text, not what the
+ * wheel drew from a scan that may be minutes old. `removeTaskLine` decides
+ * whether there is anything to ask about at all — a line with a subtask or an
+ * indented note under it is refused here, before a dialog ever opens, rather
+ * than offered and then taken back. Only once that guard has passed does the
+ * reader see the line and get to say no; `act` runs the same guard again at
+ * the write, for the rare note that changed in between.
+ */
+export async function removeLine(host: EditHost, ref: LineRef): Promise<void> {
+	const file = host.app.vault.getAbstractFileByPath(ref.path);
+	if (!(file instanceof TFile)) {
+		new Notice(`Task wheel: ${ref.path} is gone.`);
+		return;
+	}
+
+	const lines = linesOf(await host.app.vault.cachedRead(file));
+	if (removeTaskLine(lines, ref.line) === null) {
+		new Notice(
+			"Task wheel: this line has something under it, so it stays — move or remove that first.",
+		);
+		return;
+	}
+
+	host.trace("remove: asking");
+	const confirmed = await promptForRemoval(host.app, lines[ref.line] ?? ref.raw);
+	if (!confirmed) {
+		host.trace("remove: cancelled");
+		return;
+	}
+
+	host.trace("remove: writing");
+	await act(host, { kind: "remove" }, ref, ADVANCING);
+}
+
+/**
  * Hand the line to the Tasks plugin's own modal, and write back what returns.
  *
  * The round is not left: no note is opened, no editor gets the cursor. That
@@ -776,13 +880,88 @@ export async function editInTasks(
 }
 
 /**
+ * Add a task beside this one, or a step inside it.
+ *
+ * Same rule as editing (BC_E3_S115): the setting that decides what a click on
+ * the title opens also decides what this opens, so there is one answer to
+ * "what opens writing" rather than two that can drift apart. With the Tasks
+ * plugin's creation modal both available and asked for, that is where the
+ * words come from; otherwise the wheel's own prompt below is exactly what it
+ * was before this story.
+ *
+ * **One task, not a run of them** — and that is the answer to the other half
+ * of the question this story came from (*"hoe ga je dan om met het toevoegen
+ * van nóg een taak zoals nu wel kan?"*, eigenaar 2 sep 2026). The wheel's own
+ * box stays open on purpose: it clears and waits, so a run of tasks is one
+ * gesture. The Tasks window closes on confirm, everywhere in Obsidian, and
+ * reopening it ourselves would be us deciding the reader wants another one.
+ * Pressing `a` again is a keystroke; springing a second modal on someone who
+ * is done is not undoable. So the two routes really do differ here, the
+ * README says so, and nobody has to find it out by pressing Enter.
+ */
+export async function addTask(
+	host: EditHost,
+	ref: LineRef, asChild: boolean,
+): Promise<void> {
+	if (host.settings.editTask === "tasks" && createsThroughTasks(host.app)) {
+		await addTaskInTasks(host, ref, asChild);
+		return;
+	}
+
+	await addTaskInline(host, ref, asChild);
+}
+
+/**
+ * Hand a blank task to the Tasks plugin's own creation modal, and place what
+ * comes back.
+ *
+ * **The indentation is ours, not the modal's** — the same reasoning as
+ * `editInTasks` above, and the same fix reused rather than written twice:
+ * `writeInsertLineAfter` strips whatever indentation the returned line
+ * carries and replaces it with the one this task's place in the outline
+ * calls for, so a subtask lands under its parent even when the modal hands
+ * back a line flush with the margin.
+ */
+async function addTaskInTasks(
+	host: EditHost,
+	ref: LineRef,
+	asChild: boolean,
+): Promise<void> {
+	const created = await createThroughTasks(host.app);
+	// Cancelled, or the plugin declined. Either way nothing was written, and
+	// there is nothing to say about it.
+	if (created === null) return;
+
+	let outcome: WriteOutcome;
+	let at: LineRef | null;
+	try {
+		({ outcome, at } = await writeInsertLineAfter(host.app, ref, created, asChild));
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		new Notice(`Task wheel: could not write to ${ref.path} — ${message}`);
+		return;
+	}
+
+	if (outcome === "stale" || outcome === "missing" || at === null) {
+		new Notice(
+			outcome === "missing"
+				? `Task wheel: ${ref.path} is gone. Rescanned.`
+				: "Task wheel: that line has changed since the scan. Rescanned.",
+		);
+		return;
+	}
+
+	await host.refreshCarrying();
+}
+
+/**
  * Ask for the words, then write the line.
  *
  * A prompt rather than an empty line to fill in: an empty task written to the
  * note first and named second leaves `- [ ]` behind whenever somebody changes
  * their mind, and the wheel would have drawn it as "(empty task)".
  */
-export async function addTask(
+async function addTaskInline(
 	host: EditHost,
 	ref: LineRef, asChild: boolean,
 ): Promise<void> {
@@ -893,22 +1072,28 @@ export async function renameNoteTitle(
 }
 
 /**
- * Obsidian's own menu for a file, opened on a task that is a whole note.
+ * Obsidian's own menu for the file or folder this item stands for.
  *
  * `file-menu` is the event every part of Obsidian uses to build that menu —
  * the file explorer, a tab header, a link. Triggering it hands us *Move file
- * to…*, *Rename…* and the rest as the reader knows them, kept in step with
- * their Obsidian version and whatever their other plugins add. Building a
- * folder picker here would be a second way to do a thing the app already
- * does well, and a worse one (eigenaar, 4 sep 2026).
+ * to…*, *Rename…*, *Reveal in navigation* and the rest as the reader knows
+ * them, kept in step with their Obsidian version and whatever their other
+ * plugins add. Building a folder picker here would be a second way to do a
+ * thing the app already does well, and a worse one (eigenaar, 4 sep 2026).
+ *
+ * Any `TAbstractFile` — Obsidian types the event's own listener that way
+ * (`on(name: "file-menu", callback: (menu, file: TAbstractFile, …) => …)`,
+ * obsidian.d.ts) — so a folder passes through the same call a note always
+ * has (BC_E3_S134). There is no second, filtered menu for just *Reveal in
+ * navigation*: Obsidian's public API hands back the whole menu or nothing.
  */
 export function openFileMenu(
 	host: EditHost,
 	path: string, event: MouseEvent,
 ): void {
 	const file = host.app.vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) {
-		new Notice("Task wheel: that note is no longer in the vault.");
+	if (file === null) {
+		new Notice("Task wheel: that item is no longer in the vault.");
 		return;
 	}
 

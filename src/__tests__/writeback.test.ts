@@ -4,10 +4,13 @@ import { extractBlock } from "../parse/cross-note";
 import {
 	type CarryOutcome,
 	type LineRef,
+	createThroughTasks,
+	createsThroughTasks,
 	editThroughTasks,
 	editsThroughTasks,
 	togglesThroughTasks,
 	writeCarry,
+	writeInsertLineAfter,
 	writeLine,
 	writeDone,
 	writeStatus,
@@ -73,6 +76,7 @@ const vault = {
 let tasksApi: {
 	executeToggleTaskDoneCommand?: (line: string, path: string) => unknown;
 	editTaskLineModal?: (line: string) => unknown;
+	createTaskLineModal?: () => unknown;
 } | null = null;
 
 const app = {
@@ -463,5 +467,115 @@ describe("the bridge to the Tasks edit modal", () => {
 			"- [x] Bellen",
 			"  - [ ] Nummer opzoeken",
 		]);
+	});
+});
+
+/* ------------------------------------------------------------------ */
+/* Borrowing the Tasks plugin's own creation modal (BC_E3_S115)        */
+/* ------------------------------------------------------------------ */
+
+describe("the bridge to the Tasks creation modal", () => {
+	beforeEach(() => {
+		tasksApi = null;
+		write(SOURCE, ["- [ ] Bellen", "  - [ ] Nummer opzoeken"]);
+	});
+
+	it("is not offered when the plugin is not installed", async () => {
+		expect(createsThroughTasks(app)).toBe(false);
+		expect(await createThroughTasks(app)).toBeNull();
+	});
+
+	it("is not offered by a Tasks that predates the modal", async () => {
+		// Half-installed: editing already works, creating does not yet. Feature
+		// detection on the method, same as the edit bridge, is what keeps that a
+		// missing menu entry rather than a crash.
+		tasksApi = { editTaskLineModal: (line) => line };
+
+		expect(editsThroughTasks(app)).toBe(true);
+		expect(createsThroughTasks(app)).toBe(false);
+	});
+
+	it("gives back what the modal says, asking it for nothing", async () => {
+		let calls = 0;
+		tasksApi = {
+			createTaskLineModal: () => {
+				calls += 1;
+				return Promise.resolve("- [ ] Bellen mama 📅 2026-09-10");
+			},
+		};
+
+		expect(createsThroughTasks(app)).toBe(true);
+		expect(await createThroughTasks(app)).toBe("- [ ] Bellen mama 📅 2026-09-10");
+		expect(calls).toBe(1);
+	});
+
+	it("reads an empty answer as 'cancelled', not as an empty task", async () => {
+		tasksApi = { createTaskLineModal: () => Promise.resolve("") };
+		expect(await createThroughTasks(app)).toBeNull();
+
+		tasksApi = { createTaskLineModal: () => Promise.resolve("   ") };
+		expect(await createThroughTasks(app)).toBeNull();
+	});
+
+	it("survives a plugin that throws, or answers with nonsense", async () => {
+		tasksApi = {
+			createTaskLineModal: () => {
+				throw new Error("apiV1 changed shape");
+			},
+		};
+		expect(await createThroughTasks(app)).toBeNull();
+
+		tasksApi = { createTaskLineModal: () => Promise.resolve(42) };
+		expect(await createThroughTasks(app)).toBeNull();
+	});
+
+	it("places the line as a sibling, after the whole block", async () => {
+		const { outcome, at } = await writeInsertLineAfter(
+			app,
+			refAt(0),
+			"- [ ] Bellen mama",
+			false,
+		);
+
+		expect(outcome).toBe("written");
+		expect(linesOf(SOURCE)).toEqual([
+			"- [ ] Bellen",
+			"  - [ ] Nummer opzoeken",
+			"- [ ] Bellen mama",
+		]);
+		expect(at).toEqual({ path: SOURCE, line: 2, raw: "- [ ] Bellen mama" });
+	});
+
+	it("re-indents a subtask even when the modal hands it back flush with the margin", async () => {
+		// This is the case the story calls out by name: the modal knows nothing
+		// about outlines, so it returns the line without indentation, and the
+		// indentation is ours to add — the same fix BC_E3_S100 wrote for
+		// `editInTasks`, reused here rather than written a second time.
+		const { outcome } = await writeInsertLineAfter(
+			app,
+			refAt(0),
+			"- [ ] Nummer opzoeken tweede keer",
+			true,
+		);
+
+		expect(outcome).toBe("written");
+		expect(linesOf(SOURCE)).toEqual([
+			"- [ ] Bellen",
+			"    - [ ] Nummer opzoeken tweede keer",
+			"  - [ ] Nummer opzoeken",
+		]);
+	});
+
+	it("only writes while the anchor line is still what we read", async () => {
+		const outcome = await writeInsertLineAfter(
+			app,
+			{ path: SOURCE, line: 0, raw: "- [ ] Bellen niet meer" },
+			"- [ ] Nieuw",
+			false,
+		);
+
+		expect(outcome.outcome).toBe("stale");
+		expect(outcome.at).toBeNull();
+		expect(linesOf(SOURCE)).toEqual(["- [ ] Bellen", "  - [ ] Nummer opzoeken"]);
 	});
 });

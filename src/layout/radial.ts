@@ -899,6 +899,27 @@ function renderFor(
 	if (onPath) return "labelled";
 
 	if (span < config.tickSpan) return "tick";
+
+	// The ring you are looking out on (BC_E3_S125, eigenaar 3 sep 2026: *"anders
+	// wordt het gokken wat het is"*). A direct child of the focus is named
+	// whatever its span, because two good rules were making a third that nobody
+	// chose: `visible.ts` draws *every* child of the focus, and `walk` deals the
+	// angles without regard for where you are looking — deliberately, since the
+	// wheel used to slide about on every click. More dots in a wedge that does
+	// not widen means narrower dots, and under `labelSpan` the name went.
+	//
+	// Measured on the busy fixture: 49 of 53 children of a focus carried no
+	// name, and not one of them was below `tickSpan` — so this rule reaches
+	// exactly the case that was reported and no other.
+	//
+	// What may not fit is decided one layer on, by `placeLabels`, which ranks
+	// them (focus first, wedge title, neighbour, rest) and drops what collides.
+	// That layer is the one built for the question, and it degrades gracefully;
+	// the span test is a blunt stand-in for it. The tick above stays a tick: at
+	// that width there is no room for a dot, let alone a name, and that is a
+	// decision about the *mark* rather than about the label.
+	if (steps <= 1) return "labelled";
+
 	if (span < config.labelSpan) return "dot";
 
 	// A stump counts as a leaf for labelling: it is the outermost thing on its

@@ -99,6 +99,7 @@ export function buildTreeFrom(
 	const byId = new Map<string, WheelNode>([[root.id, root]]);
 	const emptyNotes: string[] = [];
 	let filteredOut = 0;
+	let documentsOutsideDateRule = 0;
 	const showsFinished = showsFinishedWork(options);
 
 	// Notes are visited in a deterministic order so that first-seen wins are
@@ -167,6 +168,7 @@ export function buildTreeFrom(
 		// work hangs inside it, or that work would have nothing to hang from.
 		const asNoteTask = noteTaskOf(note, options, showsFinished, kept.length > 0);
 		if (asNoteTask?.filteredOut === true) filteredOut += 1;
+		if (asNoteTask?.outsideDateRule === true) documentsOutsideDateRule += 1;
 		const asTask = asNoteTask?.task;
 
 		// A task note is work whether or not anybody wrote a checkbox in it, so
@@ -237,6 +239,7 @@ export function buildTreeFrom(
 		byId,
 		emptyNotes,
 		filteredOut,
+		documentsOutsideDateRule,
 		showsFinished,
 		sectionMissing,
 	};
@@ -473,7 +476,9 @@ function noteTaskOf(
 	options: ParseOptions,
 	showsFinished: boolean,
 	carries: boolean,
-): { task?: NoteTask; filteredOut: boolean } | undefined {
+):
+	| { task?: NoteTask; filteredOut: boolean; outsideDateRule?: boolean }
+	| undefined {
 	if (!isTaskNote(note, options)) return undefined;
 	if (options.scope.kind === "note" || options.scope.kind === "section") {
 		return undefined;
@@ -505,7 +510,23 @@ function noteTaskOf(
 		isFiltering(options.filter) &&
 		!matches(fields, options.filter, options.today, note.path)
 	) {
-		return carries ? { task, filteredOut: false } : { filteredOut: true };
+		// Was it the date rule that did this, and only the date rule? Asked by
+		// running the same filter with that one rule taken out: if it passes then,
+		// the date rule is the whole reason, and the reason is that we never read
+		// its dates (BC_E3_S183). A document that also fails on a tag is left out
+		// of this count, because there the reader's own rule explains it.
+		const outsideDateRule =
+			fields.datesUnread === true &&
+			options.filter.due !== "any" &&
+			matches(
+				fields,
+				{ ...options.filter, due: "any" },
+				options.today,
+				note.path,
+			);
+		return carries
+			? { task, filteredOut: false }
+			: { filteredOut: true, outsideDateRule };
 	}
 
 	return { task, filteredOut: false };
@@ -537,6 +558,10 @@ function noteFields(
 		tags: note.frontmatterTags ?? [],
 		description: label,
 		raw: "",
+		// The dates live in front matter under names we do not read, so their
+		// absence here is ignorance rather than a fact about the note
+		// (BC_E3_S183).
+		datesUnread: true,
 	};
 }
 

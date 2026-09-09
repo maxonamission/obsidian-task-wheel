@@ -2,11 +2,17 @@
 
 *See every open task once — and know that you did.*
 
-Task Wheel is a visual overview of every open task you have: a turnable radial
-tree you review one stop at a time. The **angle** is the life domain a task
-belongs to; the **radius** is how deep it sits in the hierarchy. You turn the
-wheel, and each task comes past a fixed reading wedge at the top, one stop at a
-time, until you have been all the way round.
+**Task Wheel is an Obsidian plugin for reviewing every open task in your
+vault.** It reads the checkboxes you already write, in
+[Obsidian Tasks](https://publish.obsidian.md/tasks/) syntax, and draws them as a
+turnable radial tree you go through one stop at a time. The **angle** is the
+life domain a task belongs to; the **radius** is how deep it sits in the
+hierarchy. You turn the wheel, and each task comes past a fixed reading wedge at
+the top, one stop at a time, until you have been all the way round.
+
+It is for the weekly review, or whatever you call the moment you sit down and go
+through everything: the moment a list of five thousand checkboxes is exactly the
+wrong tool.
 
 It is a **review instrument, not an execution instrument**. The point is being
 able to say with certainty that you have seen everything. Ticking a task off is
@@ -86,10 +92,15 @@ things from it: ticking a task off goes through it, so recurring tasks roll over
 exactly as Tasks itself would do it, and the ⋯ menu offers **Edit in Tasks…**,
 which opens that plugin's own edit window on the task in front of you —
 dates, recurrence, dependencies, your own status set. A setting can send the
-quicker gesture there too: *Clicking a task's title* opens the wheel's own box
-by default, or that window instead. Without Tasks the entry is simply not there
-and the setting has nothing to switch to, so the wheel keeps to what it has:
-rewrite the words, change the priority, push a week out, or open the note.
+quicker gesture there too: *Clicking a task's title, and adding a task* opens
+the wheel's own box by default, or that window instead. That one setting covers
+both, because they are the same question asked about an existing task and a
+blank one. One difference is worth knowing: the wheel's own box stays open so
+you can type a run of tasks one after another, while the Tasks window makes one
+task and closes, as it does everywhere else in Obsidian. Without Tasks the entry
+is simply not there and the setting has nothing to switch to, so the wheel keeps
+to what it has: rewrite the words, change the priority, push a week out, or open
+the note.
 
 ![The Tasks plugin's own edit window, open over the wheel on the task under the reading wedge](docs/screenshots/tasks-modal.png)
 
@@ -172,12 +183,19 @@ not a round the instrument can promise. *Rescan the vault* is still there as a
 command for when you want to force it.
 
 The **reading card** floats over the wheel and holds the item under the wedge:
-where it sits, what it says, its dates and priority, and the review actions —
+**what it is**, where it sits, what it says, its dates and priority, and the
+review actions —
 tick off, mark in progress, cancel, push a week out, raise or lower priority,
 and open the note. The two status buttons are toggles: pressing the one a task
 already carries puts it back to open, which is the only way back from a mis-tap
 on a phone. The card keeps one fixed size at every stop, so the drawing
 underneath never jumps.
+
+The ring you are on is depth, not kind, so a folder, a note, a heading, a task
+and a subtask can stand side by side on it. The card's bottom line therefore
+starts by saying which of those you are looking at: *Task · plan.md · line 12*,
+*Heading · plan.md*, *Note property*, *Task document · migratie.md*. A wedge
+that is a tag says *Tag*, not *Folder*, because it is not one.
 
 A task like `Finish the training plan [[week-01]]` says half of what it is about
 in the link, so the card shows it as one: `[[note]]`, `[[note|alias]]`,
@@ -361,14 +379,26 @@ at it following along.
 from a note's front matter, and writing one would be inventing a convention for
 every vault that has none.
 
+That has one visible consequence, and it is deliberate: **the date rules leave
+task documents out**, rather than guessing about them. *Has no date* used to
+show a document that was due tomorrow, which is a wrong answer to exactly the
+question you asked. Now nothing is claimed, and the filter line says how many
+documents were left out and why. Their tags, their status and their title are
+read as ever.
+
 **Carrying** is absent as well, and for a sharper reason: carrying moves task
 **lines** out of a note into another one, which on a task document would empty
 the very thing you meant to move. In its place the ⋯ button opens **Obsidian's
 own file menu** — *Move file to…*, *Rename…*, and whatever else your setup puts
 there. One way to move a file in the whole vault, and you already know it.
 
-That menu is offered only here. On an ordinary note ring the ⋯ keeps its two
-carry entries, and the file menu is one right-click away in the file list anyway.
+That menu is offered in three places now, and only three: a task document, a
+note ring, and a wedge that is a folder. Those are the items with a place of
+their own in the file list. A wedge that is a tag or a property value has none,
+so the entry is simply absent there. It is the same menu each time, which is
+also how you get **Reveal in navigation**: the wheel hides the folder tree on
+purpose, and this is the way back to it when the question is *where does this
+actually sit*.
 Reviewing is quick and half-attentive; making folders is not, and a folder typed
 with the wrong capital is a *new* folder on a case-sensitive file system. A finished task note leaves the round, but
 if a checkbox inside it is still open that checkbox stays on the wheel: nothing
@@ -443,9 +473,16 @@ Opening the note reuses its tab if it is already open, rather than stacking a
 new one every time; and coming back to the wheel lands on the item your cursor
 was left on.
 
-There is no delete: cancelling (`[-]`) already says "not doing this" and can be
-undone. And the first task in an empty note still has to be typed in the note —
-these actions hang off a task, so an empty note has nothing to hang them on.
+There is no general delete: cancelling (`[-]`) already says "not doing this",
+and that stays the right move for real work — it keeps the decision on record
+instead of erasing it, and it can be undone. What the `⋯` menu does offer,
+narrowly, is **Remove this line from the note**, and only when nothing hangs
+under the task — no subtask, no indented note. That is for the case cancelling
+was never about: a bare `- [ ]` a misfired paste left behind, with no decision
+in it worth keeping. The line is shown before it goes, and a task with words on
+it still asks — cancelling remains the suggested answer. And the first task in
+an empty note still has to be typed in the note — these actions hang off a
+task, so an empty note has nothing to hang them on.
 
 ## Carrying work into another note
 
@@ -470,6 +507,11 @@ You are asked two things: **which note**, then **where in it** — and the secon
 comes with the answer already filled in as the first row, so `Enter` keeps the
 path it has. Below that are the other note's own headings, and typing something
 else reads as a whole path from the top (`Werk/Klanten`).
+
+Naming a heading instead of keeping the path is the one thing that changes the
+shape: everything you are carrying lands under that one heading, so work from
+two sections arrives as one list. The row says so when it applies, and the
+first row remains the way to keep the sections apart.
 
 One action carries a task with its subtasks, or a whole heading with everything
 under it, subheadings included — those are renumbered as a block, so a `###`
@@ -580,6 +622,55 @@ in the note — which is what *open the note* is for.
   Changing it here is a new round for the vault wheel, exactly as it is in the
   panel, and the plugin says how many marks that cost. Whatever is on is always
   visible under the wheel.
+
+## Common questions
+
+### Does it work with the Tasks plugin?
+
+Yes, and it does not require it. Task Wheel reads
+[Obsidian Tasks](https://publish.obsidian.md/tasks/) syntax straight out of your
+notes — dates, priorities, recurrence, dependencies — so a vault that already
+uses Tasks needs no conversion and no second syntax. With the Tasks plugin
+installed, ticking off goes through it so recurring tasks roll over exactly as
+that plugin would do it, and its own edit and create windows are available from
+the wheel. Without it, everything still works. See [What it reads](#what-it-reads).
+
+### How is this different from a Kanban board or a task list?
+
+Those are for **doing** work; this is for **seeing** it. A board or a list shows
+what you chose to put on it, which means the thing you forgot to add is exactly
+the thing it cannot show you. The wheel starts from every open checkbox in the
+vault and gives each one a stop, so the question it answers is *have I now seen
+all of it* rather than *what is on my board*. It is a complement to a board, not
+a replacement: tick a task off here if you like, but that is not what it is for.
+See [Why a wheel](#why-a-wheel).
+
+### Does it work on a phone?
+
+Yes. Pinch to zoom, drag to turn, tap to go somewhere. The reading card and the
+filter panel are built for a narrow pane, and the plugin is not desktop-only.
+
+### How does it decide what goes where on the wheel?
+
+The angle is the **life domain**, which by default is the top-level folder a
+note sits in; you can point it at a tag namespace, a front-matter property or a
+heading instead. The radius is depth: folder, note, heading, task, subtask. You
+do not tag anything specially and you do not restructure your vault. See
+[Settings worth knowing](#settings-worth-knowing).
+
+### Will it change my notes, or send anything anywhere?
+
+It changes a note only when you ask it to, and then it rewrites the one line you
+acted on and leaves the rest of it alone — including syntax the wheel does not
+model. Nothing leaves your machine: no network calls, no telemetry, no account.
+See *Privacy* below.
+
+### How big a vault does it handle?
+
+Twenty thousand tasks draw as fast as two hundred, because the number of things
+drawn is capped rather than the number of things counted. What is not drawn sits
+behind a stump with a counter on it, so it is hidden and never lost. See
+[At scale](#at-scale).
 
 ## Install
 

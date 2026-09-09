@@ -384,6 +384,18 @@ export class WheelController {
 		// A round starts at the beginning, and the beginning is the first stop
 		// turning would rest on — not the first detent, which is a folder.
 		const kept = indexOfId(detents, keepId);
+		// The one fallback in here that used to be silent, and the one that reads
+		// as a bug from the outside: the reader asked for an id, the new layout
+		// does not hold it, and the wheel rests on whatever was nearest instead
+		// — which for a subtask is its own parent, so it looks like the selection
+		// sprang back (BC_E3_S61). The cause it was reported for is gone since
+		// BC_E3_S95, and this is what makes a next one findable rather than
+		// guessed at.
+		if (kept < 0 && keepId !== null) {
+			this.trace(
+				`adopt: ${keepId} is not among ${detents.length} stops, resting on the nearest`,
+			);
+		}
 		this.index =
 			kept >= 0
 				? kept

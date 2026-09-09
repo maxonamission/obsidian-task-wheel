@@ -84,6 +84,71 @@ export function pressMeans(
 	return last ? "write and close" : "write and clear";
 }
 
+/**
+ * Ask before a task line leaves the note for good (BC_E3_S91).
+ *
+ * The one confirmation this narrow action gets, and the only place the line
+ * is shown before it disappears — the reader has typed nothing here, so
+ * there is no field to look at instead. Resolves `false` on anything but the
+ * warning button: Escape, the X, and Cancel all mean the same thing, which is
+ * that nothing was written.
+ */
+export function promptForRemoval(app: App, line: string): Promise<boolean> {
+	return new Promise((resolve) => {
+		new RemoveLinePrompt(app, line, resolve).open();
+	});
+}
+
+class RemoveLinePrompt extends Modal {
+	private confirmed = false;
+	private settled = false;
+
+	constructor(
+		app: App,
+		private readonly line: string,
+		private readonly done: (confirmed: boolean) => void,
+	) {
+		super(app);
+	}
+
+	override onOpen(): void {
+		this.setTitle("Remove this line from the note");
+
+		this.contentEl.createEl("p", {
+			text:
+				"This takes the line below out of the note. There is no undo from " +
+				"the wheel — for real work, cancelling stays the better path, " +
+				"because it keeps the decision on record.",
+		});
+		this.contentEl.createEl("pre", {
+			cls: "task-wheel-remove-line",
+			text: this.line.trim(),
+		});
+
+		new Setting(this.contentEl)
+			.addButton((button) =>
+				button
+					.setButtonText("Remove line")
+					.setDestructive()
+					.setCta()
+					.onClick(() => {
+						this.confirmed = true;
+						this.close();
+					}),
+			)
+			.addButton((button) =>
+				button.setButtonText("Cancel").onClick(() => this.close()),
+			);
+	}
+
+	override onClose(): void {
+		this.contentEl.empty();
+		if (this.settled) return;
+		this.settled = true;
+		handBack(() => this.done(this.confirmed), this.containerEl);
+	}
+}
+
 class TaskPrompt extends Modal {
 	private value = "";
 	private written = 0;

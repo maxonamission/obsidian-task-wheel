@@ -4,6 +4,65 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.8]
+
+Nine things that had been waiting, worked off in one go. Two of them are the
+wheel no longer claiming something that was not true, and one is a decision
+about deleting that took a while to get right.
+
+- **Added**: **Remove this line from the note**, in the `⋯` menu, and only ever
+  when nothing hangs under the task. There is still no general delete, and the
+  reason has not changed: cancelling (`[-]`) says "not doing this" and keeps the
+  decision on record, which is worth more than a clean list. But a bare `- [ ]`
+  a misfired paste left behind was never a decision, and cancelling only turned
+  rubbish into an archive piece. The line is shown before it goes, a task with
+  words on it still asks, and a task with a subtask or a note under it is
+  refused outright rather than offered and taken back.
+- **Added**: **Reveal in navigation** from a note ring and from a wedge that is
+  a folder, through Obsidian's own file menu — the same menu a task document has
+  had all along. The wheel hides the folder tree on purpose, and this is the way
+  back to it when the question is *where does this actually sit*. A wedge that is
+  a tag or a note property has no place in the file list, so the entry is simply
+  absent there.
+- **Added**: adding a task can open the **Tasks plugin's own window** instead of
+  the wheel's box, so a new task can carry dates, recurrence and dependencies
+  from the start. It follows the setting you already have — the one that decides
+  what clicking a title opens — rather than a second one that could drift from
+  it. One difference worth knowing: the wheel's own box stays open so you can
+  type a run of tasks, while the Tasks window makes one and closes, as it does
+  everywhere else in Obsidian.
+- **Added**: the card now says **what it is**. The ring is depth, not kind, so a
+  folder, a note, a heading, a task and a subtask can stand side by side on one
+  of them, and nothing said which was which. The bottom line of the card now
+  starts with the answer: *Task · plan.md · line 12*, *Heading · plan.md*,
+  *Task document · migratie.md*. A wedge that is a tag says *Tag*, not *Folder*.
+- **Fixed**: the card said *line 1* about a task document. A task document is a
+  whole note and has no line at all; that number was a placeholder being read
+  out as a fact. And a wedge had no bottom line whatsoever.
+- **Fixed**: far more of the ring you are looking out on can be read. Names were
+  dropped whenever the wedge got narrow, including on the one ring you are
+  actually looking at — on a branch of 53 children, 3 names were readable where
+  18 are now.
+- **Changed**: **the date rules leave task documents out instead of guessing.**
+  The wheel reads no date from front matter, and it used to take that absence
+  for a fact about the note: *Has no date* showed a document that was due
+  tomorrow, and *Ready now* showed one scheduled for next year. Both were
+  confident and wrong about exactly the question you asked. Nothing is claimed
+  now, and the filter line says how many documents were left out and why. Their
+  tags, their status and their title are read as ever.
+- **Changed**: choosing where carried work lands now says what that choice
+  costs. Keeping the path each item has was always spelled out; naming a heading
+  instead was not, and it puts everything under that one heading — so work from
+  two sections arrives as one list. The row says so before you pick it.
+- **Changed**: the `⋯` menu on a note ring gained *Move or rename this file…*,
+  the same entry a task document has. It is Obsidian's own file menu, which is
+  also where *Reveal in navigation* lives.
+- **Changed**: the README and the plugin's own description say plainly what this
+  is and who it is for, and answer the six questions people actually ask before
+  installing — including how it differs from a board or a list, and whether it
+  needs the Tasks plugin. Nothing about the plugin changed; it was simply hard
+  to find out what it did without reading a page and a half.
+
 ## [0.2.7]
 
 The second audit of the code, finished. Most of what follows you would only

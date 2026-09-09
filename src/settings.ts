@@ -274,12 +274,15 @@ export interface TaskWheelSettings
 	 */
 	arrowStep: "tasks" | "ring";
 	/**
-	 * What a click on the task's title opens.
+	 * What a click on the task's title opens — and, since BC_E3_S115, what
+	 * *Add task* and *Add subtask* open too.
 	 *
 	 * The wheel's own box rewrites the words and nothing else, which is the
 	 * right size for a review. The Tasks plugin's window is the whole task —
 	 * dates, recurrence, dependencies, your own status set — and it is already
-	 * installed for anyone who says "in Tasks" here.
+	 * installed for anyone who says "in Tasks" here. Adding a task is the same
+	 * question asked about a blank one, so it follows the same answer rather
+	 * than getting a setting of its own that could drift from this one.
 	 *
 	 * Not a button, deliberately: the row on the card is full at eight, and
 	 * editing the outline already sits behind one ellipsis rather than four
@@ -287,7 +290,8 @@ export interface TaskWheelSettings
 	 * setting only says what it opens.
 	 *
 	 * Without the Tasks modal (not installed, or older than 7.21.0) this has
-	 * nothing to switch to and the inline box opens either way.
+	 * nothing to switch to and the inline box opens either way — for editing
+	 * and for adding alike.
 	 */
 	editTask: "inline" | "tasks";
 	/**
@@ -897,8 +901,8 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Clicking a task's title",
-						desc: "The wheel's own box rewrites the words and leaves the rest of the line alone, which is the size a review needs. In Tasks hands the whole task to that plugin's own window instead — dates, recurrence, dependencies, your own status set — and writes back what you confirm, without leaving the round. It needs the Tasks plugin, version 7.21.0 or newer; without it the card's own box opens whatever this says. Either way the ⋯ menu offers the Tasks window when it is there, so this only decides what the quicker gesture reaches.",
+						name: "Clicking a task's title, and adding a task",
+						desc: "The wheel's own box rewrites the words and leaves the rest of the line alone, which is the size a review needs. In Tasks hands the whole task to that plugin's own window instead — dates, recurrence, dependencies, your own status set — and writes back what you confirm, without leaving the round. Add task and Add subtask follow the same choice: the same window opens on a blank task instead of the card's own prompt. It needs the Tasks plugin, version 7.21.0 or newer; without it the card's own box opens whatever this says. Either way the ⋯ menu offers the Tasks window when it is there, so this only decides what the quicker gesture reaches.",
 						control: {
 							type: "dropdown",
 							key: "editTask",

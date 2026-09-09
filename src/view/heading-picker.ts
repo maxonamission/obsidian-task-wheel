@@ -82,6 +82,26 @@ export interface Destination {
 	choice: HeadingChoice | { kind: "keep" } | null;
 }
 
+/**
+ * The half of the answer the rows other than *keep* were not giving.
+ *
+ * The `keep` row has always said what it does. Choosing a heading instead
+ * says only where the work lands, never what that costs, and when the blocks
+ * come from several sections it costs the sections: `pasteInto` is handed the
+ * one chosen path for every block, so `Project` and `Ander project` arrive as
+ * one flat list under it (gemeten 9 sep 2026, BC_E3_S114). Nothing is lost
+ * and nothing is hidden, but the shape is gone, and §3.3 asks that the reader
+ * hear that before it happens rather than find it afterwards.
+ */
+export function collapseHint(
+	sourcePaths: readonly (readonly string[])[],
+): string {
+	const distinct = new Set(sourcePaths.map((path) => path.join(" › ")));
+	return distinct.size > 1
+		? ` · the ${distinct.size} sections land here as one list`
+		: "";
+}
+
 class DestinationPicker extends FuzzySuggestModal<
 	HeadingChoice | { kind: "keep" }
 > {
@@ -162,6 +182,10 @@ class DestinationPicker extends FuzzySuggestModal<
 		if (match.item.kind === "existing") {
 			super.renderSuggestion(match, el);
 			el.addClass(`task-wheel-heading-level-${match.item.heading.level}`);
+			const cost = collapseHint(this.sourcePaths);
+			if (cost.length > 0) {
+				el.createSpan({ cls: "task-wheel-heading-collapse", text: cost });
+			}
 			return;
 		}
 
@@ -173,7 +197,9 @@ class DestinationPicker extends FuzzySuggestModal<
 
 		// Said in full: whatever of this path the other note does not have will
 		// be written into it, and a reader should know that before it happens.
-		el.createSpan({ text: `Make “${splitPath(match.item.title).join(" › ")}”` });
+		el.createSpan({
+			text: `Make “${splitPath(match.item.title).join(" › ")}”${collapseHint(this.sourcePaths)}`,
+		});
 	}
 
 	/** What the default row says — and it has to say what it will do. */
