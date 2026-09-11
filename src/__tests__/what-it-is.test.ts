@@ -125,7 +125,7 @@ group("on a real wheel, every kind answers", () => {
 				...DEFAULT_PARSE_OPTIONS,
 				scope: VAULT_SCOPE,
 				taskNoteProperty: "type",
-				taskNoteValue: "task",
+				taskNoteValues: ["task"],
 			},
 		);
 		const layout = layoutWheel(tree, { focusId: null });

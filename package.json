@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-task-wheel",
-	"version": "0.2.10",
+	"version": "0.2.11",
 	"description": "Task Wheel for Obsidian — review every open task with certainty: a turnable radial tree where angle is life domain and radius is hierarchy depth.",
 	"main": "main.js",
 	"scripts": {
@@ -30,7 +30,7 @@
 		"tslib": "2.8.1",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.63.0",
-		"vitest": "^4.1.11"
+		"vitest": "^4.1.10"
 	},
 	"overrides": {
 		"brace-expansion": "^5.0.9"

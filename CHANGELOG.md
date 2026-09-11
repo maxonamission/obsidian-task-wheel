@@ -4,6 +4,27 @@ All notable changes to Task Wheel. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release workflow
 lifts each version's section into the GitHub release notes.
 
+## [0.2.11]
+
+One setting that could not say what a vault already knew, and a round of text
+that had stopped being true.
+
+- **Added**: *Values it may have*, under **A note that is itself a task**, takes
+  a comma-separated list. One vault can have more than one kind of note that is
+  a piece of work, and `task, project` now counts both. It used to take a single
+  word, and writing two of them with a comma between searched for the whole
+  string literally: no note carries that, so nothing appeared and nothing said
+  why. An existing single value is carried over when you upgrade. The field was
+  called *Value it must have*.
+- **Changed**: the description and the README no longer say the wheel is *not a
+  task manager*. That sentence bundled two claims, and only one of them still
+  held. It does not **own** your tasks: no list of its own, no syntax of its
+  own, nothing stored outside your notes — that is as true as it ever was. That
+  you cannot really act from the wheel stopped being true a while ago, and the
+  *Not this* section still ruled out renaming a task and writing a new one, both
+  of which the wheel does. Nothing about the plugin changed here; the words
+  caught up with it.
+
 ## [0.2.10]
 
 One thing, and it is the answer to a question that had been open a while: the

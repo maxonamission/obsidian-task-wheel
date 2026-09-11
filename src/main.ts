@@ -29,6 +29,7 @@ import {
 	everyState,
 	filterOf,
 	parseOptionsOf,
+	taskNoteValuesOf,
 	TaskWheelSettingTab,
 	type TaskWheelSettings,
 	setFilter,
@@ -938,6 +939,8 @@ export default class TaskWheelPlugin extends Plugin {
 			filterWithoutTags: [...(stored?.filterWithoutTags ?? [])],
 			excludeNoteTypes: [...(stored?.excludeNoteTypes ?? [])],
 			excludeHeadings: [...(stored?.excludeHeadings ?? [])],
+			taskNoteValues: taskNoteValuesOf(stored),
+			taskNoteDoneValues: [...(stored?.taskNoteDoneValues ?? [])],
 		};
 
 		// A blikveld written before the filter moved out of the plugin settings

@@ -14,9 +14,12 @@ It is for the weekly review, or whatever you call the moment you sit down and go
 through everything: the moment a list of five thousand checkboxes is exactly the
 wrong tool.
 
-It is a **review instrument, not an execution instrument**. The point is being
-able to say with certainty that you have seen everything. Ticking a task off is
-possible, but it is not what the wheel is for.
+It is built for **reviewing**, and it does not try to own your tasks: no list of
+its own, no syntax of its own, nothing stored outside your notes. But a review
+you cannot act on is only reading, so you can act. Tick, push a week out,
+reprioritise, rename, move, add a subtask: every one of those writes straight
+back into the note it came from, in the syntax that was already there. The point
+is still being able to say with certainty that you have seen everything.
 
 Everything is computed locally: **no network calls, no telemetry, no account**.
 Free and GPL-3.0.
@@ -342,9 +345,12 @@ tags — it is a task like any other, in the place it was already in.
 
 - **Property that marks one** — `type`, say. Empty by default, and empty means
   nothing changes.
-- **Value it must have** — `task`, next to a `type`. Leave it empty when
-  carrying the property at all is the point, which is how an id-style marker
-  works: its value differs in every note.
+- **Values it may have** — `task`, next to a `type`, and comma-separated when
+  more than one kind of note is a piece of work: `task, project` counts both.
+  Leave it empty when carrying the property at all is the point, which is how an
+  id-style marker works: its value differs in every note. Case is ignored, and a
+  word without a dot also matches the part after the last dot, so `task` finds a
+  type written `Project.Task`.
 - **Property that says it is finished**, and **the values that mean it** —
   `status`, with `done` and `cancelled`. A checkbox has its brackets; a note has
   whatever its front matter says, and without this a task note would keep coming
@@ -603,8 +609,13 @@ different selection is a different round.
 
 Task Wheel deliberately does not do: external task services, a task syntax of
 its own, time blocking or calendar integration, multi-user collaboration, or a
-full task editor. Splitting a task, rewriting it, or writing a new one belongs
-in the note — which is what *open the note* is for.
+full text editor.
+
+You can edit a task from the card, but what the card edits is the task line and
+where it sits: its status, its dates, its priority, its wording, its place in
+the outline. Everything around the task stays the note's business. Splitting one
+task into several, or writing the paragraph that explains why it matters, is
+what *open the note* is for, and that is a button on the card.
 
 ## Settings worth knowing
 

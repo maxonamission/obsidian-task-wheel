@@ -630,13 +630,17 @@ export interface ParseOptions {
 	 */
 	taskNoteProperty: string;
 	/**
-	 * The value that property must carry, or empty for "having it is enough".
+	 * The values that property may carry, or empty for "having it is enough".
 	 *
 	 * `type` + `task` is one convention; an id-style marker is the other, and
 	 * there the value is different in every note and only its presence means
 	 * anything.
+	 *
+	 * A list rather than one word, because a vault can have more than one kind
+	 * of note that is a piece of work: `task` beside `project`. Matching any of
+	 * them is enough (BC_E3_S189).
 	 */
-	taskNoteValue: string;
+	taskNoteValues: string[];
 	/** Property that carries such a note's status. */
 	taskNoteDoneProperty: string;
 	/**
@@ -690,7 +694,7 @@ export const DEFAULT_PARSE_OPTIONS: ParseOptions = {
 	excludeNoteTypes: [],
 	excludeHeadings: [],
 	taskNoteProperty: "",
-	taskNoteValue: "",
+	taskNoteValues: [],
 	taskNoteDoneProperty: "status",
 	taskNoteDoneValues: [],
 	taskNoteOpenValue: "todo",

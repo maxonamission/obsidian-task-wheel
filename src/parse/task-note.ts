@@ -38,6 +38,14 @@ import { projectLabel } from "./domain";
  * Two readings of the same setting, because there are two conventions in the
  * wild: with a value it is `type: task`, without one it is "this note carries
  * an id, which is what makes it a task at all".
+ *
+ * The first reading takes a **list**, because one vault can have more than one
+ * kind of note that is a piece of work: `task` beside `project`. It used to
+ * take a single word, and a reader who wrote two of them separated by a comma
+ * got a literal search for `task, project` — no note carries that, so nothing
+ * appeared and nothing said why (eigenaar, 11 sep 2026; BC_E3_S189). Matching
+ * any one of the words is enough, which is also how the front matter is
+ * already read: a note whose own value is a list matches on any entry.
  */
 export function isTaskNote(note: NoteInput, options: ParseOptions): boolean {
 	const key = options.taskNoteProperty.trim();
@@ -52,10 +60,12 @@ export function isTaskNote(note: NoteInput, options: ParseOptions): boolean {
 	// it is a half-written note, not a task.
 	if (value === undefined || value === null || value === "") return false;
 
-	const wanted = options.taskNoteValue.trim();
-	if (wanted === "") return true;
+	const wanted = options.taskNoteValues
+		.map((word) => word.trim())
+		.filter((word) => word !== "");
+	if (wanted.length === 0) return true;
 
-	return valueMatches(value, [wanted]);
+	return valueMatches(value, wanted);
 }
 
 /**

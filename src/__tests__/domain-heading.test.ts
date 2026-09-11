@@ -171,7 +171,7 @@ describe("what the review found (BC_E3_S144)", () => {
 					frontmatter: { type: "task" },
 				},
 			],
-			{ ...HEADING_MODE, taskNoteProperty: "type", taskNoteValue: "task" },
+			{ ...HEADING_MODE, taskNoteProperty: "type", taskNoteValues: ["task"] },
 		);
 
 		expect(wedges(tree)).toEqual([HEADING_MODE.fallbackDomain]);

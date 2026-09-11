@@ -28,7 +28,7 @@ import {
 const MARKED: ParseOptions = {
 	...DEFAULT_PARSE_OPTIONS,
 	taskNoteProperty: "type",
-	taskNoteValue: "task",
+	taskNoteValues: ["task"],
 };
 
 function note(
@@ -70,6 +70,62 @@ describe("recognising a note that is a task", () => {
 		expect(isTaskNote(doc, MARKED)).toBe(true);
 		expect(isTaskNote(note("a.md", "", { type: "meeting" }), MARKED)).toBe(false);
 		expect(isTaskNote(note("a.md", "", {}), MARKED)).toBe(false);
+	});
+
+	it("matches any of several values", () => {
+		// One vault, two kinds of note that are a piece of work (BC_E3_S189).
+		const several: ParseOptions = {
+			...DEFAULT_PARSE_OPTIONS,
+			taskNoteProperty: "type",
+			taskNoteValues: ["task", "project"],
+		};
+		expect(isTaskNote(note("a.md", "", { type: "task" }), several)).toBe(true);
+		expect(isTaskNote(note("a.md", "", { type: "project" }), several)).toBe(true);
+		expect(isTaskNote(note("a.md", "", { type: "meeting" }), several)).toBe(false);
+	});
+
+	it("keeps the dot-tail rule per value", () => {
+		// `Project.Task` is the shape Operon writes. A bare word matches the part
+		// after the last dot; a word with a dot in it is compared whole.
+		const several: ParseOptions = {
+			...DEFAULT_PARSE_OPTIONS,
+			taskNoteProperty: "type",
+			taskNoteValues: ["task", "project"],
+		};
+		expect(isTaskNote(note("a.md", "", { type: "Project.Task" }), several)).toBe(true);
+
+		const exact: ParseOptions = {
+			...DEFAULT_PARSE_OPTIONS,
+			taskNoteProperty: "type",
+			taskNoteValues: ["Project.Task"],
+		};
+		expect(isTaskNote(note("a.md", "", { type: "Project.Task" }), exact)).toBe(true);
+		expect(isTaskNote(note("a.md", "", { type: "task" }), exact)).toBe(false);
+	});
+
+	it("matches a note whose own value is a list", () => {
+		// Both sides may be a list, and one overlap is enough. Front matter that
+		// reads `type: [project, task]` is legal YAML and a real answer.
+		const several: ParseOptions = {
+			...DEFAULT_PARSE_OPTIONS,
+			taskNoteProperty: "type",
+			taskNoteValues: ["task", "project"],
+		};
+		expect(isTaskNote(note("a.md", "", { type: ["note", "task"] }), several)).toBe(true);
+		expect(isTaskNote(note("a.md", "", { type: ["note", "log"] }), several)).toBe(false);
+	});
+
+	it("ignores blank entries rather than matching everything", () => {
+		// A trailing comma leaves an empty word behind. Treating that as "no value
+		// asked for" would turn every note carrying the property into a task, which
+		// is the opposite of what someone adding a word meant.
+		const sloppy: ParseOptions = {
+			...DEFAULT_PARSE_OPTIONS,
+			taskNoteProperty: "type",
+			taskNoteValues: ["task", "  ", ""],
+		};
+		expect(isTaskNote(note("a.md", "", { type: "task" }), sloppy)).toBe(true);
+		expect(isTaskNote(note("a.md", "", { type: "meeting" }), sloppy)).toBe(false);
 	});
 
 	it("takes the bare presence of a property when no value is asked for", () => {

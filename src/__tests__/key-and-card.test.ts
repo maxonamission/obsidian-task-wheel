@@ -54,7 +54,7 @@ const NOTES: NoteInput[] = [
 const settings = () => ({
 	...structuredClone(DEFAULT_SETTINGS),
 	taskNoteProperty: "type",
-	taskNoteValue: "taak",
+	taskNoteValues: ["taak"],
 });
 
 function nodes(scope: WheelScope): LaidOutNode[] {
@@ -62,7 +62,7 @@ function nodes(scope: WheelScope): LaidOutNode[] {
 		...DEFAULT_PARSE_OPTIONS,
 		scope,
 		taskNoteProperty: "type",
-		taskNoteValue: "taak",
+		taskNoteValues: ["taak"],
 	};
 	const tree = buildTree(NOTES, options);
 	return layoutWheel(tree, { focusId: null }).nodes;

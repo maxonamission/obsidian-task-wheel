@@ -162,8 +162,8 @@ export interface TaskWheelSettings
 	excludeHeadings: string[];
 	/** Front-matter property that marks a note as being one task (BC_E3_S130). */
 	taskNoteProperty: string;
-	/** Value it must carry, or empty when having the property is enough. */
-	taskNoteValue: string;
+	/** Values it may carry, or empty when having the property is enough. */
+	taskNoteValues: string[];
 	/** Property that carries such a note's status. */
 	taskNoteDoneProperty: string;
 	/** Extra values of that property that also mean finished. */
@@ -349,7 +349,7 @@ export const DEFAULT_SETTINGS: TaskWheelSettings = {
 	excludeNoteTypes: [],
 	excludeHeadings: [],
 	taskNoteProperty: "",
-	taskNoteValue: "",
+	taskNoteValues: [],
 	taskNoteDoneProperty: "status",
 	taskNoteDoneValues: [],
 	taskNoteOpenValue: "todo",
@@ -457,7 +457,7 @@ export function parseOptionsOf(
 		excludeNoteTypes: settings.excludeNoteTypes,
 		excludeHeadings: settings.excludeHeadings,
 		taskNoteProperty: settings.taskNoteProperty,
-		taskNoteValue: settings.taskNoteValue,
+		taskNoteValues: settings.taskNoteValues,
 		taskNoteDoneProperty: settings.taskNoteDoneProperty,
 		taskNoteDoneValues: settings.taskNoteDoneValues,
 		taskNoteOpenValue: settings.taskNoteOpenValue,
@@ -1172,12 +1172,12 @@ export class TaskWheelSettingTab extends PluginSettingTab {
 						},
 					},
 					{
-						name: "Value it must have",
-						desc: "Leave empty when carrying the property at all is what makes a note a task — which is how an id-style marker works, since its value is different in every note. Fill it in for a document standard, where the same property says what kind of note this is: 'task' next to 'type'.",
+						name: "Values it may have",
+						desc: "Comma-separated. Leave empty when carrying the property at all is what makes a note a task — which is how an id-style marker works, since its value is different in every note. Fill it in for a document standard, where the same property says what kind of note this is: 'task' next to 'type'. More than one word when more than one kind of note is a piece of work: 'task, project' counts both. Matched on the whole value, ignoring case; a value with dots in it also matches on the part after the last one, so 'task' finds 'Project.Task'.",
 						control: {
 							type: "text",
-							key: "taskNoteValue",
-							placeholder: "task",
+							key: "taskNoteValues",
+							placeholder: "task, project",
 						},
 					},
 				],
@@ -1605,13 +1605,48 @@ export const FILTER_LISTS: Readonly<Record<string, "withTags" | "withoutTags">> 
 	filterWithoutTags: "withoutTags",
 };
 
+/**
+ * The list of values that mark a note as a task, as stored settings hold it.
+ *
+ * Until BC_E3_S189 this was one word (`taskNoteValue`). Reading a stored file
+ * from before that change would otherwise silently drop the reader's setting:
+ * the key no longer exists, the new one falls back to its empty default, and
+ * "empty" means something entirely different here — every note carrying the
+ * property becomes a task. A vault set to `type: task` would suddenly show
+ * every `type: meeting` note as work. So the old key is read once and carried
+ * over, and the comma split is the same one the settings field does, because a
+ * reader who typed a comma into the old single field meant a list even when the
+ * code did not offer one.
+ *
+ * Written back as a list on the first save, after which the old key is gone.
+ */
+export function taskNoteValuesOf(
+	stored: Partial<TaskWheelSettings> | null,
+): string[] {
+	const current = stored?.taskNoteValues;
+	if (Array.isArray(current)) return [...current];
+
+	const legacy = (stored as { taskNoteValue?: unknown } | null)?.taskNoteValue;
+	if (typeof legacy !== "string") return [];
+
+	return legacy
+		.split(",")
+		.map((entry) => entry.trim())
+		.filter((entry) => entry.length > 0);
+}
+
 const TEXT_LISTS: ReadonlySet<string> = new Set([
 	"excludeNoteTypes",
 	"excludeHeadings",
+	"taskNoteValues",
 	"taskNoteDoneValues",
 ]);
 
-type TextListKey = "excludeNoteTypes" | "excludeHeadings" | "taskNoteDoneValues";
+type TextListKey =
+	| "excludeNoteTypes"
+	| "excludeHeadings"
+	| "taskNoteValues"
+	| "taskNoteDoneValues";
 
 const LIST_KEYS: ReadonlySet<string> = new Set([
 	"includeFolders",

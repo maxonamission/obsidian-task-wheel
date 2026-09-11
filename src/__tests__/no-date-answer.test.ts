@@ -85,7 +85,7 @@ const OPTIONS: ParseOptions = {
 	...DEFAULT_PARSE_OPTIONS,
 	scope: VAULT_SCOPE,
 	taskNoteProperty: "type",
-	taskNoteValue: "task",
+	taskNoteValues: ["task"],
 	today: "2026-09-04",
 };
 

@@ -143,7 +143,7 @@ describe("stepping in gives back what the wedge held (BC_E3_S150)", () => {
 	const TASK_NOTES: ParseOptions = {
 		...HEADING_MODE,
 		taskNoteProperty: "type",
-		taskNoteValue: "task",
+		taskNoteValues: ["task"],
 	};
 
 	/** Every task under this node, however deep. */
